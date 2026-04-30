@@ -9,14 +9,26 @@ class CategoryModel extends Model {
     
     public function getJewelCategories() {
         $sql = "SELECT subcat_id as id, categories_name as name, `desc` FROM jewel_subcat WHERE mcat_id=1 OR mcat_id=3 ORDER BY categories_name ASC";
-        return $this->db->query($sql)->fetch_all(MYSQLI_ASSOC);
+        $categories = $this->db->query($sql)->fetch_all(MYSQLI_ASSOC);
+        foreach ($categories as &$cat) {
+            $id = (int)$cat['id'];
+            $count_sql = "SELECT COUNT(*) as cnt FROM product WHERE categories_id = $id";
+            $cat['product_count'] = $this->db->query($count_sql)->fetch_assoc()['cnt'];
+        }
+        return $categories;
     }
     
     public function getJewelSubcategories($categoryId = null) {
         $where = "WHERE status = 1";
         if ($categoryId) $where .= " AND maincat_id = $categoryId";
         $sql = "SELECT subcat_id as id, maincat_id, name, `desc` FROM subcat1 $where ORDER BY name ASC";
-        return $this->db->query($sql)->fetch_all(MYSQLI_ASSOC);
+        $subcategories = $this->db->query($sql)->fetch_all(MYSQLI_ASSOC);
+        foreach ($subcategories as &$sub) {
+            $id = (int)$sub['id'];
+            $count_sql = "SELECT COUNT(*) as cnt FROM product WHERE subcat_id = $id";
+            $sub['product_count'] = $this->db->query($count_sql)->fetch_assoc()['cnt'];
+        }
+        return $subcategories;
     }
     
     public function saveJewelCategory($data) {
@@ -40,14 +52,26 @@ class CategoryModel extends Model {
     // --- GARMENTS / APPAREL ---
     
     public function getGarmentCategories() {
-        $sql = "SELECT garment_id as id, name, description FROM garments ORDER BY name ASC";
-        return $this->db->query($sql)->fetch_all(MYSQLI_ASSOC);
+        $sql = "SELECT garment_id as id, name, description FROM garments WHERE Main_id=1 OR Main_id=3 ORDER BY name ASC";
+        $categories = $this->db->query($sql)->fetch_all(MYSQLI_ASSOC);
+        foreach ($categories as &$cat) {
+            $id = (int)$cat['id'];
+            $count_sql = "SELECT COUNT(*) as cnt FROM garment_product WHERE garment_id = $id OR product_for = $id";
+            $cat['product_count'] = $this->db->query($count_sql)->fetch_assoc()['cnt'];
+        }
+        return $categories;
     }
 
     public function getGarmentSubcategories($garmentId = null) {
         $where = $garmentId ? "WHERE gmain_id = $garmentId" : "";
         $sql = "SELECT sub_id as id, gmain_id, sub_name as name, description as `desc` FROM garment_subcat $where ORDER BY sub_name ASC";
-        return $this->db->query($sql)->fetch_all(MYSQLI_ASSOC);
+        $subcategories = $this->db->query($sql)->fetch_all(MYSQLI_ASSOC);
+        foreach ($subcategories as &$sub) {
+            $id = (int)$sub['id'];
+            $count_sql = "SELECT COUNT(*) as cnt FROM garment_product WHERE garment_id = $id"; // Garment subcats are rare but supported
+            $sub['product_count'] = $this->db->query($count_sql)->fetch_assoc()['cnt'];
+        }
+        return $subcategories;
     }
     
     public function saveGarmentCategory($data) {
@@ -106,5 +130,29 @@ class CategoryModel extends Model {
         }
         
         return $this->db->query($sql)->fetch_assoc();
+    }
+
+    public function getCategoryIdByName($name, $type = 'jewellery') {
+        $name = mysqli_real_escape_string($this->db, trim($name));
+        if (empty($name)) return 0;
+
+        if ($type === 'jewellery') {
+            // Check Main Categories
+            $sql = "SELECT subcat_id as id FROM jewel_subcat WHERE categories_name = '$name' LIMIT 1";
+            $res = mysqli_query($this->db, $sql);
+            if ($row = mysqli_fetch_assoc($res)) return (int)$row['id'];
+
+            // Check Subcategories
+            $sql = "SELECT subcat_id as id FROM subcat1 WHERE name = '$name' LIMIT 1";
+            $res = mysqli_query($this->db, $sql);
+            if ($row = mysqli_fetch_assoc($res)) return (int)$row['id'];
+        } else {
+            // Apparel
+            $sql = "SELECT garment_id as id FROM garment_category WHERE name = '$name' LIMIT 1";
+            $res = mysqli_query($this->db, $sql);
+            if ($row = mysqli_fetch_assoc($res)) return (int)$row['id'];
+        }
+
+        return 0;
     }
 }

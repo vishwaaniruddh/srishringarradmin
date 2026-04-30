@@ -38,6 +38,7 @@ function isActive($controller, $action = null) {
             </button>
             <div class="submenu <?php echo (isActive('product') || isActive('category')) ? '' : 'hidden'; ?> overflow-hidden transition-all duration-300 pl-12 pr-4 space-y-1">
                 <a href="index.php?controller=product&action=index" class="block py-2 text-sm <?php echo isActive('product', 'index') ? 'text-primary font-semibold' : 'text-gray-500 hover:text-primary'; ?> transition-colors">All Products</a>
+                <a href="index.php?controller=wooproduct&action=index" class="block py-2 text-sm <?php echo isActive('wooproduct') ? 'text-primary font-semibold' : 'text-gray-500 hover:text-primary'; ?> transition-colors font-medium">Yn Products <span class="ml-1 text-[10px] bg-blue-100 text-blue-600 px-1 rounded uppercase tracking-tighter">Remote</span></a>
                 <a href="index.php?controller=product&action=add" class="block py-2 text-sm <?php echo isActive('product', 'add') ? 'text-primary font-semibold' : 'text-gray-500 hover:text-primary'; ?> transition-colors">Add New</a>
                 <a href="index.php?controller=category&action=index" class="block py-2 text-sm <?php echo isActive('category') ? 'text-primary font-semibold' : 'text-gray-500 hover:text-primary'; ?> transition-colors">Categories</a>
             </div>

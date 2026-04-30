@@ -10,33 +10,32 @@ class ProductModel extends Model {
         $page = $params['page'] ?? 1;
         $offset = ($page - 1) * $records_per_page;
         $search = $params['search'] ?? '';
-        $category = $params['category'] ?? '';
+        $category_param = $params['category'] ?? '';
 
         $jewellery_search = '';
         $garments_search = '';
+        
         if (!empty($search)) {
             $search = mysqli_real_escape_string($this->db, $search);
             $jewellery_search = " AND (product_name LIKE '%$search%' OR product_code LIKE '%$search%')";
             $garments_search = " AND (gproduct_name LIKE '%$search%' OR gproduct_code LIKE '%$search%')";
         }
 
-        if (!empty($category)) {
-            $category = mysqli_real_escape_string($this->db3, $category);
-            $pos_items_with_category = "SELECT name FROM phppos_items WHERE category LIKE '$category%'";
-            $matching_skus_result = $this->query($this->db3, $pos_items_with_category);
-            
-            $matching_skus = [];
-            while ($sku_row = $this->fetchOne($matching_skus_result)) {
-                $matching_skus[] = "'" . mysqli_real_escape_string($this->db, $sku_row['name']) . "'";
-            }
-
-            if (!empty($matching_skus)) {
-                $skus_list = implode(',', $matching_skus);
-                $jewellery_search .= " AND product_code IN ($skus_list)";
-                $garments_search .= " AND gproduct_code IN ($skus_list)";
-            } else {
-                $jewellery_search .= " AND 1=0";
-                $garments_search .= " AND 1=0";
+        if (!empty($category_param)) {
+            if (strpos($category_param, ':') !== false) {
+                list($type, $id) = explode(':', $category_param);
+                $id = (int)$id;
+                
+                if ($type === 'garment') {
+                    $garments_search .= " AND (garment_id = $id OR product_for = $id)";
+                    $jewellery_search .= " AND 1=0";
+                } elseif ($type === 'jewel_parent') {
+                    $jewellery_search .= " AND categories_id = $id";
+                    $garments_search .= " AND 1=0";
+                } elseif ($type === 'jewel_child') {
+                    $jewellery_search .= " AND subcat_id = $id";
+                    $garments_search .= " AND 1=0";
+                }
             }
         }
 
@@ -60,7 +59,7 @@ class ProductModel extends Model {
                 'garments' as type,
                 discount,
                 garment_id as category_id,
-                '' as subcategory_id,
+                0 as subcategory_id,
                 sales_price as original_sales_price
             FROM garment_product 
             WHERE 1=1 $garments_search)
@@ -79,82 +78,122 @@ class ProductModel extends Model {
 
     public function getTotalCount($params = []) {
         $search = $params['search'] ?? '';
-        $category = $params['category'] ?? '';
+        $category_param = $params['category'] ?? '';
 
         $jewellery_search = '';
         $garments_search = '';
+        
         if (!empty($search)) {
             $search = mysqli_real_escape_string($this->db, $search);
             $jewellery_search = " AND (product_name LIKE '%$search%' OR product_code LIKE '%$search%')";
             $garments_search = " AND (gproduct_name LIKE '%$search%' OR gproduct_code LIKE '%$search%')";
         }
 
-        if (!empty($category)) {
-            $category = mysqli_real_escape_string($this->db3, $category);
-            $pos_items_with_category = "SELECT name FROM phppos_items WHERE category LIKE '$category%'";
-            $matching_skus_result = $this->query($this->db3, $pos_items_with_category);
-            
-            $matching_skus = [];
-            while ($sku_row = $this->fetchOne($matching_skus_result)) {
-                $matching_skus[] = "'" . mysqli_real_escape_string($this->db, $sku_row['name']) . "'";
-            }
-
-            if (!empty($matching_skus)) {
-                $skus_list = implode(',', $matching_skus);
-                $jewellery_search .= " AND product_code IN ($skus_list)";
-                $garments_search .= " AND gproduct_code IN ($skus_list)";
-            } else {
-                return 0;
+        if (!empty($category_param)) {
+            if (strpos($category_param, ':') !== false) {
+                list($type, $id) = explode(':', $category_param);
+                $id = (int)$id;
+                
+                if ($type === 'garment') {
+                    $garments_search .= " AND (garment_id = $id OR product_for = $id)";
+                    $jewellery_search .= " AND 1=0";
+                } elseif ($type === 'jewel_parent') {
+                    $jewellery_search .= " AND categories_id = $id";
+                    $garments_search .= " AND 1=0";
+                } elseif ($type === 'jewel_child') {
+                    $jewellery_search .= " AND subcat_id = $id";
+                    $garments_search .= " AND 1=0";
+                }
             }
         }
 
         $total_query = "
-            SELECT COUNT(*) as count FROM (
-                SELECT product_id FROM product WHERE 1=1 $jewellery_search
+            SELECT SUM(count) as total FROM (
+                SELECT COUNT(*) as count FROM product WHERE 1=1 $jewellery_search
                 UNION ALL
-                SELECT gproduct_id FROM garment_product WHERE 1=1 $garments_search
+                SELECT COUNT(*) as count FROM garment_product WHERE 1=1 $garments_search
             ) as combined_products";
 
         $result = $this->query($this->db, $total_query);
-        return $this->fetchOne($result)['count'] ?? 0;
+        return $this->fetchOne($result)['total'] ?? 0;
     }
 
     public function getCategories() {
-        $categories_query = "
-            SELECT 
-                SUBSTRING_INDEX(category, '>', 1) as parent_category,
-                CASE 
-                    WHEN CHAR_LENGTH(category) - CHAR_LENGTH(REPLACE(category, '>', '')) > 0 
-                    THEN SUBSTRING_INDEX(category, '>', -1)
-                    ELSE NULL 
-                END as child_category,
-                COUNT(*) as count,
-                category as full_category
-            FROM phppos_items 
-            WHERE category IS NOT NULL AND category != ''
-            GROUP BY parent_category, child_category, category
-            ORDER BY parent_category, child_category";
-
-        $result = $this->query($this->db3, $categories_query);
-        $raw = $this->fetchAll($result);
-        
         $categories = [];
-        $category_counts = [];
 
-        foreach ($raw as $cat) {
-            $parent = trim($cat['parent_category']);
-            $child = $cat['child_category'] ? trim($cat['child_category']) : null;
-            $count = $cat['count'];
+        // 1. Apparel Categories
+        $apparel_qry = "SELECT garment_id, name FROM garments WHERE Main_id=1 OR Main_id=3 ORDER BY name";
+        $apparel_res = $this->query($this->db, $apparel_qry);
+        $apparel_data = ['children' => [], 'count' => 0];
+        
+        while ($row = $this->fetchOne($apparel_res)) {
+            $id = $row['garment_id'];
+            $name = ucwords(strtolower($row['name']));
+            
+            $count_qry = "SELECT COUNT(*) as cnt FROM garment_product WHERE garment_id = $id OR product_for = $id";
+            $count_res = $this->query($this->db, $count_qry);
+            $count_row = $this->fetchOne($count_res);
+            $count = (int)$count_row['cnt'];
 
-            if (!isset($categories[$parent])) {
-                $categories[$parent] = ['children' => [], 'count' => 0];
+            if ($count > 0) {
+                $apparel_data['children']["garment:$id"] = [
+                    'name' => $name,
+                    'count' => $count
+                ];
+                $apparel_data['count'] += $count;
             }
+        }
+        if ($apparel_data['count'] > 0) {
+            $categories['Apparel'] = $apparel_data;
+        }
 
-            $categories[$parent]['count'] += $count;
+        // 2. Jewellery Categories
+        $jewel_qry = "SELECT subcat_id, categories_name FROM jewel_subcat WHERE mcat_id=1 OR mcat_id=3 ORDER BY categories_name";
+        $jewel_res = $this->query($this->db, $jewel_qry);
+        $jewel_data = ['children' => [], 'count' => 0];
 
-            if ($child) {
-                $categories[$parent]['children'][$child] = $count;
+        while ($row = $this->fetchOne($jewel_res)) {
+            $parent_id = $row['subcat_id'];
+            $parent_name = ucwords(strtolower($row['categories_name']));
+
+            // Count products for this parent
+            $parent_count_qry = "SELECT COUNT(*) as cnt FROM product WHERE categories_id = $parent_id";
+            $parent_count_res = $this->query($this->db, $parent_count_qry);
+            $parent_count_row = $this->fetchOne($parent_count_res);
+            $parent_count = (int)$parent_count_row['cnt'];
+
+            if ($parent_count > 0) {
+                // Add parent option
+                $jewel_data['children']["jewel_parent:$parent_id"] = [
+                    'name' => $parent_name,
+                    'count' => $parent_count
+                ];
+
+                // Get subcategories
+                $sub_qry = "SELECT subcat_id, name FROM subcat1 WHERE maincat_id = $parent_id AND status=1 ORDER BY name";
+                $sub_res = $this->query($this->db, $sub_qry);
+                
+                while ($sub_row = $this->fetchOne($sub_res)) {
+                    $sub_id = $sub_row['subcat_id'];
+                    $sub_name = ucwords(strtolower($sub_row['name']));
+
+                    $sub_count_qry = "SELECT COUNT(*) as cnt FROM product WHERE subcat_id = $sub_id";
+                    $sub_count_res = $this->query($this->db, $sub_count_qry);
+                    $sub_count_row = $this->fetchOne($sub_count_res);
+                    $sub_count = (int)$sub_count_row['cnt'];
+
+                    if ($sub_count > 0 && $sub_name !== $parent_name) {
+                        $jewel_data['children']["jewel_child:$sub_id"] = [
+                            'name' => "— $sub_name",
+                            'count' => $sub_count
+                        ];
+                    }
+                }
+                $jewel_data['count'] += $parent_count;
             }
+        }
+        if ($jewel_data['count'] > 0) {
+            $categories['Jewellery'] = $jewel_data;
         }
 
         return $categories;
@@ -299,23 +338,28 @@ class ProductModel extends Model {
     }
 
     public function getJewelCategories() {
-        $sql = "SELECT subcat_id, categories_name FROM jewel_subcat ORDER BY categories_name ASC";
-        return $this->db->query($sql)->fetch_all(MYSQLI_ASSOC);
+        $sql = "SELECT subcat_id, categories_name FROM jewel_subcat WHERE mcat_id=1 OR mcat_id=3 ORDER BY categories_name ASC";
+        $result = $this->query($this->db, $sql);
+        return $this->fetchAll($result);
     }
 
     public function getJewelSubcategories($categoryId) {
+        $categoryId = (int)$categoryId;
         $sql = "SELECT subcat_id, name FROM subcat1 WHERE maincat_id = $categoryId AND status = 1 ORDER BY name ASC";
-        return $this->db->query($sql)->fetch_all(MYSQLI_ASSOC);
+        $result = $this->query($this->db, $sql);
+        return $this->fetchAll($result);
     }
 
     public function getGarmentSubcategories($garmentId) {
+        $garmentId = (int)$garmentId;
         $sql = "SELECT sub_id, sub_name FROM garment_subcat WHERE gmain_id = $garmentId ORDER BY sub_name ASC";
-        return $this->db->query($sql)->fetch_all(MYSQLI_ASSOC);
+        $result = $this->query($this->db, $sql);
+        return $this->fetchAll($result);
     }
 
     public function getGarments() {
-        $query = "SELECT garment_id, name FROM garments ORDER BY name";
-        $result = $this->query($this->db, $query);
+        $sql = "SELECT garment_id, name FROM garments WHERE Main_id=1 OR Main_id=3 ORDER BY name";
+        $result = $this->query($this->db, $sql);
         return $this->fetchAll($result);
     }
 
@@ -503,5 +547,72 @@ class ProductModel extends Model {
             mysqli_rollback($this->db);
             throw $e;
         }
+    }
+
+    public function syncProductBySku($type, $data, $images = []) {
+        $sku = $this->db->real_escape_string($data['code']);
+        $name = $this->db->real_escape_string($data['name']);
+        $desc = $this->db->real_escape_string($data['description'] ?? '');
+        $cat = (int)($data['category'] ?? 0);
+        $sub = (int)($data['sub_category'] ?? 0);
+        $price = (float)($data['s_price'] ?? 0);
+        $rent = (float)($data['rental_price'] ?? 0);
+        $dep = (float)($data['deposit'] ?? 0);
+
+        if ($type === 'jewellery') {
+            $sql = "UPDATE product SET 
+                    product_name = '$name',
+                    product_desc = '$desc',
+                    categories_id = $cat,
+                    subcat_id = $sub,
+                    sales_price = $price,
+                    rent_price = $rent,
+                    deposit = $dep
+                    WHERE product_code = '$sku'";
+            $this->db->query($sql);
+            
+            if (!empty($images)) {
+                $date_added = date('Y-m-d H:i:s');
+                foreach ($images as $img) {
+                    $imgSql = "INSERT INTO product_images_new (product_id, pro_code, img_name, prod_name, prod_image, date_added) 
+                               VALUES (
+                                   (SELECT product_id FROM product WHERE product_code = '$sku' LIMIT 1), 
+                                   '$sku', 
+                                   '$img',
+                                   '$name',
+                                   '$img',
+                                   '$date_added'
+                               )";
+                    $this->db->query($imgSql);
+                }
+            }
+        } else {
+            $sql = "UPDATE garment_product SET 
+                    gproduct_name = '$name',
+                    gproduct_desc = '$desc',
+                    garment_id = $cat,
+                    sales_price = $price,
+                    rent_price = $rent,
+                    deposit = $dep
+                    WHERE gproduct_code = '$sku'";
+            $this->db->query($sql);
+
+            if (!empty($images)) {
+                $date_added = date('Y-m-d H:i:s');
+                foreach ($images as $img) {
+                    $imgSql = "INSERT INTO product_images_new (gproduct_id, pro_code, img_name, prod_name, prod_image, date_added) 
+                               VALUES (
+                                   (SELECT gproduct_id FROM garment_product WHERE gproduct_code = '$sku' LIMIT 1), 
+                                   '$sku', 
+                                   '$img',
+                                   '$name',
+                                   '$img',
+                                   '$date_added'
+                               )";
+                    $this->db->query($imgSql);
+                }
+            }
+        }
+        return true;
     }
 }

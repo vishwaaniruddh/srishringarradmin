@@ -4,6 +4,7 @@ ini_set('display_startup_errors', 1);
 error_reporting(E_ALL);
 
 // Autoloader
+require __DIR__ . '/vendor/autoload.php';
 spl_autoload_register(function ($class) {
     $class = str_replace('\\', DIRECTORY_SEPARATOR, $class);
     $file = __DIR__ . DIRECTORY_SEPARATOR . $class . '.php';

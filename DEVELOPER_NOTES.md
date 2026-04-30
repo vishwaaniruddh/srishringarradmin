@@ -8,6 +8,7 @@ This folder contains the new administration system built with a dedicated MVC (M
 - **LEGACY PRESERVATION**: DO NOT modify existing files in the parent `public_html/admin/` or other `public_html/` directories. This new system acts as a parallel, modern alternative.
 - **TRANSACTIONS**: Use `mysqli_begin_transaction` for all multi-step data insertions to ensure integrity.
 - **POS DATABASE**: Treat `$con3` as read-only. Use it only for verification.
+- **REST API ARCHITECTURE**: Everything should be a REST API call. Data fetching and rendering must be decoupled. Use dedicated API endpoints in `ApiController.php` and fetch data using JavaScript on the frontend. No "mixed code" (mixing complex PHP data logic directly in HTML templates) is allowed for data tables or dynamic content.
 - **SECURITY**: Always use `check_auth.php` or a dedicated AuthController to verify user sessions.
 
 ## Directory Structure

@@ -8,26 +8,11 @@ class ProductController extends Controller {
     public function index() {
         $productModel = new ProductModel();
         
-        $page = isset($_GET['page']) ? (int)$_GET['page'] : 1;
         $search = isset($_GET['search']) ? $_GET['search'] : '';
         $category = isset($_GET['category']) ? $_GET['category'] : '';
-        
-        $params = [
-            'page' => $page,
-            'limit' => 20,
-            'search' => $search,
-            'category' => $category
-        ];
-        
-        $products = $productModel->getProducts($params);
-        $totalRecords = $productModel->getTotalCount($params);
         $categories = $productModel->getCategories();
         
         $this->view('products/index', [
-            'products' => $products,
-            'totalRecords' => $totalRecords,
-            'totalPages' => ceil($totalRecords / 20),
-            'currentPage' => $page,
             'search' => $search,
             'category' => $category,
             'categories' => $categories
@@ -202,6 +187,22 @@ class ProductController extends Controller {
         return $uploadedImages;
     }
 
+    public function downloadTemplate() {
+        if (ob_get_level()) ob_end_clean();
+        
+        $csv = "sku,name,description,type,category_id,subcat_id,s_price,rental_price,deposit,images\n";
+        $csv .= '"JW101","Bridal Necklace Set","Beautiful antique set","jewellery","1","1","5000","1500","2000","https://example.com/img1.jpg,https://example.com/img2.jpg"' . "\n";
+        $csv .= '"GM202","Red Lehenga Choli","Designer lehenga","garments","10","","12000","3500","5000","https://example.com/img3.jpg"' . "\n";
+
+        header('Content-Type: text/csv; charset=utf-8');
+        header('Content-Disposition: attachment; filename="product_import_template.csv"');
+        header('Content-Length: ' . strlen($csv));
+        header('Pragma: no-cache');
+        header('Expires: 0');
+        echo $csv;
+        exit;
+    }
+
     public function export() {
         $productModel = new ProductModel();
         $params = ['limit' => 10000]; // Get all products
@@ -239,13 +240,20 @@ class ProductController extends Controller {
     }
 
     public function import() {
-        $this->view('products/import');
+        $productModel = new ProductModel();
+        $categories = $productModel->getCategories();
+        $this->view('products/import', [
+            'categories' => $categories
+        ]);
     }
 
     public function processImportRow() {
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') $this->json(['error' => 'Method not allowed'], 405);
 
-        $data = $_POST;
+        // Support both JSON (from modern dashboard) and Form Data (legacy)
+        $input = json_decode(file_get_contents('php://input'), true);
+        $data = !empty($input) ? $input : $_POST;
+        
         $productModel = new ProductModel();
 
         try {
@@ -255,10 +263,8 @@ class ProductController extends Controller {
             if (empty($code)) throw new \Exception("Missing SKU");
 
             // Check if exists
-            if ($productModel->checkProductExists($code, $type)) {
-                return $this->json(['status' => 'skipped', 'message' => "Product $code already exists"]);
-            }
-
+            $isUpdate = $productModel->checkProductExists($code, $type);
+            
             // Process Images from URLs
             $imageUrls = !empty($data['images']) ? explode(',', $data['images']) : [];
             $downloadedImages = [];
@@ -267,6 +273,9 @@ class ProductController extends Controller {
                 $url = trim($url);
                 if (empty($url)) continue;
 
+                // For updates, we might want to check if image already exists to avoid duplicates
+                // But for now, we'll just download and add
+                
                 $current_year = date('Y');
                 $current_month = date('m');
                 $upload_base = __DIR__ . "/../../../yn/uploads/";
@@ -288,20 +297,40 @@ class ProductController extends Controller {
                 }
             }
 
+            $catId = $data['category_id'] ?? 0;
+            $subId = $data['subcat_id'] ?? 0;
+            
+            // Smart Match for Category Names if IDs are not numeric
+            $categoryModel = new \Models\CategoryModel();
+            if (!empty($catId) && !is_numeric($catId)) {
+                $foundId = $categoryModel->getCategoryIdByName($catId, $type);
+                if ($foundId) $catId = $foundId;
+                else $catId = 0; // Fallback to 0 if not found
+            }
+            if (!empty($subId) && !is_numeric($subId)) {
+                $foundId = $categoryModel->getCategoryIdByName($subId, $type);
+                if ($foundId) $subId = $foundId;
+                else $subId = 0;
+            }
+
             $saveData = [
                 'code' => $code,
                 'name' => $data['name'] ?? 'Imported Product',
                 'description' => $data['description'] ?? '',
-                'category' => $data['category_id'] ?? 0,
-                'sub_category' => $data['subcat_id'] ?? 0,
+                'category' => $catId,
+                'sub_category' => $subId,
                 's_price' => $data['s_price'] ?? 0,
                 'rental_price' => $data['rental_price'] ?? 0,
                 'deposit' => $data['deposit'] ?? 0
             ];
 
-            $productModel->saveProduct($type, $saveData, $downloadedImages);
-
-            return $this->json(['status' => 'success', 'message' => "Product $code imported successfully"]);
+            if ($isUpdate) {
+                $productModel->syncProductBySku($type, $saveData, $downloadedImages);
+                return $this->json(['status' => 'updated', 'message' => "Product $code updated successfully"]);
+            } else {
+                $productModel->saveProduct($type, $saveData, $downloadedImages);
+                return $this->json(['status' => 'success', 'message' => "Product $code imported successfully"]);
+            }
         } catch (\Exception $e) {
             return $this->json(['status' => 'error', 'message' => $e->getMessage()]);
         }
