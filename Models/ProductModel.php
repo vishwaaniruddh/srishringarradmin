@@ -375,29 +375,37 @@ class ProductModel extends Model {
         try {
             $product_id = 0;
             $date_added = date('Y-m-d H:i:s');
+            $name = $data['name'];
+            $desc = $data['description'] ?? '';
+            $code = $data['code'];
+            $cat = (int)($data['category'] ?? 0);
+            $sub = (int)($data['sub_category'] ?? 0);
+            $price = (float)($data['s_price'] ?? 0);
+            $rent = (float)($data['rental_price'] ?? 0);
+            $dep = (float)($data['deposit'] ?? 0);
             
             if ($type === 'jewellery') {
                 $sql = "INSERT INTO product (
                     product_code, product_name, product_desc, date_added, 
                     categories_id, subcat_id, sales_price, rent_price, deposit
-                ) VALUES (
-                    '{$data['code']}', '{$data['name']}', '{$data['description']}', '$date_added',
-                    '{$data['category']}', '{$data['sub_category']}', '{$data['s_price']}', 
-                    '{$data['rental_price']}', '{$data['deposit']}'
-                )";
-                if (!$this->query($this->db, $sql)) throw new \Exception(mysqli_error($this->db));
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)";
+                
+                $stmt = mysqli_prepare($this->db, $sql);
+                mysqli_stmt_bind_param($stmt, "ssssiiddd", $code, $name, $desc, $date_added, $cat, $sub, $price, $rent, $dep);
+                mysqli_stmt_execute($stmt);
                 $product_id = mysqli_insert_id($this->db);
+                mysqli_stmt_close($stmt);
             } else {
                 $sql = "INSERT INTO garment_product (
                     gproduct_code, gproduct_name, gproduct_desc, date_added, 
                     garment_id, product_for, sales_price, rent_price, deposit
-                ) VALUES (
-                    '{$data['code']}', '{$data['name']}', '{$data['description']}', '$date_added',
-                    '{$data['category']}', '{$data['category']}', '{$data['s_price']}', 
-                    '{$data['rental_price']}', '{$data['deposit']}'
-                )";
-                if (!$this->query($this->db, $sql)) throw new \Exception(mysqli_error($this->db));
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)";
+                
+                $stmt = mysqli_prepare($this->db, $sql);
+                mysqli_stmt_bind_param($stmt, "ssssiiddd", $code, $name, $desc, $date_added, $cat, $cat, $price, $rent, $dep);
+                mysqli_stmt_execute($stmt);
                 $product_id = mysqli_insert_id($this->db);
+                mysqli_stmt_close($stmt);
             }
 
             // Save Images
@@ -406,16 +414,18 @@ class ProductModel extends Model {
                 if ($index === 0) $main_image = $path;
                 
                 $img_field = ($type === 'jewellery') ? 'product_id' : 'gproduct_id';
-                $subcat_val = ($type === 'jewellery') ? $data['sub_category'] : 0;
+                $subcat_val = ($type === 'jewellery') ? $sub : 0;
+                $full_path = '/' . $path;
                 
                 $img_sql = "INSERT INTO product_images_new (
                     prod_name, prod_image, pro_code, img_name, 
                     subcat_id, $img_field, date_added
-                ) VALUES (
-                    '{$data['name']}', '/$path', '{$data['code']}', '/$path',
-                    '$subcat_val', '$product_id', '$date_added'
-                )";
-                if (!$this->query($this->db, $img_sql)) throw new \Exception(mysqli_error($this->db));
+                ) VALUES (?, ?, ?, ?, ?, ?, ?)";
+                
+                $stmt = mysqli_prepare($this->db, $img_sql);
+                mysqli_stmt_bind_param($stmt, "ssssiis", $name, $full_path, $code, $full_path, $subcat_val, $product_id, $date_added);
+                mysqli_stmt_execute($stmt);
+                mysqli_stmt_close($stmt);
             }
 
             // Update main image
@@ -424,8 +434,11 @@ class ProductModel extends Model {
                 $table = ($type === 'jewellery') ? 'product' : 'garment_product';
                 $pk = ($type === 'jewellery') ? 'product_id' : 'gproduct_id';
                 
-                $update_sql = "UPDATE $table SET $update_field = '$main_image' WHERE $pk = $product_id";
-                $this->query($this->db, $update_sql);
+                $update_sql = "UPDATE $table SET $update_field = ? WHERE $pk = ?";
+                $stmt = mysqli_prepare($this->db, $update_sql);
+                mysqli_stmt_bind_param($stmt, "si", $main_image, $product_id);
+                mysqli_stmt_execute($stmt);
+                mysqli_stmt_close($stmt);
             }
 
             mysqli_commit($this->db);
