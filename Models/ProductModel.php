@@ -550,9 +550,9 @@ class ProductModel extends Model {
     }
 
     public function syncProductBySku($type, $data, $images = []) {
-        $sku = $this->db->real_escape_string($data['code']);
-        $name = $this->db->real_escape_string($data['name']);
-        $desc = $this->db->real_escape_string($data['description'] ?? '');
+        $sku = $data['code'];
+        $name = $data['name'];
+        $desc = $data['description'] ?? '';
         $cat = (int)($data['category'] ?? 0);
         $sub = (int)($data['sub_category'] ?? 0);
         $price = (float)($data['s_price'] ?? 0);
@@ -561,57 +561,55 @@ class ProductModel extends Model {
 
         if ($type === 'jewellery') {
             $sql = "UPDATE product SET 
-                    product_name = '$name',
-                    product_desc = '$desc',
-                    categories_id = $cat,
-                    subcat_id = $sub,
-                    sales_price = $price,
-                    rent_price = $rent,
-                    deposit = $dep
-                    WHERE product_code = '$sku'";
-            $this->db->query($sql);
+                    product_name = ?, 
+                    product_desc = ?, 
+                    categories_id = ?, 
+                    subcat_id = ?, 
+                    sales_price = ?, 
+                    rent_price = ?, 
+                    deposit = ?
+                    WHERE product_code = ?";
+            
+            $stmt = mysqli_prepare($this->db, $sql);
+            mysqli_stmt_bind_param($stmt, "ssiiddds", $name, $desc, $cat, $sub, $price, $rent, $dep, $sku);
+            mysqli_stmt_execute($stmt);
+            mysqli_stmt_close($stmt);
             
             if (!empty($images)) {
                 $date_added = date('Y-m-d H:i:s');
                 foreach ($images as $img) {
-                    $img = $this->db->real_escape_string($img);
                     $imgSql = "INSERT INTO product_images_new (product_id, pro_code, img_name, prod_name, prod_image, date_added) 
-                               VALUES (
-                                   (SELECT product_id FROM product WHERE product_code = '$sku' LIMIT 1), 
-                                   '$sku', 
-                                   '$img',
-                                   '$name',
-                                   '$img',
-                                   '$date_added'
-                               )";
-                    $this->db->query($imgSql);
+                               VALUES ((SELECT product_id FROM product WHERE product_code = ? LIMIT 1), ?, ?, ?, ?, ?)";
+                    $stmt = mysqli_prepare($this->db, $imgSql);
+                    mysqli_stmt_bind_param($stmt, "ssssss", $sku, $sku, $img, $name, $img, $date_added);
+                    mysqli_stmt_execute($stmt);
+                    mysqli_stmt_close($stmt);
                 }
             }
         } else {
             $sql = "UPDATE garment_product SET 
-                    gproduct_name = '$name',
-                    gproduct_desc = '$desc',
-                    garment_id = $cat,
-                    sales_price = $price,
-                    rent_price = $rent,
-                    deposit = $dep
-                    WHERE gproduct_code = '$sku'";
-            $this->db->query($sql);
+                    gproduct_name = ?, 
+                    gproduct_desc = ?, 
+                    garment_id = ?, 
+                    sales_price = ?, 
+                    rent_price = ?, 
+                    deposit = ?
+                    WHERE gproduct_code = ?";
+            
+            $stmt = mysqli_prepare($this->db, $sql);
+            mysqli_stmt_bind_param($stmt, "ssiddds", $name, $desc, $cat, $price, $rent, $dep, $sku);
+            mysqli_stmt_execute($stmt);
+            mysqli_stmt_close($stmt);
 
             if (!empty($images)) {
                 $date_added = date('Y-m-d H:i:s');
                 foreach ($images as $img) {
-                    $img = $this->db->real_escape_string($img);
                     $imgSql = "INSERT INTO product_images_new (gproduct_id, pro_code, img_name, prod_name, prod_image, date_added) 
-                               VALUES (
-                                   (SELECT gproduct_id FROM garment_product WHERE gproduct_code = '$sku' LIMIT 1), 
-                                   '$sku', 
-                                   '$img',
-                                   '$name',
-                                   '$img',
-                                   '$date_added'
-                               )";
-                    $this->db->query($imgSql);
+                               VALUES ((SELECT gproduct_id FROM garment_product WHERE gproduct_code = ? LIMIT 1), ?, ?, ?, ?, ?)";
+                    $stmt = mysqli_prepare($this->db, $imgSql);
+                    mysqli_stmt_bind_param($stmt, "ssssss", $sku, $sku, $img, $name, $img, $date_added);
+                    mysqli_stmt_execute($stmt);
+                    mysqli_stmt_close($stmt);
                 }
             }
         }
