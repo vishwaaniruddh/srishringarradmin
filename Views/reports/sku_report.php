@@ -3,7 +3,6 @@
 <head>
     <title>SKU Master Audit - Srishringarr</title>
     <?php include __DIR__ . '/../partials/head.php'; ?>
-    <link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/1.13.4/css/dataTables.bootstrap5.min.css">
     <style>
         .nav-tabs { border-bottom: 2px solid #f51167; }
         .nav-link { color: #555; font-weight: 600; border: none !important; padding: 12px 25px; }
@@ -13,6 +12,8 @@
         .export-btn { background: #f51167; color: white; border-radius: 50px; padding: 8px 20px; text-decoration: none; font-size: 14px; transition: 0.3s; }
         .export-btn:hover { background: #d40f5a; color: white; transform: translateY(-2px); }
         .summary-card { background: #fff; border-radius: 15px; padding: 20px; margin-bottom: 20px; border-left: 5px solid #f51167; }
+        .search-input { width: 100%; padding: 10px 15px; border: 1px solid #eee; border-radius: 10px; margin-bottom: 15px; font-size: 14px; }
+        .search-input:focus { outline: none; border-color: #f51167; }
     </style>
 </head>
 <body class="bg-gray-50 font-sans text-gray-900">
@@ -97,9 +98,11 @@
                             <div class="tab-pane active" id="all-a">
                                 <div class="flex justify-between items-center mb-4">
                                     <h5 class="font-bold text-gray-700">SKUs in Srishringarr <small class="text-gray-400 font-normal">(Excluding 'Nath')</small></h5>
-                                    <a href="index.php?controller=report&action=sku&export=all_a" class="export-btn"><i class="fa fa-download mr-2"></i>Export SS</a>
+                                    <div class="flex gap-2">
+                                        <a href="index.php?controller=report&action=sku&export=all_a" class="export-btn"><i class="fa fa-download mr-2"></i>Export SS</a>
+                                    </div>
                                 </div>
-                                <?php renderTable($skus_a, $details_a, 'Srishringarr'); ?>
+                                <?php renderTable($skus_a, $details_a, 'Srishringarr', 'all-a'); ?>
                             </div>
 
                             <!-- Part B -->
@@ -108,7 +111,7 @@
                                     <h5 class="font-bold text-gray-700">SKUs in Yosshitaneha (WordPress)</h5>
                                     <a href="index.php?controller=report&action=sku&export=all_b" class="export-btn"><i class="fa fa-download mr-2"></i>Export YN</a>
                                 </div>
-                                <?php renderTable($skus_b, $details_b, 'Yosshitaneha'); ?>
+                                <?php renderTable($skus_b, $details_b, 'Yosshitaneha', 'all-b'); ?>
                             </div>
 
                             <!-- Only in A -->
@@ -117,7 +120,7 @@
                                     <h5 class="font-bold text-red-600">SKUs in SS but MISSING in YN</h5>
                                     <a href="index.php?controller=report&action=sku&export=only_a" class="export-btn bg-red-600 hover:bg-red-700"><i class="fa fa-download mr-2"></i>Export SS Only</a>
                                 </div>
-                                <?php renderTable($only_in_a, $details_a, 'Srishringarr'); ?>
+                                <?php renderTable($only_in_a, $details_a, 'Srishringarr', 'only-a'); ?>
                             </div>
 
                             <!-- Only in B -->
@@ -126,7 +129,7 @@
                                     <h5 class="font-bold text-orange-600">SKUs in YN but MISSING in SS</h5>
                                     <a href="index.php?controller=report&action=sku&export=only_b" class="export-btn bg-orange-600 hover:bg-orange-700"><i class="fa fa-download mr-2"></i>Export YN Only</a>
                                 </div>
-                                <?php renderTable($only_in_b, $details_b, 'Yosshitaneha'); ?>
+                                <?php renderTable($only_in_b, $details_b, 'Yosshitaneha', 'only-b'); ?>
                             </div>
 
                             <!-- Both -->
@@ -135,7 +138,7 @@
                                     <h5 class="font-bold text-green-600">SKUs matching in both Platforms</h5>
                                     <a href="index.php?controller=report&action=sku&export=both" class="export-btn bg-green-600 hover:bg-green-700"><i class="fa fa-download mr-2"></i>Export Matches</a>
                                 </div>
-                                <?php renderTable($both_ab, $details_a, 'Both'); ?>
+                                <?php renderTable($both_ab, $details_a, 'Both', 'both'); ?>
                             </div>
                         </div>
                     </div>
@@ -145,48 +148,74 @@
     </div>
 
     <?php include __DIR__ . '/../partials/scripts.php'; ?>
-    <script src="https://cdn.datatables.net/1.13.4/js/jquery.dataTables.min.js"></script>
-    <script src="https://cdn.datatables.net/1.13.4/js/dataTables.bootstrap5.min.js"></script>
 
     <script>
-        $(document).ready(function () {
-            $('.datatable').DataTable({
-                "pageLength": 25,
-                "language": { "search": "Filter SKU/Name:" }
+        document.addEventListener('DOMContentLoaded', function() {
+            // Tab Switcher
+            const tabBtns = document.querySelectorAll('.tab-btn, .active-tab-btn');
+            const tabPanes = document.querySelectorAll('.tab-pane');
+
+            tabBtns.forEach(btn => {
+                btn.addEventListener('click', function() {
+                    const target = this.getAttribute('data-target');
+
+                    // Update buttons
+                    tabBtns.forEach(b => {
+                        b.classList.remove('border-primary', 'text-primary', 'active-tab-btn');
+                        b.classList.add('border-transparent', 'text-gray-500', 'tab-btn');
+                    });
+                    this.classList.remove('border-transparent', 'text-gray-500', 'tab-btn');
+                    this.classList.add('border-primary', 'text-primary', 'active-tab-btn');
+
+                    // Update panes
+                    tabPanes.forEach(p => p.classList.add('hidden'));
+                    document.getElementById(target).classList.remove('hidden');
+                });
             });
 
-            // Custom Tab Switcher
-            $('.tab-btn, .active-tab-btn').click(function() {
-                const target = $(this).data('target');
-                
-                // Update buttons
-                $('.tab-btn, .active-tab-btn').removeClass('border-primary text-primary active-tab-btn').addClass('border-transparent text-gray-500 tab-btn');
-                $(this).removeClass('border-transparent text-gray-500 tab-btn').addClass('border-primary text-primary active-tab-btn');
-                
-                // Update panes
-                $('.tab-pane').addClass('hidden');
-                $('#' + target).removeClass('hidden');
-            });
+            // Table Search Filter
+            window.filterTable = function(inputId, tableId) {
+                const input = document.getElementById(inputId);
+                const filter = input.value.toUpperCase();
+                const table = document.getElementById(tableId);
+                const tr = table.getElementsByTagName("tr");
+
+                for (let i = 1; i < tr.length; i++) {
+                    let found = false;
+                    const tds = tr[i].getElementsByTagName("td");
+                    for (let j = 0; j < tds.length; j++) {
+                        if (tds[j]) {
+                            const textValue = tds[j].textContent || tds[j].innerText;
+                            if (textValue.toUpperCase().indexOf(filter) > -1) {
+                                found = true;
+                                break;
+                            }
+                        }
+                    }
+                    tr[i].style.display = found ? "" : "none";
+                }
+            };
         });
     </script>
 </body>
 </html>
 
 <?php
-function renderTable($skus, $details, $source)
+function renderTable($skus, $details, $source, $id)
 {
-    echo '<div class="overflow-x-auto"><table class="table table-hover datatable w-100 text-sm">';
-    echo '<thead><tr class="bg-gray-50"><th>#</th><th>SKU</th><th>Product Name</th><th>Category/Source</th></tr></thead>';
-    echo '<tbody>';
+    echo "<input type='text' id='search-$id' onkeyup='filterTable(\"search-$id\", \"table-$id\")' placeholder='Filter by SKU or Name...' class='search-input'>";
+    echo "<div class='overflow-x-auto'><table id='table-$id' class='w-full text-left border-collapse text-sm'>";
+    echo '<thead class="bg-gray-50 border-b"><tr><th class="px-4 py-3">#</th><th class="px-4 py-3">SKU</th><th class="px-4 py-3">Product Name</th><th class="px-4 py-3">Category/Source</th></tr></thead>';
+    echo '<tbody class="divide-y divide-gray-100">';
     $i = 1;
     foreach ($skus as $sku) {
         $name = isset($details[$sku]) ? htmlspecialchars($details[$sku]['name']) : 'N/A';
         $cat = isset($details[$sku]['cat']) ? $details[$sku]['cat'] : $source;
-        echo "<tr>";
-        echo "<td>$i</td>";
-        echo "<td><span class='sku-badge text-xs font-mono bg-gray-100 px-2 py-1 rounded'>$sku</span></td>";
-        echo "<td>$name</td>";
-        echo "<td><span class='text-xs text-gray-500'>$cat</span></td>";
+        echo "<tr class='hover:bg-gray-50 transition-colors'>";
+        echo "<td class='px-4 py-3 text-gray-400'>$i</td>";
+        echo "<td class='px-4 py-3'><span class='sku-badge text-xs font-mono bg-gray-100 px-2 py-1 rounded'>$sku</span></td>";
+        echo "<td class='px-4 py-3 font-medium'>$name</td>";
+        echo "<td class='px-4 py-3 text-gray-500'>$cat</td>";
         echo "</tr>";
         $i++;
     }
