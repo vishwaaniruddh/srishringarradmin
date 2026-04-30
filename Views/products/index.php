@@ -58,7 +58,7 @@
                                 <a href="index.php?controller=product&action=import" class="bg-blue-600 text-white rounded-xl px-4 py-3 text-sm font-bold hover:bg-blue-700 shadow-lg shadow-blue-100 transition-all flex items-center justify-center">
                                     <i class="fas fa-file-import mr-2"></i> Import
                                 </a>
-                                <a href="index.php?controller=product&action=export" class="bg-gray-800 text-white rounded-xl px-4 py-3 text-sm font-bold hover:bg-gray-900 shadow-lg shadow-gray-200 transition-all flex items-center justify-center">
+                                <a href="javascript:void(0)" onclick="exportProducts()" class="bg-gray-800 text-white rounded-xl px-4 py-3 text-sm font-bold hover:bg-gray-900 shadow-lg shadow-gray-200 transition-all flex items-center justify-center">
                                     <i class="fas fa-file-export mr-2"></i> Export
                                 </a>
                                 <a href="index.php?controller=product&action=add" class="bg-green-500 text-white rounded-xl px-4 py-3 text-sm font-bold hover:bg-green-600 shadow-lg shadow-green-100 transition-all flex items-center justify-center">
@@ -109,6 +109,12 @@
 
     <script>
     let currentPage = 1;
+
+    function exportProducts() {
+        const search = document.getElementById('searchInput').value;
+        const category = document.getElementById('categoryFilter').value;
+        window.location.href = `index.php?controller=product&action=export&search=${encodeURIComponent(search)}&category=${encodeURIComponent(category)}`;
+    }
 
     async function loadProducts(page = 1) {
         currentPage = page;

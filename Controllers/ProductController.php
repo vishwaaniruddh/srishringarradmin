@@ -204,27 +204,79 @@ class ProductController extends Controller {
     }
 
     public function export() {
-        $productModel = new ProductModel();
-        $params = ['limit' => 10000]; // Get all products
-        $products = $productModel->getProducts($params);
+        while (ob_get_level()) ob_end_clean(); // Clear any buffers
+        
+        set_time_limit(0);
+        ini_set('memory_limit', '1024M');
 
-        header('Content-Type: text/csv');
+        $productModel = new ProductModel();
+        $db = $productModel->getDbConnection();
+
+        // Get filters from URL
+        $search = $_GET['search'] ?? '';
+        $category_param = $_GET['category'] ?? '';
+
+        $jewellery_search = '';
+        $garments_search = '';
+        
+        if (!empty($search)) {
+            $search_safe = mysqli_real_escape_string($db, $search);
+            $jewellery_search = " AND (product_name LIKE '%$search_safe%' OR product_code LIKE '%$search_safe%')";
+            $garments_search = " AND (gproduct_name LIKE '%$search_safe%' OR gproduct_code LIKE '%$search_safe%')";
+        }
+
+        if (!empty($category_param)) {
+            if (strpos($category_param, ':') !== false) {
+                list($type, $id) = explode(':', $category_param);
+                $id = (int)$id;
+                
+                if ($type === 'garment') {
+                    $garments_search .= " AND (garment_id = $id OR product_for = $id)";
+                    $jewellery_search .= " AND 1=0";
+                } elseif ($type === 'jewel_parent') {
+                    $jewellery_search .= " AND categories_id = $id";
+                    $garments_search .= " AND 1=0";
+                } elseif ($type === 'jewel_child') {
+                    $jewellery_search .= " AND subcat_id = $id";
+                    $garments_search .= " AND 1=0";
+                }
+            }
+        }
+
+        $query = "(SELECT product_id as id, product_code as code, 'jewellery' as type FROM product WHERE 1=1 $jewellery_search)
+                  UNION ALL
+                  (SELECT gproduct_id as id, gproduct_code as code, 'garments' as type FROM garment_product WHERE 1=1 $garments_search)
+                  ORDER BY id DESC";
+                  
+        $result = $productModel->query($db, $query);
+        
+        if (!$result) {
+            die("SQL Error: " . mysqli_error($db));
+        }
+
+        header('Content-Type: text/csv; charset=utf-8');
         header('Content-Disposition: attachment; filename="products_export_' . date('Ymd_His') . '.csv"');
 
         $output = fopen('php://output', 'w');
-        fputcsv($output, ['sku', 'name', 'description', 'type', 'category_id', 'subcat_id', 's_price', 'rental_price', 'deposit', 'images']);
+        // Suppress deprecation warnings with @ for PHP 8.4 compatibility
+        @fputcsv($output, ['sku', 'name', 'description', 'type', 'category_id', 'subcat_id', 's_price', 'rental_price', 'deposit', 'images'], ',', '"', '\\');
 
-        foreach ($products as $p) {
-            // Get detailed info for export
+        $i = 0;
+        while ($p = mysqli_fetch_assoc($result)) {
             $fullProduct = $productModel->getProductById($p['id'], $p['type']);
-            $images = $productModel->getProductImages($p['id'], $p['type']);
-            $imageUrls = array_map(function($img) {
-                return "https://srishringarr.com/yn/uploads" . $img['img_name'];
-            }, $images);
+            if (!$fullProduct) continue;
 
-            fputcsv($output, [
-                $fullProduct['code'] ?? '',
-                $fullProduct['name'] ?? '',
+            $images = $productModel->getProductImages($p['id'], $p['type']);
+            $imageUrls = [];
+            if ($images) {
+                foreach ($images as $img) {
+                    $imageUrls[] = "https://srishringarr.com/yn/uploads" . $img['img_name'];
+                }
+            }
+
+            @fputcsv($output, [
+                $fullProduct['code'] ?? $p['code'] ?? '',
+                $fullProduct['name'] ?? $p['name'] ?? '',
                 $fullProduct['description'] ?? '',
                 $p['type'] ?? '',
                 $fullProduct['category'] ?? '',
@@ -233,7 +285,13 @@ class ProductController extends Controller {
                 $fullProduct['rental_price'] ?? 0,
                 $fullProduct['deposit'] ?? 0,
                 implode(',', $imageUrls)
-            ]);
+            ], ',', '"', '\\');
+            
+            $i++;
+            if ($i % 50 == 0) {
+                fflush($output);
+                flush();
+            }
         }
         fclose($output);
         exit;

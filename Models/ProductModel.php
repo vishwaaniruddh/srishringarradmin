@@ -68,9 +68,12 @@ class ProductModel extends Model {
 
         $result = $this->query($this->db, $query);
         $products = $this->fetchAll($result);
+        $skipDetails = $params['skip_details'] ?? false;
 
-        foreach ($products as &$product) {
-            $product['details'] = $this->getProductDetails($product);
+        if (!$skipDetails) {
+            foreach ($products as &$product) {
+                $product['details'] = $this->getProductDetails($product);
+            }
         }
 
         return $products;
@@ -208,12 +211,22 @@ class ProductModel extends Model {
         $pos_result = $this->query($this->db3, $pos_query);
         $pos_item = $this->fetchOne($pos_result);
 
-        $category_name = $pos_item['category'] ?? 'N/A';
-        $product_type_label = ($pos_item['category_type'] == 1) ? 'Jewellery' : 'Apparel';
-        $quantity = $pos_item['quantity'] ?? 0;
-        $mrp = $pos_item['unit_price'] ?? 0;
-        $cost_price = $pos_item['cost_price'] ?? 0;
-        $product_type_id = $pos_item['category_type'] ?? 1;
+        // Default values if POS data is missing
+        $category_name = 'N/A';
+        $product_type_label = ($type == 'jewellery') ? 'Jewellery' : 'Apparel';
+        $quantity = 0;
+        $mrp = 0;
+        $cost_price = 0;
+        $product_type_id = ($type == 'jewellery') ? 1 : 2;
+
+        if ($pos_item) {
+            $category_name = $pos_item['category'] ?? 'N/A';
+            $product_type_id = $pos_item['category_type'] ?? $product_type_id;
+            $product_type_label = ($product_type_id == 1) ? 'Jewellery' : 'Apparel';
+            $quantity = $pos_item['quantity'] ?? 0;
+            $mrp = $pos_item['unit_price'] ?? 0;
+            $cost_price = $pos_item['cost_price'] ?? 0;
+        }
 
         // Commission
         $comm_query = "SELECT SUM(CAST(REPLACE(commission_amt, ',', '') AS DECIMAL(10,2))) 
@@ -627,5 +640,9 @@ class ProductModel extends Model {
             }
         }
         return true;
+    }
+
+    public function getDbConnection() {
+        return $this->db;
     }
 }

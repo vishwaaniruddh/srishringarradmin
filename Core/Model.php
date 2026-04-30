@@ -10,11 +10,11 @@ class Model {
         $this->db3 = Database::getConnection('con3');
     }
 
-    protected function query($db, $sql) {
+    public function query($db, $sql) {
         return mysqli_query($db, $sql);
     }
 
-    protected function fetchAll($result) {
+    public function fetchAll($result) {
         $rows = [];
         while ($row = mysqli_fetch_assoc($result)) {
             $rows[] = $row;
@@ -22,7 +22,7 @@ class Model {
         return $rows;
     }
 
-    protected function fetchOne($result) {
+    public function fetchOne($result) {
         return mysqli_fetch_assoc($result);
     }
 }

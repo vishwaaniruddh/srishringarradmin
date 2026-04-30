@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <title>SKU Master Audit - Srishringarr</title>
+    <?php include __DIR__ . '/../partials/head.php'; ?>
+    <link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/1.13.4/css/dataTables.bootstrap5.min.css">
+    <style>
+        .nav-tabs { border-bottom: 2px solid #f51167; }
+        .nav-link { color: #555; font-weight: 600; border: none !important; padding: 12px 25px; }
+        .nav-link.active { background-color: #f51167 !important; color: #fff !important; border-radius: 10px 10px 0 0; }
+        .tab-content { background: #fff; padding: 30px; border-radius: 0 0 15px 15px; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.05); }
+        .sku-badge { font-family: monospace; background: #eee; padding: 3px 8px; border-radius: 4px; font-weight: bold; }
+        .export-btn { background: #f51167; color: white; border-radius: 50px; padding: 8px 20px; text-decoration: none; font-size: 14px; transition: 0.3s; }
+        .export-btn:hover { background: #d40f5a; color: white; transform: translateY(-2px); }
+        .summary-card { background: #fff; border-radius: 15px; padding: 20px; margin-bottom: 20px; border-left: 5px solid #f51167; }
+    </style>
+</head>
+<body class="bg-gray-50 font-sans text-gray-900">
+
+    <div class="flex min-h-screen overflow-hidden">
+        <!-- Sidebar -->
+        <?php include __DIR__ . '/../partials/sidebar.php'; ?>
+
+        <!-- Main Content -->
+        <div class="flex-1 flex flex-col min-w-0 overflow-hidden">
+            <!-- Top Header -->
+            <?php 
+            $pageTitle = 'SKU Master Audit';
+            include __DIR__ . '/../partials/topbar.php'; 
+            ?>
+
+            <!-- Report Content -->
+            <main class="flex-1 overflow-y-auto p-8 bg-gray-50/50">
+                <div class="container-fluid">
+                    <div class="flex justify-between items-center mb-6">
+                        <div>
+                            <h2 class="text-2xl font-bold text-gray-800"><i class="fa-solid fa-code-compare mr-2 text-primary"></i> SKU Master Audit</h2>
+                            <p class="text-gray-500">Srishringarr (Local) vs Yosshitaneha (WordPress)</p>
+                        </div>
+                        <div class="flex gap-2">
+                            <span class="px-3 py-1 bg-gray-800 text-white text-xs font-bold rounded-full">SS: <?= count($skus_a) ?> SKUs</span>
+                            <span class="px-3 py-1 bg-blue-600 text-white text-xs font-bold rounded-full">YN: <?= count($skus_b) ?> SKUs</span>
+                        </div>
+                    </div>
+
+                    <?php if (isset($wp_error)): ?>
+                        <div class="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 mb-6 rounded" role="alert">
+                            <p class="font-bold">Connection Warning</p>
+                            <p><?= $wp_error ?></p>
+                        </div>
+                    <?php endif; ?>
+
+                    <div class="grid grid-cols-1 md:grid-cols-5 gap-4 mb-8">
+                        <div class="summary-card">
+                            <h6 class="text-xs font-semibold text-gray-400 uppercase tracking-wider">Srishringarr (A)</h6>
+                            <h3 class="text-2xl font-bold text-gray-800 mt-1"><?= count($skus_a) ?></h3>
+                        </div>
+                        <div class="summary-card" style="border-left-color: #0d6efd;">
+                            <h6 class="text-xs font-semibold text-gray-400 uppercase tracking-wider">Yosshitaneha (B)</h6>
+                            <h3 class="text-2xl font-bold text-gray-800 mt-1"><?= count($skus_b) ?></h3>
+                        </div>
+                        <div class="summary-card" style="border-left-color: #dc3545;">
+                            <h6 class="text-xs font-semibold text-gray-400 uppercase tracking-wider">Only in SS</h6>
+                            <h3 class="text-2xl font-bold text-gray-800 mt-1"><?= count($only_in_a) ?></h3>
+                        </div>
+                        <div class="summary-card" style="border-left-color: #fd7e14;">
+                            <h6 class="text-xs font-semibold text-gray-400 uppercase tracking-wider">Only in YN</h6>
+                            <h3 class="text-2xl font-bold text-gray-800 mt-1"><?= count($only_in_b) ?></h3>
+                        </div>
+                        <div class="summary-card" style="border-left-color: #198754;">
+                            <h6 class="text-xs font-semibold text-gray-400 uppercase tracking-wider">Matched (A=B)</h6>
+                            <h3 class="text-2xl font-bold text-gray-800 mt-1"><?= count($both_ab) ?></h3>
+                        </div>
+                    </div>
+
+                    <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+                        <ul class="flex border-b border-gray-200" id="skuTabs" role="tablist">
+                            <li class="mr-1">
+                                <button class="px-6 py-4 font-bold text-sm border-b-2 border-primary text-primary transition-all active-tab-btn" data-target="all-a">Srishringarr (A)</button>
+                            </li>
+                            <li class="mr-1">
+                                <button class="px-6 py-4 font-bold text-sm border-b-2 border-transparent text-gray-500 hover:text-primary transition-all tab-btn" data-target="all-b">Yosshitaneha (B)</button>
+                            </li>
+                            <li class="mr-1">
+                                <button class="px-6 py-4 font-bold text-sm border-b-2 border-transparent text-red-500 hover:text-red-700 transition-all tab-btn" data-target="only-a">Only in SS</button>
+                            </li>
+                            <li class="mr-1">
+                                <button class="px-6 py-4 font-bold text-sm border-b-2 border-transparent text-orange-500 hover:text-orange-700 transition-all tab-btn" data-target="only-b">Only in YN</button>
+                            </li>
+                            <li class="mr-1">
+                                <button class="px-6 py-4 font-bold text-sm border-b-2 border-transparent text-green-500 hover:text-green-700 transition-all tab-btn" data-target="both">Matched (A=B)</button>
+                            </li>
+                        </ul>
+
+                        <div class="p-6">
+                            <!-- Part A -->
+                            <div class="tab-pane active" id="all-a">
+                                <div class="flex justify-between items-center mb-4">
+                                    <h5 class="font-bold text-gray-700">SKUs in Srishringarr <small class="text-gray-400 font-normal">(Excluding 'Nath')</small></h5>
+                                    <a href="index.php?controller=report&action=sku&export=all_a" class="export-btn"><i class="fa fa-download mr-2"></i>Export SS</a>
+                                </div>
+                                <?php renderTable($skus_a, $details_a, 'Srishringarr'); ?>
+                            </div>
+
+                            <!-- Part B -->
+                            <div class="tab-pane hidden" id="all-b">
+                                <div class="flex justify-between items-center mb-4">
+                                    <h5 class="font-bold text-gray-700">SKUs in Yosshitaneha (WordPress)</h5>
+                                    <a href="index.php?controller=report&action=sku&export=all_b" class="export-btn"><i class="fa fa-download mr-2"></i>Export YN</a>
+                                </div>
+                                <?php renderTable($skus_b, $details_b, 'Yosshitaneha'); ?>
+                            </div>
+
+                            <!-- Only in A -->
+                            <div class="tab-pane hidden" id="only-a">
+                                <div class="flex justify-between items-center mb-4">
+                                    <h5 class="font-bold text-red-600">SKUs in SS but MISSING in YN</h5>
+                                    <a href="index.php?controller=report&action=sku&export=only_a" class="export-btn bg-red-600 hover:bg-red-700"><i class="fa fa-download mr-2"></i>Export SS Only</a>
+                                </div>
+                                <?php renderTable($only_in_a, $details_a, 'Srishringarr'); ?>
+                            </div>
+
+                            <!-- Only in B -->
+                            <div class="tab-pane hidden" id="only-b">
+                                <div class="flex justify-between items-center mb-4">
+                                    <h5 class="font-bold text-orange-600">SKUs in YN but MISSING in SS</h5>
+                                    <a href="index.php?controller=report&action=sku&export=only_b" class="export-btn bg-orange-600 hover:bg-orange-700"><i class="fa fa-download mr-2"></i>Export YN Only</a>
+                                </div>
+                                <?php renderTable($only_in_b, $details_b, 'Yosshitaneha'); ?>
+                            </div>
+
+                            <!-- Both -->
+                            <div class="tab-pane hidden" id="both">
+                                <div class="flex justify-between items-center mb-4">
+                                    <h5 class="font-bold text-green-600">SKUs matching in both Platforms</h5>
+                                    <a href="index.php?controller=report&action=sku&export=both" class="export-btn bg-green-600 hover:bg-green-700"><i class="fa fa-download mr-2"></i>Export Matches</a>
+                                </div>
+                                <?php renderTable($both_ab, $details_a, 'Both'); ?>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <?php include __DIR__ . '/../partials/scripts.php'; ?>
+    <script src="https://cdn.datatables.net/1.13.4/js/jquery.dataTables.min.js"></script>
+    <script src="https://cdn.datatables.net/1.13.4/js/dataTables.bootstrap5.min.js"></script>
+
+    <script>
+        $(document).ready(function () {
+            $('.datatable').DataTable({
+                "pageLength": 25,
+                "language": { "search": "Filter SKU/Name:" }
+            });
+
+            // Custom Tab Switcher
+            $('.tab-btn, .active-tab-btn').click(function() {
+                const target = $(this).data('target');
+                
+                // Update buttons
+                $('.tab-btn, .active-tab-btn').removeClass('border-primary text-primary active-tab-btn').addClass('border-transparent text-gray-500 tab-btn');
+                $(this).removeClass('border-transparent text-gray-500 tab-btn').addClass('border-primary text-primary active-tab-btn');
+                
+                // Update panes
+                $('.tab-pane').addClass('hidden');
+                $('#' + target).removeClass('hidden');
+            });
+        });
+    </script>
+</body>
+</html>
+
+<?php
+function renderTable($skus, $details, $source)
+{
+    echo '<div class="overflow-x-auto"><table class="table table-hover datatable w-100 text-sm">';
+    echo '<thead><tr class="bg-gray-50"><th>#</th><th>SKU</th><th>Product Name</th><th>Category/Source</th></tr></thead>';
+    echo '<tbody>';
+    $i = 1;
+    foreach ($skus as $sku) {
+        $name = isset($details[$sku]) ? htmlspecialchars($details[$sku]['name']) : 'N/A';
+        $cat = isset($details[$sku]['cat']) ? $details[$sku]['cat'] : $source;
+        echo "<tr>";
+        echo "<td>$i</td>";
+        echo "<td><span class='sku-badge text-xs font-mono bg-gray-100 px-2 py-1 rounded'>$sku</span></td>";
+        echo "<td>$name</td>";
+        echo "<td><span class='text-xs text-gray-500'>$cat</span></td>";
+        echo "</tr>";
+        $i++;
+    }
+    echo '</tbody></table></div>';
+}
+?>

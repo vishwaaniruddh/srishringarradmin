@@ -43,6 +43,19 @@ function isActive($controller, $action = null) {
                 <a href="index.php?controller=category&action=index" class="block py-2 text-sm <?php echo isActive('category') ? 'text-primary font-semibold' : 'text-gray-500 hover:text-primary'; ?> transition-colors">Categories</a>
             </div>
         </div>
+
+        <div class="space-y-1">
+            <button class="w-full flex items-center justify-between px-4 py-3 rounded-xl transition-all group submenu-toggle <?php echo (isActive('report')) ? 'text-primary bg-gray-50 font-semibold' : 'text-gray-500 hover:bg-gray-100 hover:text-primary'; ?>">
+                <div class="flex items-center">
+                    <i class="fas fa-chart-line mr-3 group-hover:scale-110 transition-transform"></i>
+                    <span>Reports</span>
+                </div>
+                <i class="fas fa-chevron-right text-xs transition-transform duration-200 chevron <?php echo (isActive('report')) ? 'rotate-90' : ''; ?>"></i>
+            </button>
+            <div class="submenu <?php echo (isActive('report')) ? '' : 'hidden'; ?> overflow-hidden transition-all duration-300 pl-12 pr-4 space-y-1">
+                <a href="index.php?controller=report&action=sku" class="block py-2 text-sm <?php echo isActive('report', 'sku') ? 'text-primary font-semibold' : 'text-gray-500 hover:text-primary'; ?> transition-colors">SKU Master Audit</a>
+            </div>
+        </div>
         
         <a href="#" class="flex items-center px-4 py-3 text-gray-500 hover:bg-gray-100 hover:text-primary rounded-xl transition-all group">
             <i class="fas fa-shopping-cart mr-3 group-hover:scale-110 transition-transform"></i>
