@@ -574,6 +574,7 @@ class ProductModel extends Model {
             if (!empty($images)) {
                 $date_added = date('Y-m-d H:i:s');
                 foreach ($images as $img) {
+                    $img = $this->db->real_escape_string($img);
                     $imgSql = "INSERT INTO product_images_new (product_id, pro_code, img_name, prod_name, prod_image, date_added) 
                                VALUES (
                                    (SELECT product_id FROM product WHERE product_code = '$sku' LIMIT 1), 
@@ -600,6 +601,7 @@ class ProductModel extends Model {
             if (!empty($images)) {
                 $date_added = date('Y-m-d H:i:s');
                 foreach ($images as $img) {
+                    $img = $this->db->real_escape_string($img);
                     $imgSql = "INSERT INTO product_images_new (gproduct_id, pro_code, img_name, prod_name, prod_image, date_added) 
                                VALUES (
                                    (SELECT gproduct_id FROM garment_product WHERE gproduct_code = '$sku' LIMIT 1), 
