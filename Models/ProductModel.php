@@ -642,6 +642,22 @@ class ProductModel extends Model {
         return true;
     }
 
+    public function deleteBySku($sku) {
+        $sku = mysqli_real_escape_string($this->db, $sku);
+        
+        // Try deleting from Jewelry table
+        $sql1 = "DELETE FROM product WHERE product_code = '$sku'";
+        $res1 = mysqli_query($this->db, $sql1);
+        $affected1 = mysqli_affected_rows($this->db);
+
+        // Try deleting from Garments table
+        $sql2 = "DELETE FROM garment_product WHERE gproduct_code = '$sku'";
+        $res2 = mysqli_query($this->db, $sql2);
+        $affected2 = mysqli_affected_rows($this->db);
+
+        return ($affected1 > 0 || $affected2 > 0);
+    }
+
     public function getDbConnection() {
         return $this->db;
     }

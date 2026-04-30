@@ -44,6 +44,20 @@ function isActive($controller, $action = null) {
             </div>
         </div>
 
+        <div class="px-4 mb-4">
+            <p class="px-4 text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">Bulk Operations</p>
+            <div class="space-y-1">
+                <a href="index.php?controller=product&action=import" class="flex items-center px-4 py-3 text-sm font-medium rounded-xl transition-all <?php echo isActive('product', 'import') ? 'bg-primary text-white shadow-lg shadow-primary/20' : 'text-gray-500 hover:bg-gray-100'; ?>">
+                    <i class="fas fa-file-import w-5 mr-3"></i>
+                    Add Products
+                </a>
+                <a href="index.php?controller=product&action=bulkDelete" class="flex items-center px-4 py-3 text-sm font-medium rounded-xl transition-all <?php echo isActive('product', 'bulkDelete') ? 'bg-primary text-white shadow-lg shadow-primary/20' : 'text-gray-500 hover:bg-gray-100'; ?>">
+                    <i class="fas fa-trash-alt w-5 mr-3"></i>
+                    Delete Product
+                </a>
+            </div>
+        </div>
+
         <div class="space-y-1">
             <button class="w-full flex items-center justify-between px-4 py-3 rounded-xl transition-all group submenu-toggle <?php echo (isActive('report')) ? 'text-primary bg-gray-50 font-semibold' : 'text-gray-500 hover:bg-gray-100 hover:text-primary'; ?>">
                 <div class="flex items-center">

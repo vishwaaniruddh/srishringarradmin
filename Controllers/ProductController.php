@@ -393,4 +393,72 @@ class ProductController extends Controller {
             return $this->json(['status' => 'error', 'message' => $e->getMessage()]);
         }
     }
+
+    public function bulkDelete() {
+        $this->view('products/bulk_delete');
+    }
+
+    public function downloadDeleteTemplate() {
+        while (ob_get_level()) ob_end_clean();
+        
+        $csv = "sku\n";
+        $csv .= "SKU123\n";
+        $csv .= "SKU456\n";
+
+        header('Content-Type: text/csv; charset=utf-8');
+        header('Content-Disposition: attachment; filename="bulk_delete_template.csv"');
+        header('Content-Length: ' . strlen($csv));
+        header('Pragma: no-cache');
+        header('Expires: 0');
+        echo $csv;
+        exit;
+    }
+
+    public function processBulkDelete() {
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') $this->json(['error' => 'Method not allowed'], 405);
+
+        if (!isset($_FILES['file']) || $_FILES['file']['error'] !== UPLOAD_ERR_OK) {
+            $this->json(['error' => 'No file uploaded or upload error'], 400);
+        }
+
+        $file = $_FILES['file']['tmp_name'];
+        $handle = fopen($file, "r");
+        
+        // Skip header
+        $header = @fgetcsv($handle, 0, ',', '"', '\\');
+        if (!$header) {
+             $this->json(['error' => 'Empty file'], 400);
+        }
+        $skuIndex = array_search('sku', array_map('strtolower', $header));
+
+        if ($skuIndex === false) {
+            $this->json(['error' => 'Invalid file format. Must have a "sku" column.'], 400);
+        }
+
+        $productModel = new ProductModel();
+        $deletedCount = 0;
+        $failedCount = 0;
+        $skus = [];
+
+        while (($row = @fgetcsv($handle, 0, ',', '"', '\\')) !== false) {
+            $sku = trim($row[$skuIndex]);
+            if (empty($sku)) continue;
+            
+            if ($productModel->deleteBySku($sku)) {
+                $deletedCount++;
+                $skus[] = $sku;
+            } else {
+                $failedCount++;
+            }
+        }
+        fclose($handle);
+
+        $this->json([
+            'success' => true,
+            'message' => "Successfully deleted $deletedCount products. $failedCount failed or not found.",
+            'deletedCount' => $deletedCount,
+            'failedCount' => $failedCount,
+            'skus' => $skus
+        ]);
+    }
 }
