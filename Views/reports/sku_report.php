@@ -69,7 +69,7 @@
                             <h3 class="text-2xl font-bold text-gray-800 mt-1"><?= count($only_in_b) ?></h3>
                         </div>
                         <div class="summary-card" style="border-left-color: #198754;">
-                            <h6 class="text-xs font-semibold text-gray-400 uppercase tracking-wider">Matched (A=B)</h6>
+                            <h6 class="text-xs font-semibold text-gray-400 uppercase tracking-wider">Matched (SS=YN)</h6>
                             <h3 class="text-2xl font-bold text-gray-800 mt-1"><?= count($both_ab) ?></h3>
                         </div>
                     </div>
@@ -89,7 +89,7 @@
                                 <button class="px-6 py-4 font-bold text-sm border-b-2 border-transparent text-orange-500 hover:text-orange-700 transition-all tab-btn" data-target="only-b">Only in YN</button>
                             </li>
                             <li class="mr-1">
-                                <button class="px-6 py-4 font-bold text-sm border-b-2 border-transparent text-green-500 hover:text-green-700 transition-all tab-btn" data-target="both">Matched (A=B)</button>
+                                <button class="px-6 py-4 font-bold text-sm border-b-2 border-transparent text-green-500 hover:text-green-700 transition-all tab-btn" data-target="both">Matched (SS=YN)</button>
                             </li>
                         </ul>
 
@@ -135,10 +135,16 @@
                             <!-- Both -->
                             <div class="tab-pane hidden" id="both">
                                 <div class="flex justify-between items-center mb-4">
-                                    <h5 class="font-bold text-green-600">SKUs matching in both Platforms</h5>
-                                    <a href="index.php?controller=report&action=sku&export=both" class="export-btn bg-green-600 hover:bg-green-700"><i class="fa fa-download mr-2"></i>Export Matches</a>
+                                    <h5 class="font-bold text-green-600">Matched SKUs: Deep Content Comparison</h5>
+                                    <div class="flex gap-4 items-center">
+                                        <label class="flex items-center gap-2 text-sm text-gray-600 cursor-pointer">
+                                            <input type="checkbox" id="show-mismatches-only" class="rounded text-green-600">
+                                            Show Mismatches Only
+                                        </label>
+                                        <a href="index.php?controller=report&action=sku&export=both" class="export-btn bg-green-600 hover:bg-green-700"><i class="fa fa-download mr-2"></i>Export Matches</a>
+                                    </div>
                                 </div>
-                                <?php renderTable($both_ab, $details_a, 'Both', 'both'); ?>
+                                <?php renderComparisonTable($both_ab, $details_a, $details_b, 'both'); ?>
                             </div>
                         </div>
                     </div>
@@ -195,6 +201,22 @@
                     tr[i].style.display = found ? "" : "none";
                 }
             };
+
+            // Mismatch Filter
+            const mismatchCheckbox = document.getElementById('show-mismatches-only');
+            if (mismatchCheckbox) {
+                mismatchCheckbox.addEventListener('change', function() {
+                    const table = document.getElementById('table-both');
+                    const tr = table.getElementsByTagName("tr");
+                    for (let i = 1; i < tr.length; i++) {
+                        if (this.checked) {
+                            tr[i].style.display = tr[i].classList.contains('has-mismatch') ? "" : "none";
+                        } else {
+                            tr[i].style.display = "";
+                        }
+                    }
+                });
+            }
         });
     </script>
 </body>
@@ -218,6 +240,60 @@ function renderTable($skus, $details, $source, $id)
         echo "<td class='px-4 py-3 text-gray-500'>$cat</td>";
         echo "</tr>";
         $i++;
+    }
+    echo '</tbody></table></div>';
+}
+
+function renderComparisonTable($skus, $details_a, $details_b, $id)
+{
+    echo "<input type='text' id='search-$id' onkeyup='filterTable(\"search-$id\", \"table-$id\")' placeholder='Filter by SKU or Name...' class='search-input'>";
+    echo "<div class='overflow-x-auto'><table id='table-$id' class='w-full text-left border-collapse text-xs'>";
+    echo '<thead class="bg-gray-800 text-white border-b">
+            <tr>
+                <th class="px-3 py-3 sticky left-0 bg-gray-800">SKU</th>
+                <th class="px-3 py-3 border-l border-gray-700">Property</th>
+                <th class="px-3 py-3 border-l border-gray-700 bg-blue-900/50">YN (WordPress)</th>
+                <th class="px-3 py-3 border-l border-gray-700 bg-pink-900/50">SS (Local)</th>
+                <th class="px-3 py-3 border-l border-gray-700 text-center">Status</th>
+            </tr>
+          </thead>';
+    echo '<tbody class="divide-y divide-gray-200">';
+    
+    foreach ($skus as $sku) {
+        $a = $details_a[$sku];
+        $b = $details_b[$sku];
+        
+        $title_match = (trim($a['name']) == trim($b['name']));
+        $desc_match = (trim(strip_tags($a['desc'] ?? '')) == trim(strip_tags($b['desc'] ?? '')));
+        $img_match = ($a['img_count'] == $b['img_count']);
+        
+        $has_mismatch = (!$title_match || !$desc_match || !$img_match);
+        $mismatch_class = $has_mismatch ? 'has-mismatch bg-yellow-50/50' : 'bg-white';
+
+        // Title Row
+        echo "<tr class='$mismatch_class border-t-2 border-gray-100'>";
+        echo "<td rowspan='3' class='px-3 py-4 font-bold bg-gray-50 sticky left-0 shadow-sm'><span class='sku-badge'>$sku</span></td>";
+        echo "<td class='px-3 py-2 font-semibold text-gray-500'>Title</td>";
+        echo "<td class='px-3 py-2 " . ($title_match ? '' : 'text-red-600 bg-red-50') . "'>" . htmlspecialchars($b['name']) . "</td>";
+        echo "<td class='px-3 py-2 " . ($title_match ? '' : 'text-red-600 bg-red-50') . "'>" . htmlspecialchars($a['name']) . "</td>";
+        echo "<td class='px-3 py-2 text-center'>" . ($title_match ? '✅' : '❌') . "</td>";
+        echo "</tr>";
+
+        // Description Row
+        echo "<tr class='$mismatch_class'>";
+        echo "<td class='px-3 py-2 font-semibold text-gray-500'>Description</td>";
+        echo "<td class='px-3 py-2 " . ($desc_match ? '' : 'text-red-600 bg-red-50') . "'><div class='max-h-24 overflow-y-auto w-64'>" . (empty($b['desc']) ? '<i>Empty</i>' : htmlspecialchars(substr(strip_tags($b['desc']), 0, 300)) . '...') . "</div></td>";
+        echo "<td class='px-3 py-2 " . ($desc_match ? '' : 'text-red-600 bg-red-50') . "'><div class='max-h-24 overflow-y-auto w-64'>" . (empty($a['desc']) ? '<i>Empty</i>' : htmlspecialchars(substr(strip_tags($a['desc']), 0, 300)) . '...') . "</div></td>";
+        echo "<td class='px-3 py-2 text-center'>" . ($desc_match ? '✅' : '❌') . "</td>";
+        echo "</tr>";
+
+        // Image Count Row
+        echo "<tr class='$mismatch_class'>";
+        echo "<td class='px-3 py-2 font-semibold text-gray-500'>Images</td>";
+        echo "<td class='px-3 py-2 " . ($img_match ? '' : 'font-bold text-red-600 bg-red-50') . "'>{$b['img_count']}</td>";
+        echo "<td class='px-3 py-2 " . ($img_match ? '' : 'font-bold text-red-600 bg-red-50') . "'>{$a['img_count']}</td>";
+        echo "<td class='px-3 py-2 text-center'>" . ($img_match ? '✅' : '❌') . "</td>";
+        echo "</tr>";
     }
     echo '</tbody></table></div>';
 }

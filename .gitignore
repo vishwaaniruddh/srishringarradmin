@@ -1,0 +1,6 @@
+Config/secrets.php
+vendor/
+.env
+*.log
+composer.lock
+test_export.csv

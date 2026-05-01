@@ -1,0 +1,203 @@
+{
+    "platform_overview": {
+        "name": "Srishringarr",
+        "type": "E-commerce platform for jewellery and apparel (garments) rental and sales",
+        "description": "Srishringarr is an online platform that allows customers to rent or buy jewellery and apparel/garments. The admin panel manages products, orders, rentals, categories, and inventory across multiple systems including a local database, a POS system, and a WooCommerce WordPress store.",
+        "business_model": "Rental-first with sales option. Products can be rented with a deposit, or purchased outright. Commission-based pricing adjustments are applied over time."
+    },
+
+    "databases": {
+        "con": {
+            "name": "Main Product Database (u464193275_srishrinjewels)",
+            "purpose": "Stores all product information, categories, images, and product metadata",
+            "tables": {
+                "product": {
+                    "description": "Jewellery products",
+                    "key_columns": ["product_id (PK)", "product_code (SKU)", "product_name", "product_desc", "product_image", "categories_id (FK to jewel_subcat)", "subcat_id (FK to subcat1)", "sales_price", "rent_price", "deposit", "discount", "date_added"],
+                    "notes": "SKU codes typically start with prefixes like YNI, YNL, ND, etc."
+                },
+                "garment_product": {
+                    "description": "Apparel/Garment products",
+                    "key_columns": ["gproduct_id (PK)", "gproduct_code (SKU)", "gproduct_name", "gproduct_desc", "gproduct_image", "garment_id (FK to garments)", "product_for", "sales_price", "rent_price", "deposit", "discount", "date_added"],
+                    "notes": "Similar structure to jewellery but with 'g' prefix on columns"
+                },
+                "jewel_subcat": {
+                    "description": "Jewellery main categories (e.g., Necklace, Earring, Bangles)",
+                    "key_columns": ["subcat_id (PK)", "categories_name", "desc", "mcat_id", "date_added"],
+                    "notes": "Filter by mcat_id=1 OR mcat_id=3 for active categories"
+                },
+                "subcat1": {
+                    "description": "Jewellery subcategories (child of jewel_subcat)",
+                    "key_columns": ["subcat_id (PK)", "maincat_id (FK to jewel_subcat)", "name", "desc", "status"],
+                    "notes": "status=1 means active"
+                },
+                "garments": {
+                    "description": "Garment/Apparel main categories (e.g., Lehenga, Saree)",
+                    "key_columns": ["garment_id (PK)", "name", "description", "Main_id"],
+                    "notes": "Filter by Main_id=1 OR Main_id=3 for active categories"
+                },
+                "garment_subcat": {
+                    "description": "Garment subcategories",
+                    "key_columns": ["sub_id (PK)", "gmain_id (FK to garments)", "sub_name", "description"]
+                },
+                "product_images_new": {
+                    "description": "Product images for both jewellery and garments",
+                    "key_columns": ["id (PK)", "product_id (FK, for jewellery)", "gproduct_id (FK, for garments)", "img_name", "prod_name", "prod_image", "pro_code", "subcat_id", "rank", "date_added"],
+                    "notes": "Use product_id for jewellery, gproduct_id for garments. Ordered by rank."
+                }
+            }
+        },
+        "con3": {
+            "name": "POS Database (u464193275_srishringarr)",
+            "purpose": "Point of Sale system - stores inventory quantities, pricing, orders, and rental bookings",
+            "access": "READ-ONLY. Never write to this database.",
+            "tables": {
+                "phppos_items": {
+                    "description": "POS inventory items with quantities and pricing",
+                    "key_columns": ["item_id (PK)", "name (SKU code)", "category", "category_type (1=Jewellery, 2=Apparel)", "unit_price (MRP)", "quantity", "cost_price"],
+                    "notes": "The 'name' field contains the SKU code matching product_code/gproduct_code"
+                },
+                "phppos_rent": {
+                    "description": "Rental orders / bookings",
+                    "key_columns": ["bill_id (PK)", "bill_date", "pick_date", "delivery_date", "booking_status (Booked/Confirmed/Picked/Returned)", "rent_amount", "deposit_amount"],
+                    "notes": "booking_status tracks the lifecycle: Booked -> Confirmed -> Picked -> Returned"
+                },
+                "order_detail": {
+                    "description": "Individual items within each order",
+                    "key_columns": ["id (PK)", "bill_id (FK to phppos_rent)", "item_id (SKU)", "commission_amt", "quantity"],
+                    "notes": "commission_amt may contain comma-formatted numbers"
+                }
+            }
+        },
+        "woo": {
+            "name": "WooCommerce Database (remote, u464193275_ib3Xh)",
+            "purpose": "WordPress WooCommerce store - the customer-facing website",
+            "access": "Remote database connection. Use sparingly due to network latency.",
+            "tables": {
+                "wpxyz_posts": {
+                    "description": "WordPress posts including WooCommerce products",
+                    "key_columns": ["ID", "post_title", "post_name (slug)", "post_content", "post_type", "post_status", "post_date"],
+                    "notes": "Filter by post_type='product' AND post_status='publish' for active products"
+                },
+                "wpxyz_postmeta": {
+                    "description": "Product metadata (price, SKU, stock)",
+                    "key_columns": ["meta_id", "post_id (FK)", "meta_key", "meta_value"],
+                    "notes": "Key meta_keys: '_sku', '_price', '_stock', '_thumbnail_id'"
+                }
+            }
+        }
+    },
+
+    "admin_panel_features": {
+        "dashboard": {
+            "url": "index.php",
+            "description": "Overview page showing Total Orders, Monthly Revenue, Active Products count, Active Rentals count. Data fetched via API from the POS database.",
+            "how_to_access": "Click 'Dashboard' in the sidebar or visit the admin panel root URL"
+        },
+        "products": {
+            "all_products": {
+                "url": "index.php?controller=product&action=index",
+                "description": "Lists all products (both jewellery and garments) in a paginated table with search and category filters. Shows product image, name, SKU, type, pricing, and booking status.",
+                "how_to_access": "Click 'Products' > 'All Products' in the sidebar"
+            },
+            "add_product": {
+                "url": "index.php?controller=product&action=add",
+                "description": "Form to add a new product. Select type (Jewellery/Garment), fill in name, SKU, category, subcategory, pricing, and upload images.",
+                "how_to_access": "Click 'Products' > 'Add New' in the sidebar"
+            },
+            "edit_product": {
+                "url": "index.php?controller=product&action=edit&type=TYPE&id=ID",
+                "description": "Edit an existing product's details and images",
+                "how_to_access": "Click the edit button on any product in the product list"
+            },
+            "woo_products": {
+                "url": "index.php?controller=wooproduct&action=index",
+                "description": "View products from the WooCommerce (WordPress) remote store. Shows products synced to the customer-facing website with their SKU, price, stock, and categories.",
+                "how_to_access": "Click 'Products' > 'YN Products (Remote)' in the sidebar"
+            }
+        },
+        "bulk_operations": {
+            "import": {
+                "url": "index.php?controller=product&action=import",
+                "description": "Bulk add/update products via Excel file upload. Supports column mapping and row-by-row status tracking.",
+                "how_to_access": "Click 'Add Products' under 'Bulk Operations' in the sidebar"
+            },
+            "bulk_delete": {
+                "url": "index.php?controller=product&action=bulkDelete",
+                "description": "Bulk delete products from the local database by uploading a CSV of SKU codes. Only affects the local product database, NOT WordPress or POS.",
+                "how_to_access": "Click 'Delete Product' under 'Bulk Operations' in the sidebar"
+            }
+        },
+        "categories": {
+            "url": "index.php?controller=category&action=index",
+            "description": "Manage product categories. Handles both Jewellery categories (jewel_subcat + subcat1) and Garment categories (garments + garment_subcat). Add, edit categories and subcategories.",
+            "how_to_access": "Click 'Products' > 'Categories' in the sidebar"
+        },
+        "reports": {
+            "sku_audit": {
+                "url": "index.php?controller=report&action=sku",
+                "description": "SKU Master Audit Report. Compares SKUs between the local database and the WooCommerce store to find discrepancies: products only in web, only in WordPress, or matching.",
+                "how_to_access": "Click 'Reports' > 'SKU Master Audit' in the sidebar"
+            }
+        }
+    },
+
+    "business_logic": {
+        "pricing": {
+            "description": "Complex pricing model based on MRP, commission, and product type",
+            "rent_price_formula": {
+                "jewellery": {
+                    "under_10k": "Courier (based on MRP bracket: ≤2000→₹100, ≤5000→₹250, ≤10000→₹500) + MRP × 20%",
+                    "over_10k": "Max(₹3000, Courier(₹1000) + CurrentSP × rate). Rate: SP≤40k→20%, SP≤60k→17%, SP>60k→15%"
+                },
+                "garments": {
+                    "under_10k": "₹1000 (courier) + MRP × 20%",
+                    "over_10k": "Max(₹3000, ₹2000(courier) + CurrentSP × rate). Rate same as jewellery."
+                }
+            },
+            "deposit_formula": {
+                "under_10k": "MRP × 35%",
+                "over_10k": "Max(₹3000, CurrentSP × 35%)"
+            },
+            "selling_price_formula": {
+                "over_10k": "Max(₹5000, (MRP - Commission) - 40%)",
+                "under_10k": "MRP - 50%"
+            },
+            "current_sp": "MRP - Total Commission Amount"
+        },
+        "booking_statuses": ["Booked", "Confirmed", "Picked", "Returned"],
+        "product_types": {
+            "1": "Jewellery",
+            "2": "Apparel/Garments"
+        },
+        "sku_prefixes": {
+            "YNI": "Jewellery prefix",
+            "YNL": "Jewellery prefix",
+            "ND": "Jewellery prefix",
+            "YNB": "Previously used, now removed from main site"
+        }
+    },
+
+    "common_questions": [
+        {
+            "q": "How many total products are there?",
+            "hint": "Query both 'product' (jewellery) and 'garment_product' (garments) tables and sum the counts using $con"
+        },
+        {
+            "q": "Show me today's active rentals",
+            "hint": "Query phppos_rent where pick_date <= today AND delivery_date >= today from $con3"
+        },
+        {
+            "q": "What is the monthly revenue?",
+            "hint": "SUM(rent_amount) from phppos_rent WHERE current month/year from $con3"
+        },
+        {
+            "q": "How to add a new product?",
+            "hint": "Direct them to index.php?controller=product&action=add with step-by-step instructions"
+        },
+        {
+            "q": "Show products in a specific category",
+            "hint": "Join product with jewel_subcat or garment_product with garments"
+        }
+    ]
+}

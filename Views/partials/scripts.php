@@ -1,3 +1,5 @@
+<?php include __DIR__ . '/chatbot_widget.php'; ?>
+
 <script>
     document.addEventListener('DOMContentLoaded', () => {
         const sidebar = document.getElementById('sidebar');
