@@ -137,10 +137,25 @@
                                 <div class="flex justify-between items-center mb-4">
                                     <h5 class="font-bold text-green-600">Matched SKUs: Deep Content Comparison</h5>
                                     <div class="flex gap-4 items-center">
-                                        <label class="flex items-center gap-2 text-sm text-gray-600 cursor-pointer">
-                                            <input type="checkbox" id="show-mismatches-only" class="rounded text-green-600">
-                                            Show Mismatches Only
-                                        </label>
+                                        <div class="flex gap-4 p-2 bg-gray-50 rounded-lg border border-gray-200">
+                                            <label class="flex items-center gap-2 text-xs font-bold text-gray-700 cursor-pointer">
+                                                <input type="checkbox" id="show-mismatches-only" class="rounded text-green-600 mismatch-filter">
+                                                Any Mismatch
+                                            </label>
+                                            <div class="w-px h-4 bg-gray-300"></div>
+                                            <label class="flex items-center gap-2 text-xs text-gray-600 cursor-pointer">
+                                                <input type="checkbox" data-filter="title-mismatch" class="rounded text-blue-600 mismatch-filter">
+                                                Title Mismatch
+                                            </label>
+                                            <label class="flex items-center gap-2 text-xs text-gray-600 cursor-pointer">
+                                                <input type="checkbox" data-filter="desc-mismatch" class="rounded text-orange-600 mismatch-filter">
+                                                Desc Mismatch
+                                            </label>
+                                            <label class="flex items-center gap-2 text-xs text-gray-600 cursor-pointer">
+                                                <input type="checkbox" data-filter="img-mismatch" class="rounded text-red-600 mismatch-filter">
+                                                Image Mismatch
+                                            </label>
+                                        </div>
                                         <a href="index.php?controller=report&action=sku&export=both" class="export-btn bg-green-600 hover:bg-green-700"><i class="fa fa-download mr-2"></i>Export Matches</a>
                                     </div>
                                 </div>
@@ -202,21 +217,41 @@
                 }
             };
 
-            // Mismatch Filter
-            const mismatchCheckbox = document.getElementById('show-mismatches-only');
-            if (mismatchCheckbox) {
-                mismatchCheckbox.addEventListener('change', function() {
+            // Mismatch Filter Logic
+            const filters = document.querySelectorAll('.mismatch-filter');
+            filters.forEach(f => {
+                f.addEventListener('change', function() {
                     const table = document.getElementById('table-both');
+                    if (!table) return;
+                    
                     const tr = table.getElementsByTagName("tr");
+                    const anyMismatchChecked = document.getElementById('show-mismatches-only').checked;
+                    
+                    // Get all active specific filters
+                    const activeFilters = Array.from(filters)
+                        .filter(filter => filter.checked && filter.getAttribute('data-filter'))
+                        .map(filter => filter.getAttribute('data-filter'));
+
                     for (let i = 1; i < tr.length; i++) {
-                        if (this.checked) {
-                            tr[i].style.display = tr[i].classList.contains('has-mismatch') ? "" : "none";
-                        } else {
-                            tr[i].style.display = "";
+                        let show = true;
+                        
+                        if (anyMismatchChecked) {
+                            if (!tr[i].classList.contains('has-mismatch')) show = false;
                         }
+                        
+                        if (show && activeFilters.length > 0) {
+                            // If specific filters are active, at least one must match
+                            let matchSpecific = false;
+                            activeFilters.forEach(className => {
+                                if (tr[i].classList.contains(className)) matchSpecific = true;
+                            });
+                            if (!matchSpecific) show = false;
+                        }
+
+                        tr[i].style.display = show ? "" : "none";
                     }
                 });
-            }
+            });
         });
     </script>
 </body>
@@ -263,19 +298,22 @@ function renderComparisonTable($skus, $details_a, $details_b, $id)
         $a = $details_a[$sku];
         $b = $details_b[$sku];
         
-        $title_match = (trim($a['name']) == trim($b['name']));
+        $title_match = (trim($a['name'] ?? '') == trim($b['name'] ?? ''));
         $desc_match = (trim(strip_tags($a['desc'] ?? '')) == trim(strip_tags($b['desc'] ?? '')));
-        $img_match = ($a['img_count'] == $b['img_count']);
+        $img_match = (($a['img_count'] ?? 0) == ($b['img_count'] ?? 0));
         
         $has_mismatch = (!$title_match || !$desc_match || !$img_match);
-        $mismatch_class = $has_mismatch ? 'has-mismatch bg-yellow-50/50' : 'bg-white';
+        $mismatch_class = $has_mismatch ? 'has-mismatch' : 'bg-white';
+        if (!$title_match) $mismatch_class .= ' title-mismatch';
+        if (!$desc_match) $mismatch_class .= ' desc-mismatch';
+        if (!$img_match) $mismatch_class .= ' img-mismatch';
 
         // Title Row
         echo "<tr class='$mismatch_class border-t-2 border-gray-100'>";
         echo "<td rowspan='3' class='px-3 py-4 font-bold bg-gray-50 sticky left-0 shadow-sm'><span class='sku-badge'>$sku</span></td>";
         echo "<td class='px-3 py-2 font-semibold text-gray-500'>Title</td>";
-        echo "<td class='px-3 py-2 " . ($title_match ? '' : 'text-red-600 bg-red-50') . "'>" . htmlspecialchars($b['name']) . "</td>";
-        echo "<td class='px-3 py-2 " . ($title_match ? '' : 'text-red-600 bg-red-50') . "'>" . htmlspecialchars($a['name']) . "</td>";
+        echo "<td class='px-3 py-2 " . ($title_match ? '' : 'text-red-600 bg-red-50') . "'>" . htmlspecialchars($b['name'] ?? 'N/A') . "</td>";
+        echo "<td class='px-3 py-2 " . ($title_match ? '' : 'text-red-600 bg-red-50') . "'>" . htmlspecialchars($a['name'] ?? 'N/A') . "</td>";
         echo "<td class='px-3 py-2 text-center'>" . ($title_match ? '✅' : '❌') . "</td>";
         echo "</tr>";
 
@@ -290,8 +328,8 @@ function renderComparisonTable($skus, $details_a, $details_b, $id)
         // Image Count Row
         echo "<tr class='$mismatch_class'>";
         echo "<td class='px-3 py-2 font-semibold text-gray-500'>Images</td>";
-        echo "<td class='px-3 py-2 " . ($img_match ? '' : 'font-bold text-red-600 bg-red-50') . "'>{$b['img_count']}</td>";
-        echo "<td class='px-3 py-2 " . ($img_match ? '' : 'font-bold text-red-600 bg-red-50') . "'>{$a['img_count']}</td>";
+        echo "<td class='px-3 py-2 " . ($img_match ? '' : 'font-bold text-red-600 bg-red-50') . "'>" . ($b['img_count'] ?? 0) . "</td>";
+        echo "<td class='px-3 py-2 " . ($img_match ? '' : 'font-bold text-red-600 bg-red-50') . "'>" . ($a['img_count'] ?? 0) . "</td>";
         echo "<td class='px-3 py-2 text-center'>" . ($img_match ? '✅' : '❌') . "</td>";
         echo "</tr>";
     }
