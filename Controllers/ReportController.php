@@ -234,7 +234,7 @@ class ReportController extends Controller {
                 if (empty($ext)) $ext = 'jpg';
                 
                 $new_filename = $sku . "_" . $row['ID'] . "." . $ext;
-                $db_path = $date_path . $new_filename;
+                $db_path = "/" . $date_path . $new_filename;
                 $save_path = $abs_upload_dir . $new_filename;
 
                 // Download image content
@@ -246,7 +246,7 @@ class ReportController extends Controller {
                                    VALUES (
                                     '" . mysqli_real_escape_string($con, $sku) . "', 
                                     '" . mysqli_real_escape_string($con, $db_path) . "', 
-                                    '" . mysqli_real_escape_string($con, $new_filename) . "', 
+                                    '" . mysqli_real_escape_string($con, $db_path) . "', 
                                     " . ($cat === 'Jewelry' ? intval($id) : 0) . ", 
                                     " . ($cat === 'Apparel' ? intval($id) : 0) . ",
                                     NOW()
