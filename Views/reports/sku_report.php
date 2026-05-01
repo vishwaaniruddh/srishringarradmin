@@ -252,6 +252,71 @@
                     }
                 });
             });
+
+            // Sync Functionality
+            window.syncProperty = function(btn, type, sku, cat, id, post_id) {
+                if (!confirm(`Are you sure you want to sync ${type} for ${sku} from YN to SS?`)) return;
+
+                const originalHtml = btn.innerHTML;
+                btn.disabled = true;
+                btn.innerHTML = '<i class="fa fa-spinner fa-spin"></i>';
+
+                const formData = new FormData();
+                formData.append('sku', sku);
+                formData.append('type', type);
+                formData.append('cat', cat);
+                formData.append('id', id);
+                formData.append('post_id', post_id);
+
+                fetch('index.php?controller=report&action=sync', {
+                    method: 'POST',
+                    body: formData
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        const cell = btn.parentElement;
+                        const row = cell.parentElement;
+                        const ssCell = cell.previousElementSibling;
+                        const ynCell = ssCell.previousElementSibling;
+
+                        // 1. Update Status Cell
+                        cell.innerHTML = '<span class="text-green-600 font-bold">✅ Synced</span>';
+                        
+                        // 2. Update SS value with YN value
+                        if (type !== 'images') {
+                            ssCell.innerHTML = ynCell.innerHTML;
+                        } else {
+                            // For images, we just show the count matches
+                            ssCell.innerHTML = ynCell.innerHTML;
+                        }
+
+                        // 3. Clean up mismatch styling
+                        ssCell.classList.remove('text-red-600', 'bg-red-50', 'font-bold');
+                        ynCell.classList.remove('text-red-600', 'bg-red-50', 'font-bold');
+                        
+                        // Remove specific mismatch class from the row
+                        row.classList.remove(type + '-mismatch');
+                        
+                        // If no more specific mismatches, remove has-mismatch
+                        if (!row.classList.contains('title-mismatch') && 
+                            !row.classList.contains('desc-mismatch') && 
+                            !row.classList.contains('img-mismatch')) {
+                            row.classList.remove('has-mismatch');
+                        }
+                    } else {
+                        alert('Error: ' + data.message);
+                        btn.disabled = false;
+                        btn.innerHTML = originalHtml;
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('Sync failed. Check console.');
+                    btn.disabled = false;
+                    btn.innerHTML = originalHtml;
+                });
+            };
         });
     </script>
 </body>
@@ -308,13 +373,21 @@ function renderComparisonTable($skus, $details_a, $details_b, $id)
         if (!$desc_match) $mismatch_class .= ' desc-mismatch';
         if (!$img_match) $mismatch_class .= ' img-mismatch';
 
+        $sync_params = "'$sku', '{$a['cat']}', '{$a['id']}', '{$b['post_id']}'";
+
         // Title Row
         echo "<tr class='$mismatch_class border-t-2 border-gray-100'>";
         echo "<td rowspan='3' class='px-3 py-4 font-bold bg-gray-50 sticky left-0 shadow-sm'><span class='sku-badge'>$sku</span></td>";
         echo "<td class='px-3 py-2 font-semibold text-gray-500'>Title</td>";
         echo "<td class='px-3 py-2 " . ($title_match ? '' : 'text-red-600 bg-red-50') . "'>" . htmlspecialchars($b['name'] ?? 'N/A') . "</td>";
         echo "<td class='px-3 py-2 " . ($title_match ? '' : 'text-red-600 bg-red-50') . "'>" . htmlspecialchars($a['name'] ?? 'N/A') . "</td>";
-        echo "<td class='px-3 py-2 text-center'>" . ($title_match ? '✅' : '❌') . "</td>";
+        echo "<td class='px-3 py-2 text-center'>";
+        if (!$title_match) {
+            echo "<button onclick=\"syncProperty(this, 'title', $sync_params)\" class='text-xs bg-blue-600 text-white px-2 py-1 rounded hover:bg-blue-700' title='Sync Title to SS'><i class='fa fa-sync'></i> Sync</button>";
+        } else {
+            echo '✅';
+        }
+        echo "</td>";
         echo "</tr>";
 
         // Description Row
@@ -322,7 +395,13 @@ function renderComparisonTable($skus, $details_a, $details_b, $id)
         echo "<td class='px-3 py-2 font-semibold text-gray-500'>Description</td>";
         echo "<td class='px-3 py-2 " . ($desc_match ? '' : 'text-red-600 bg-red-50') . "'><div class='max-h-24 overflow-y-auto w-64'>" . (empty($b['desc']) ? '<i>Empty</i>' : htmlspecialchars(substr(strip_tags($b['desc']), 0, 300)) . '...') . "</div></td>";
         echo "<td class='px-3 py-2 " . ($desc_match ? '' : 'text-red-600 bg-red-50') . "'><div class='max-h-24 overflow-y-auto w-64'>" . (empty($a['desc']) ? '<i>Empty</i>' : htmlspecialchars(substr(strip_tags($a['desc']), 0, 300)) . '...') . "</div></td>";
-        echo "<td class='px-3 py-2 text-center'>" . ($desc_match ? '✅' : '❌') . "</td>";
+        echo "<td class='px-3 py-2 text-center'>";
+        if (!$desc_match) {
+            echo "<button onclick=\"syncProperty(this, 'desc', $sync_params)\" class='text-xs bg-orange-600 text-white px-2 py-1 rounded hover:bg-orange-700' title='Sync Description to SS'><i class='fa fa-sync'></i> Sync</button>";
+        } else {
+            echo '✅';
+        }
+        echo "</td>";
         echo "</tr>";
 
         // Image Count Row
@@ -330,7 +409,13 @@ function renderComparisonTable($skus, $details_a, $details_b, $id)
         echo "<td class='px-3 py-2 font-semibold text-gray-500'>Images</td>";
         echo "<td class='px-3 py-2 " . ($img_match ? '' : 'font-bold text-red-600 bg-red-50') . "'>" . ($b['img_count'] ?? 0) . "</td>";
         echo "<td class='px-3 py-2 " . ($img_match ? '' : 'font-bold text-red-600 bg-red-50') . "'>" . ($a['img_count'] ?? 0) . "</td>";
-        echo "<td class='px-3 py-2 text-center'>" . ($img_match ? '✅' : '❌') . "</td>";
+        echo "<td class='px-3 py-2 text-center'>";
+        if (!$img_match) {
+            echo "<button onclick=\"syncProperty(this, 'images', $sync_params)\" class='text-xs bg-red-600 text-white px-2 py-1 rounded hover:bg-red-700' title='Sync Images to SS'><i class='fa fa-sync'></i> Sync</button>";
+        } else {
+            echo '✅';
+        }
+        echo "</td>";
         echo "</tr>";
     }
     echo '</tbody></table></div>';
