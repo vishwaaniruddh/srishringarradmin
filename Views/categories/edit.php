@@ -30,7 +30,7 @@
                             </h2>
                         </div>
 
-                        <form action="index.php?controller=category&action=update" method="POST" class="p-8 space-y-6">
+                        <form action="index.php?controller=category&action=update" method="POST" enctype="multipart/form-data" class="p-8 space-y-6">
                             <input type="hidden" name="type" value="<?php echo $type; ?>">
                             <input type="hidden" name="id" value="<?php echo $id; ?>">
 
@@ -48,9 +48,22 @@
                             </div>
                             <?php endif; ?>
 
-                            <div>
-                                <label class="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Name</label>
-                                <input type="text" name="name" value="<?php echo htmlspecialchars($category['name'] ?? ''); ?>" required class="w-full bg-gray-50 border border-gray-200 rounded-xl p-3 text-sm focus:ring-primary focus:border-primary">
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <div>
+                                    <label class="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Name</label>
+                                    <input type="text" name="name" value="<?php echo htmlspecialchars($category['name'] ?? ''); ?>" required class="w-full bg-gray-50 border border-gray-200 rounded-xl p-3 text-sm focus:ring-primary focus:border-primary">
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Category Image</label>
+                                    <div class="flex items-center space-x-4">
+                                        <?php if (!empty($category['image'])): ?>
+                                            <div class="w-12 h-12 rounded-lg overflow-hidden border border-gray-200 shrink-0">
+                                                <img src="../../uploads/categories/<?php echo $category['image']; ?>" class="w-full h-full object-cover">
+                                            </div>
+                                        <?php endif; ?>
+                                        <input type="file" name="category_image" class="block w-full text-xs text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-semibold file:bg-primary/10 file:text-primary hover:file:bg-primary/20 transition-all">
+                                    </div>
+                                </div>
                             </div>
 
                             <div>

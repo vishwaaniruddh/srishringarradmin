@@ -41,8 +41,16 @@
                                     <?php endforeach; ?>
                                 </select>
                             </div>
+
+                            <div class="lg:col-span-2">
+                                <select name="featured" id="featuredFilter" class="w-full bg-gray-50 border border-gray-200 text-gray-700 text-sm rounded-xl focus:ring-primary focus:border-primary block p-3">
+                                    <option value="">All Featured</option>
+                                    <option value="1">Featured Only</option>
+                                    <option value="0">Non-Featured</option>
+                                </select>
+                            </div>
                             
-                            <div class="lg:col-span-4">
+                            <div class="lg:col-span-2">
                                 <div class="relative">
                                     <span class="absolute inset-y-0 left-0 pl-3 flex items-center text-gray-400">
                                         <i class="fas fa-search"></i>
@@ -81,6 +89,7 @@
                                         <th class="px-6 py-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">Inventory</th>
                                         <th class="px-6 py-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">Pricing</th>
                                         <th class="px-6 py-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">Bookings</th>
+                                        <th class="px-6 py-4 text-xs font-semibold text-gray-500 uppercase tracking-wider text-center">Featured</th>
                                         <th class="px-6 py-4 text-xs font-semibold text-gray-500 uppercase tracking-wider text-right">Actions</th>
                                     </tr>
                                 </thead>
@@ -120,6 +129,7 @@
         currentPage = page;
         const search = document.getElementById('searchInput').value;
         const category = document.getElementById('categoryFilter').value;
+        const featured = document.getElementById('featuredFilter').value;
         const tbody = document.getElementById('products-body');
         const pagination = document.getElementById('pagination-container');
 
@@ -135,7 +145,7 @@
         `;
 
         try {
-            const response = await fetch(`index.php?controller=api&action=products&page=${page}&search=${encodeURIComponent(search)}&category=${encodeURIComponent(category)}`);
+            const response = await fetch(`index.php?controller=api&action=products&page=${page}&search=${encodeURIComponent(search)}&category=${encodeURIComponent(category)}&featured=${featured}`);
             const data = await response.json();
 
             if (!data.products || data.products.length === 0) {
@@ -166,9 +176,13 @@
                         <td class="px-6 py-4 text-sm text-gray-400 font-medium">${serialStart + index}</td>
                         <td class="px-6 py-4">
                             <div class="flex items-center">
-                                <img src="${p.details.image_path}" alt="" class="product-img mr-4 shadow-sm border border-gray-100" onerror="this.src='assets/default-product.jpg'">
+                                <a href="index.php?controller=product&action=view_details&id=${p.id}&type=${p.type}" class="block flex-shrink-0">
+                                    <img src="${p.details.image_path}" alt="" class="product-img mr-4 shadow-sm border border-gray-100 hover:opacity-80 transition-opacity" onerror="this.src='assets/default-product.jpg'">
+                                </a>
                                 <div>
-                                    <div class="text-sm font-semibold text-gray-800">${p.name.toLowerCase().replace(/\\b\\w/g, l => l.toUpperCase())}</div>
+                                    <a href="index.php?controller=product&action=view_details&id=${p.id}&type=${p.type}" class="text-sm font-semibold text-gray-800 hover:text-primary transition-colors block">
+                                        ${p.name.toLowerCase().replace(/\b\w/g, l => l.toUpperCase())}
+                                    </a>
                                     <div class="text-xs text-gray-400 capitalize">${p.details.product_type_label}</div>
                                 </div>
                             </div>
@@ -176,7 +190,7 @@
                         <td class="px-6 py-4">
                             <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-50 text-blue-800">${p.code}</span>
                         </td>
-                        <td class="px-6 py-4 text-sm text-gray-500">${p.details.category_name.toLowerCase().replace(/\\b\\w/g, l => l.toUpperCase())}</td>
+                        <td class="px-6 py-4 text-sm text-gray-500">${p.details.category_name.toLowerCase().replace(/\b\w/g, l => l.toUpperCase())}</td>
                         <td class="px-6 py-4">
                             <div class="text-sm font-medium ${p.details.quantity > 0 ? 'text-gray-800' : 'text-red-500'}">Qty: ${p.details.quantity}</div>
                         </td>
@@ -185,12 +199,21 @@
                             <div class="text-xs text-gray-400">Rent: <span class="text-sm font-semibold text-primary">₹${parseFloat(p.details.rent_price).toLocaleString('en-IN', {minimumFractionDigits: 2})}</span></div>
                         </td>
                         <td class="px-6 py-4">${bookingText}</td>
+                        <td class="px-6 py-4 text-center">
+                            <button onclick="toggleFeatured(${p.id}, '${p.type}', ${p.featured == 1 ? 0 : 1})" class="transition-all transform hover:scale-125">
+                                <i class="${p.featured == 1 ? 'fas fa-star text-yellow-400' : 'far fa-star text-gray-300'} text-xl"></i>
+                            </button>
+                        </td>
                         <td class="px-6 py-4 text-right">
                             <div class="flex items-center justify-end space-x-2">
-                                <a href="index.php?controller=product&action=edit&id=${p.id}&type=${p.type}" class="p-2 text-gray-400 hover:text-primary transition-colors">
+                                <a href="index.php?controller=product&action=view_details&id=${p.id}&type=${p.type}" title="View Details" class="p-2 text-gray-400 hover:text-green-500 transition-colors">
+                                    <i class="fas fa-eye"></i>
+                                </a>
+                                <a href="index.php?controller=product&action=edit&id=${p.id}&type=${p.type}" title="Edit Product" class="p-2 text-gray-400 hover:text-primary transition-colors">
                                     <i class="fas fa-edit"></i>
                                 </a>
                                 <a href="index.php?controller=product&action=delete&id=${p.id}&type=${p.type}" 
+                                   title="Delete Product"
                                    onclick="return confirm('Are you sure you want to delete this product?')"
                                    class="p-2 text-gray-400 hover:text-red-500 transition-colors">
                                     <i class="fas fa-trash"></i>
@@ -280,6 +303,27 @@
             searchTimeout = setTimeout(() => loadProducts(1), 500);
         });
     });
+
+    async function toggleFeatured(id, type, status) {
+        try {
+            const response = await fetch('index.php?controller=api&action=toggleFeatured', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ id, type, status })
+            });
+            const data = await response.json();
+            if (data.success) {
+                loadProducts(currentPage);
+            } else {
+                alert(data.error || 'Failed to update featured status');
+            }
+        } catch (error) {
+            console.error('Error toggling featured status:', error);
+            alert('Something went wrong. Please try again.');
+        }
+    }
+
+    document.getElementById('featuredFilter').addEventListener('change', () => loadProducts(1));
     </script>
 </body>
 </html>

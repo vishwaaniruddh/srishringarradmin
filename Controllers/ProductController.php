@@ -18,6 +18,27 @@ class ProductController extends Controller {
             'categories' => $categories
         ]);
     }
+
+    public function view_details() {
+        $id = (int)($_GET['id'] ?? 0);
+        $type = $_GET['type'] ?? 'jewellery';
+        
+        if (!$id) $this->redirect('index.php?controller=product&action=index');
+
+        $productModel = new ProductModel();
+        $product = $productModel->getProductById($id, $type);
+        $images = $productModel->getProductImages($id, $type);
+        
+        if (!$product) {
+            $this->redirect('index.php?controller=product&action=index&error=Product+not+found');
+        }
+
+        $this->view('products/view', [
+            'product' => $product,
+            'images' => $images,
+            'type' => $type
+        ]);
+    }
     public function add() {
         $productModel = new ProductModel();
         $jewelCategories = $productModel->getJewelCategories();

@@ -97,17 +97,21 @@ class CategoryModel extends Model {
         $id = (int)$id;
         $name = $this->db->real_escape_string($data['name']);
         $desc = $this->db->real_escape_string($data['description'] ?? '');
+        $image = isset($data['image']) ? $this->db->real_escape_string($data['image']) : null;
         
+        $imageSql = $image ? ", image = '$image'" : "";
+        $garmentImageSql = $image ? ", garments_image = '$image'" : "";
+
         if ($type === 'jewel_cat') {
-            $sql = "UPDATE jewel_subcat SET categories_name = '$name', `desc` = '$desc' WHERE subcat_id = $id";
+            $sql = "UPDATE jewel_subcat SET categories_name = '$name', `desc` = '$desc' $imageSql WHERE subcat_id = $id";
         } elseif ($type === 'jewel_sub') {
             $mainId = (int)$data['parent_id'];
-            $sql = "UPDATE subcat1 SET name = '$name', `desc` = '$desc', maincat_id = $mainId WHERE subcat_id = $id";
+            $sql = "UPDATE subcat1 SET name = '$name', `desc` = '$desc', maincat_id = $mainId $imageSql WHERE subcat_id = $id";
         } elseif ($type === 'garment_cat') {
-            $sql = "UPDATE garments SET name = '$name', description = '$desc' WHERE garment_id = $id";
+            $sql = "UPDATE garments SET name = '$name', description = '$desc' $garmentImageSql WHERE garment_id = $id";
         } elseif ($type === 'garment_sub') {
             $mainId = (int)$data['parent_id'];
-            $sql = "UPDATE garment_subcat SET sub_name = '$name', description = '$desc', gmain_id = $mainId WHERE sub_id = $id";
+            $sql = "UPDATE garment_subcat SET sub_name = '$name', description = '$desc', gmain_id = $mainId $imageSql WHERE sub_id = $id";
         } else {
             return false;
         }
@@ -118,13 +122,13 @@ class CategoryModel extends Model {
     public function getCategory($type, $id) {
         $id = (int)$id;
         if ($type === 'jewel_cat') {
-            $sql = "SELECT subcat_id as id, categories_name as name, `desc` FROM jewel_subcat WHERE subcat_id = $id";
+            $sql = "SELECT subcat_id as id, categories_name as name, `desc`, image FROM jewel_subcat WHERE subcat_id = $id";
         } elseif ($type === 'jewel_sub') {
-            $sql = "SELECT subcat_id as id, maincat_id as parent_id, name, `desc` FROM subcat1 WHERE subcat_id = $id";
+            $sql = "SELECT subcat_id as id, maincat_id as parent_id, name, `desc`, image FROM subcat1 WHERE subcat_id = $id";
         } elseif ($type === 'garment_cat') {
-            $sql = "SELECT garment_id as id, name, description as `desc` FROM garments WHERE garment_id = $id";
+            $sql = "SELECT garment_id as id, name, description as `desc`, garments_image as image FROM garments WHERE garment_id = $id";
         } elseif ($type === 'garment_sub') {
-            $sql = "SELECT sub_id as id, gmain_id as parent_id, sub_name as name, description as `desc` FROM garment_subcat WHERE sub_id = $id";
+            $sql = "SELECT sub_id as id, gmain_id as parent_id, sub_name as name, description as `desc`, image FROM garment_subcat WHERE sub_id = $id";
         } else {
             return null;
         }

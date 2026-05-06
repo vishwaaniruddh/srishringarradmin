@@ -60,7 +60,34 @@ class CategoryController extends Controller {
     public function update() {
         $type = $_POST['type'];
         $id = $_POST['id'];
-        $result = $this->categoryModel->updateCategory($type, $id, $_POST);
+        $data = $_POST;
+
+        // Handle Image Upload
+        if (isset($_FILES['category_image']) && $_FILES['category_image']['error'] === UPLOAD_ERR_OK) {
+            $uploadDir = '../../uploads/categories/';
+            if (!is_dir($uploadDir)) {
+                mkdir($uploadDir, 0777, true);
+            }
+
+            $fileTmpPath = $_FILES['category_image']['tmp_name'];
+            $fileName = $_FILES['category_image']['name'];
+            $fileSize = $_FILES['category_image']['size'];
+            $fileType = $_FILES['category_image']['type'];
+            $fileNameCmps = explode(".", $fileName);
+            $fileExtension = strtolower(end($fileNameCmps));
+
+            $newFileName = md5(time() . $fileName) . '.' . $fileExtension;
+            $allowedExtensions = ['jpg', 'gif', 'png', 'jpeg', 'webp'];
+
+            if (in_array($fileExtension, $allowedExtensions)) {
+                $destPath = $uploadDir . $newFileName;
+                if (move_uploaded_file($fileTmpPath, $destPath)) {
+                    $data['image'] = $newFileName;
+                }
+            }
+        }
+
+        $result = $this->categoryModel->updateCategory($type, $id, $data);
         
         header('Location: index.php?controller=category&action=index&' . ($result ? 'success=Updated' : 'error=Failed'));
     }

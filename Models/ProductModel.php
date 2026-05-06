@@ -20,6 +20,13 @@ class ProductModel extends Model {
             $jewellery_search = " AND (product_name LIKE '%$search%' OR product_code LIKE '%$search%')";
             $garments_search = " AND (gproduct_name LIKE '%$search%' OR gproduct_code LIKE '%$search%')";
         }
+        
+        $featured = $params['featured'] ?? '';
+        if ($featured !== '') {
+            $featured = (int)$featured;
+            $jewellery_search .= " AND featured = $featured";
+            $garments_search .= " AND featured = $featured";
+        }
 
         if (!empty($category_param)) {
             if (strpos($category_param, ':') !== false) {
@@ -46,6 +53,7 @@ class ProductModel extends Model {
                 product_code as code,
                 'jewellery' as type,
                 discount,
+                featured,
                 categories_id as category_id,
                 subcat_id as subcategory_id,
                 sales_price as original_sales_price
@@ -58,6 +66,7 @@ class ProductModel extends Model {
                 gproduct_code as code,
                 'garments' as type,
                 discount,
+                featured,
                 garment_id as category_id,
                 0 as subcategory_id,
                 sales_price as original_sales_price
@@ -90,6 +99,13 @@ class ProductModel extends Model {
             $search = mysqli_real_escape_string($this->db, $search);
             $jewellery_search = " AND (product_name LIKE '%$search%' OR product_code LIKE '%$search%')";
             $garments_search = " AND (gproduct_name LIKE '%$search%' OR gproduct_code LIKE '%$search%')";
+        }
+
+        $featured = $params['featured'] ?? '';
+        if ($featured !== '') {
+            $featured = (int)$featured;
+            $jewellery_search .= " AND featured = $featured";
+            $garments_search .= " AND featured = $featured";
         }
 
         if (!empty($category_param)) {
@@ -330,7 +346,15 @@ class ProductModel extends Model {
         $img_query = "SELECT img_name FROM product_images_new WHERE $img_field = '$pid' ORDER BY rank LIMIT 1";
         $img_result = $this->query($this->db, $img_query);
         $img_row = $this->fetchOne($img_result);
-        $image_path = !empty($img_row['img_name']) ? "../../yn/uploads" . $img_row['img_name'] : 'assets/default-product.jpg';
+        
+        $img_name = $img_row['img_name'] ?? '';
+        if (!empty($img_name)) {
+            // Remove leading slashes/paths and ensure absolute URL
+            $clean_img_name = ltrim(str_replace(['../../yn/uploads', '../yn/uploads', '/yn/uploads'], '', $img_name), '/');
+            $image_path = "https://srishringarr.com/yn/uploads/" . $clean_img_name;
+        } else {
+            $image_path = 'https://srishringarr.com/static/images/default.jpg';
+        }
 
         return [
             'category_name' => $category_name,
@@ -396,26 +420,27 @@ class ProductModel extends Model {
             $price = (float)($data['s_price'] ?? 0);
             $rent = (float)($data['rental_price'] ?? 0);
             $dep = (float)($data['deposit'] ?? 0);
+            $featured = (int)($data['featured'] ?? 0);
             
             if ($type === 'jewellery') {
                 $sql = "INSERT INTO product (
                     product_code, product_name, product_desc, date_added, 
-                    categories_id, subcat_id, sales_price, rent_price, deposit
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)";
+                    categories_id, subcat_id, sales_price, rent_price, deposit, featured
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
                 
                 $stmt = mysqli_prepare($this->db, $sql);
-                mysqli_stmt_bind_param($stmt, "ssssiiddd", $code, $name, $desc, $date_added, $cat, $sub, $price, $rent, $dep);
+                mysqli_stmt_bind_param($stmt, "ssssiidddi", $code, $name, $desc, $date_added, $cat, $sub, $price, $rent, $dep, $featured);
                 mysqli_stmt_execute($stmt);
                 $product_id = mysqli_insert_id($this->db);
                 mysqli_stmt_close($stmt);
             } else {
                 $sql = "INSERT INTO garment_product (
                     gproduct_code, gproduct_name, gproduct_desc, date_added, 
-                    garment_id, product_for, sales_price, rent_price, deposit
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)";
+                    garment_id, product_for, sales_price, rent_price, deposit, featured
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
                 
                 $stmt = mysqli_prepare($this->db, $sql);
-                mysqli_stmt_bind_param($stmt, "ssssiiddd", $code, $name, $desc, $date_added, $cat, $cat, $price, $rent, $dep);
+                mysqli_stmt_bind_param($stmt, "ssssiidddi", $code, $name, $desc, $date_added, $cat, $cat, $price, $rent, $dep, $featured);
                 mysqli_stmt_execute($stmt);
                 $product_id = mysqli_insert_id($this->db);
                 mysqli_stmt_close($stmt);
@@ -475,15 +500,23 @@ class ProductModel extends Model {
     public function getProductById($id, $type) {
         $id = (int)$id;
         if ($type === 'jewellery') {
-            $sql = "SELECT product_id as id, product_code as code, product_name as name, product_desc as description, 
-                           categories_id as category, subcat_id as sub_category, sales_price as s_price, 
-                           rent_price as rental_price, deposit, discount
-                    FROM product WHERE product_id = $id";
+            $sql = "SELECT p.product_id as id, p.product_code as code, p.product_name as name, p.product_desc as description, 
+                           p.categories_id as category, p.subcat_id as sub_category, p.sales_price as s_price, 
+                           p.rent_price as rental_price, p.deposit, p.discount, p.featured,
+                           c.categories_name as category_name, s.name as subcategory_name
+                    FROM product p
+                    LEFT JOIN jewel_subcat c ON p.categories_id = c.subcat_id
+                    LEFT JOIN subcat1 s ON p.subcat_id = s.subcat_id
+                    WHERE p.product_id = $id";
         } else {
-            $sql = "SELECT gproduct_id as id, gproduct_code as code, gproduct_name as name, gproduct_desc as description, 
-                           garment_id as category, product_for, sales_price as s_price, 
-                           rent_price as rental_price, deposit, discount
-                    FROM garment_product WHERE gproduct_id = $id";
+            $sql = "SELECT p.gproduct_id as id, p.gproduct_code as code, p.gproduct_name as name, p.gproduct_desc as description, 
+                           p.garment_id as category, p.product_for as sub_category, p.sales_price as s_price, 
+                           p.rent_price as rental_price, p.deposit, p.discount, p.featured,
+                           c.name as category_name, s.name as subcategory_name
+                    FROM garment_product p
+                    LEFT JOIN garments c ON p.garment_id = c.garment_id
+                    LEFT JOIN garments s ON p.product_for = s.garment_id
+                    WHERE p.gproduct_id = $id";
         }
         $result = $this->query($this->db, $sql);
         return $this->fetchOne($result);
@@ -509,7 +542,8 @@ class ProductModel extends Model {
                     subcat_id = '{$data['sub_category']}', 
                     sales_price = '{$data['s_price']}', 
                     rent_price = '{$data['rental_price']}', 
-                    deposit = '{$data['deposit']}'
+                    deposit = '{$data['deposit']}',
+                    featured = '{$data['featured']}'
                     WHERE product_id = $id";
                 if (!$this->query($this->db, $sql)) throw new \Exception(mysqli_error($this->db));
             } else {
@@ -520,7 +554,8 @@ class ProductModel extends Model {
                     product_for = '{$data['category']}', 
                     sales_price = '{$data['s_price']}', 
                     rent_price = '{$data['rental_price']}', 
-                    deposit = '{$data['deposit']}'
+                    deposit = '{$data['deposit']}',
+                    featured = '{$data['featured']}'
                     WHERE gproduct_id = $id";
                 if (!$this->query($this->db, $sql)) throw new \Exception(mysqli_error($this->db));
             }
@@ -656,6 +691,17 @@ class ProductModel extends Model {
         $affected2 = mysqli_affected_rows($this->db);
 
         return ($affected1 > 0 || $affected2 > 0);
+    }
+
+    public function toggleFeatured($id, $type, $status) {
+        $id = (int)$id;
+        $status = (int)$status;
+        if ($type === 'jewellery') {
+            $sql = "UPDATE product SET featured = $status WHERE product_id = $id";
+        } else {
+            $sql = "UPDATE garment_product SET featured = $status WHERE gproduct_id = $id";
+        }
+        return $this->query($this->db, $sql);
     }
 
     public function getDbConnection() {
