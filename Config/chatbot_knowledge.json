@@ -44,6 +44,11 @@
                     "description": "Product images for both jewellery and garments",
                     "key_columns": ["id (PK)", "product_id (FK, for jewellery)", "gproduct_id (FK, for garments)", "img_name", "prod_name", "prod_image", "pro_code", "subcat_id", "rank", "date_added"],
                     "notes": "Use product_id for jewellery, gproduct_id for garments. Ordered by rank."
+                },
+                "coupons": {
+                    "description": "Store discount coupons and promotional codes",
+                    "key_columns": ["id (PK)", "code", "description", "discount_type (percent, fixed_cart, fixed_product)", "coupon_amount", "expiry_date", "usage_count", "usage_limit", "status (active, disabled, expired)"],
+                    "notes": "Codes are used by customers during checkout to get discounts."
                 }
             }
         },
@@ -139,6 +144,18 @@
                 "description": "SKU Master Audit Report. Compares SKUs between the local database and the WooCommerce store to find discrepancies: products only in web, only in WordPress, or matching.",
                 "how_to_access": "Click 'Reports' > 'SKU Master Audit' in the sidebar"
             }
+        },
+        "marketing": {
+            "coupons": {
+                "url": "index.php?controller=coupon&action=index",
+                "description": "Manage promotional coupons. Create codes with percentage or fixed discounts, set expiry dates, and usage limits.",
+                "how_to_access": "Click 'Coupon' in the sidebar"
+            },
+            "discounts": {
+                "url": "index.php?controller=discount&action=index",
+                "description": "Manage store-wide discounts and category offers.",
+                "how_to_access": "Click 'Discount' in the sidebar"
+            }
         }
     },
 
@@ -198,6 +215,10 @@
         {
             "q": "Show products in a specific category",
             "hint": "Join product with jewel_subcat or garment_product with garments"
+        },
+        {
+            "q": "What coupons are currently active?",
+            "hint": "SELECT * FROM coupons WHERE status='active' AND (expiry_date IS NULL OR expiry_date >= CURDATE())"
         }
     ]
 }

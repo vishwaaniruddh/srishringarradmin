@@ -5,16 +5,17 @@ use Core\Model;
 
 class StatsModel extends Model {
     public function getTotalOrders() {
-        $sql = "SELECT COUNT(*) as count FROM phppos_rent";
-        $result = $this->query($this->db3, $sql);
+        $sql = "SELECT COUNT(*) as count FROM orders";
+        $result = $this->query($this->db, $sql);
         return $this->fetchOne($result)['count'];
     }
 
     public function getMonthlyRevenue() {
-        $sql = "SELECT SUM(rent_amount) as total FROM phppos_rent 
-                WHERE MONTH(bill_date) = MONTH(CURRENT_DATE) 
-                AND YEAR(bill_date) = YEAR(CURRENT_DATE)";
-        $result = $this->query($this->db3, $sql);
+        $sql = "SELECT SUM(total_amount) as total FROM orders 
+                WHERE MONTH(created_at) = MONTH(CURRENT_DATE) 
+                AND YEAR(created_at) = YEAR(CURRENT_DATE)
+                AND status = 'paid'";
+        $result = $this->query($this->db, $sql);
         return $this->fetchOne($result)['total'] ?? 0;
     }
 
@@ -25,10 +26,11 @@ class StatsModel extends Model {
     }
 
     public function getActiveRentals() {
-        $sql = "SELECT COUNT(*) as count FROM phppos_rent 
-                WHERE pick_date <= CURRENT_DATE 
-                AND delivery_date >= CURRENT_DATE";
-        $result = $this->query($this->db3, $sql);
+        $sql = "SELECT COUNT(*) as count FROM order_items 
+                WHERE booking_type = 'rent' 
+                AND start_date <= CURRENT_DATE 
+                AND end_date >= CURRENT_DATE";
+        $result = $this->query($this->db, $sql);
         return $this->fetchOne($result)['count'];
     }
 }

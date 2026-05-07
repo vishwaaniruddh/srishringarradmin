@@ -1,0 +1,147 @@
+/**
+ * Discount Architect Frontend Styles
+ * Premium Discount Labels
+ */
+
+/* Container relative positioning for absolute badge */
+.woocommerce ul.products li.product,
+.woocommerce div.product,
+.da-image-container {
+    position: relative !important;
+    display: block !important;
+    overflow: visible !important;
+}
+
+.da-discount-badge {
+    position: absolute !important;
+    z-index: 99999 !important;
+    pointer-events: none;
+}
+
+.da-badge-top_left {
+    top: 15px !important;
+    left: 15px !important;
+}
+
+.da-badge-top_right {
+    top: 15px !important;
+    right: 15px !important;
+}
+
+.da-badge-bottom_left {
+    bottom: 15px !important;
+    left: 15px !important;
+}
+
+.da-badge-bottom_right {
+    bottom: 15px !important;
+    right: 15px !important;
+}
+
+.da-discount-badge span {
+    background: linear-gradient(135deg, #6366f1 0%, #a855f7 100%);
+    color: #ffffff;
+    padding: 8px 16px;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 800;
+    text-transform: uppercase;
+    box-shadow: 0 10px 20px -5px rgba(99, 102, 241, 0.5);
+    display: inline-block;
+    letter-spacing: 0.03em;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    backdrop-filter: blur(4px);
+    transition: all 0.3s ease;
+}
+
+/* Hover effect on product propagates to badge */
+.product:hover .da-discount-badge span {
+    transform: translateY(-3px) scale(1.05);
+    box-shadow: 0 15px 25px -5px rgba(99, 102, 241, 0.6);
+}
+
+/* Specific positioning for Single Product Page (Extra Padding) */
+.single-product .da-badge-top_left { top: 25px !important; left: 25px !important; }
+.single-product .da-badge-top_right { top: 25px !important; right: 25px !important; }
+.single-product .da-badge-bottom_left { bottom: 25px !important; left: 25px !important; }
+.single-product .da-badge-bottom_right { bottom: 25px !important; right: 25px !important; }
+
+/* Premium Animation */
+@keyframes da-badge-glow {
+    0% { box-shadow: 0 10px 20px -5px rgba(99, 102, 241, 0.5); }
+    50% { box-shadow: 0 10px 30px 2px rgba(168, 85, 247, 0.6); }
+    100% { box-shadow: 0 10px 20px -5px rgba(99, 102, 241, 0.5); }
+}
+
+.da-discount-badge span {
+    animation: da-badge-glow 3s infinite ease-in-out;
+}
+
+/* Hide default WooCommerce Sale Flash if our badge is present */
+.product:has(.da-discount-badge) .onsale {
+    display: none !important;
+}
+
+/* New Inline Price Discount Label */
+.da-price-discount-label {
+    background: #6366f1 !important;
+    background: linear-gradient(135deg, #6366f1 0%, #a855f7 100%) !important;
+    color: #ffffff !important;
+    padding: 3px 10px !important;
+    border-radius: 6px !important;
+    font-size: 11px !important;
+    font-weight: 800 !important;
+    text-transform: uppercase !important;
+    display: inline-block !important;
+    margin-left: 10px !important;
+    vertical-align: middle !important;
+    box-shadow: 0 4px 12px -2px rgba(99, 102, 241, 0.5) !important;
+    letter-spacing: 0.05em !important;
+    border: 1px solid rgba(255, 255, 255, 0.2) !important;
+    animation: da-badge-glow 3s infinite ease-in-out !important;
+    line-height: 1 !important;
+    white-space: nowrap !important;
+}
+
+/* Specific adjustment for Shop/Loop prices */
+.price .da-price-discount-label {
+    margin-top: -2px;
+}
+
+/* Responsive adjustment for cart and checkout tables */
+.shop_table .da-price-discount-label,
+.woocommerce-checkout-review-order-table .da-price-discount-label {
+    display: inline-block !important;
+    margin-left: 5px !important;
+    margin-top: 2px !important;
+    padding: 2px 6px !important;
+    font-size: 10px !important;
+}
+
+/* Fallback label styling under product name in cart */
+.da-price-discount-label.cart-name-label {
+    margin-left: 0 !important;
+    margin-top: 6px !important;
+    display: inline-block !important;
+    font-size: 10px !important;
+    padding: 2px 8px !important;
+}
+
+/* Ensure the label is visible even in themes with tight price layouts */
+.woocommerce-Price-amount + .da-price-discount-label {
+    margin-left: 8px !important;
+}
+
+/* Ensure the label doesn't get squashed or hidden */
+ins + .da-price-discount-label,
+.price .da-price-discount-label {
+    margin-left: 10px !important;
+    margin-top: 0 !important;
+}
+
+/* Animation for the premium feel */
+@keyframes da-badge-glow {
+    0% { box-shadow: 0 4px 12px -2px rgba(99, 102, 241, 0.5); }
+    50% { box-shadow: 0 4px 18px 2px rgba(168, 85, 247, 0.6); }
+    100% { box-shadow: 0 4px 12px -2px rgba(99, 102, 241, 0.5); }
+}

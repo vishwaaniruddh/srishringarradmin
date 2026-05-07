@@ -71,14 +71,34 @@ function isActive($controller, $action = null) {
             </div>
         </div>
         
-        <a href="#" class="flex items-center px-4 py-3 text-gray-500 hover:bg-gray-100 hover:text-primary rounded-xl transition-all group">
+        <a href="index.php?controller=orders" class="flex items-center px-4 py-3 rounded-xl transition-all group <?php echo isActive('orders') ? 'text-white bg-gradient-to-r from-primary to-secondary shadow-lg' : 'text-gray-500 hover:bg-gray-100 hover:text-primary'; ?>">
             <i class="fas fa-shopping-cart mr-3 group-hover:scale-110 transition-transform"></i>
             <span>Orders</span>
+        </a>
+        
+        <a href="index.php?controller=coupon" class="flex items-center px-4 py-3 rounded-xl transition-all group <?php echo isActive('coupon') ? 'text-white bg-gradient-to-r from-primary to-secondary shadow-lg' : 'text-gray-500 hover:bg-gray-100 hover:text-primary'; ?>">
+            <i class="fas fa-ticket-alt mr-3 group-hover:scale-110 transition-transform"></i>
+            <span>Coupon</span>
+        </a>
+
+        <a href="index.php?controller=discount" class="flex items-center px-4 py-3 rounded-xl transition-all group <?php echo isActive('discount') ? 'text-white bg-gradient-to-r from-primary to-secondary shadow-lg' : 'text-gray-500 hover:bg-gray-100 hover:text-primary'; ?>">
+            <i class="fas fa-percentage mr-3 group-hover:scale-110 transition-transform"></i>
+            <span>Discount</span>
         </a>
         
         <a href="#" class="flex items-center px-4 py-3 text-gray-500 hover:bg-gray-100 hover:text-primary rounded-xl transition-all group">
             <i class="fas fa-users mr-3 group-hover:scale-110 transition-transform"></i>
             <span>Customers</span>
+        </a>
+
+        <a href="index.php?controller=email" class="flex items-center px-4 py-3 rounded-xl transition-all group <?php echo isActive('email') ? 'text-white bg-gradient-to-r from-primary to-secondary shadow-lg' : 'text-gray-500 hover:bg-gray-100 hover:text-primary'; ?>">
+            <i class="fas fa-envelope mr-3 group-hover:scale-110 transition-transform"></i>
+            <span>Emails</span>
+        </a>
+
+        <a href="index.php?controller=newsletter" class="flex items-center px-4 py-3 rounded-xl transition-all group <?php echo isActive('newsletter') ? 'text-white bg-gradient-to-r from-primary to-secondary shadow-lg' : 'text-gray-500 hover:bg-gray-100 hover:text-primary'; ?>">
+            <i class="fas fa-paper-plane mr-3 group-hover:scale-110 transition-transform"></i>
+            <span>Newsletter</span>
         </a>
 
         <div class="pt-4 mt-4 border-t border-gray-100">
