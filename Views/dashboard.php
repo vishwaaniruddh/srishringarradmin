@@ -28,87 +28,68 @@
                     </button>
                 </div>
 
-                <!-- Stats Grid -->
+                <!-- Sleek Metrics Grid -->
                 <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6 mb-8">
-                    <!-- Total Orders -->
-                    <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 hover:shadow-md transition-shadow">
-                        <div class="flex items-center justify-between mb-4">
-                            <div class="w-12 h-12 bg-blue-50 rounded-xl flex items-center justify-center text-blue-600">
-                                <i class="fas fa-shopping-bag text-xl"></i>
+                    <!-- Sales & Revenue Card -->
+                    <div class="bg-black p-5 rounded-xl border border-zinc-800 flex flex-col justify-between h-36">
+                        <div>
+                            <h3 class="text-zinc-500 text-[10px] font-bold uppercase tracking-wider">Revenue & Orders</h3>
+                            <div class="flex items-baseline mt-2">
+                                <span id="monthly-revenue" class="text-2xl font-bold text-white">---</span>
+                                <span class="ml-2 text-[10px] font-bold text-green-500 bg-green-500/10 px-1.5 py-0.5 rounded">+8.4%</span>
                             </div>
-                            <span class="text-xs font-semibold text-blue-600 bg-blue-50 px-2 py-1 rounded-full">+12%</span>
                         </div>
-                        <h3 class="text-gray-500 text-sm font-medium">Total Orders</h3>
-                        <p id="total-orders" class="text-2xl font-bold text-gray-800 mt-1">---</p>
+                        <div class="text-[11px] text-zinc-400 mt-2">
+                            Orders: <span id="total-orders" class="font-semibold text-white">---</span> <span class="text-zinc-500 ml-1">(+12%)</span>
+                        </div>
                     </div>
 
-                    <!-- Monthly Revenue -->
-                    <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 hover:shadow-md transition-shadow">
-                        <div class="flex items-center justify-between mb-4">
-                            <div class="w-12 h-12 bg-green-50 rounded-xl flex items-center justify-center text-green-600">
-                                <i class="fas fa-indian-rupee-sign text-xl"></i>
+                    <!-- Product Catalog Card -->
+                    <div class="bg-black p-5 rounded-xl border border-zinc-800 flex flex-col justify-between h-36">
+                        <div>
+                            <h3 class="text-zinc-500 text-[10px] font-bold uppercase tracking-wider">Product Catalog</h3>
+                            <div class="flex items-baseline mt-2">
+                                <span id="active-products" class="text-2xl font-bold text-white">---</span>
                             </div>
-                            <span class="text-xs font-semibold text-green-600 bg-green-50 px-2 py-1 rounded-full">+8.4%</span>
                         </div>
-                        <h3 class="text-gray-500 text-sm font-medium">Monthly Revenue</h3>
-                        <p id="monthly-revenue" class="text-2xl font-bold text-gray-800 mt-1">---</p>
+                        <div class="text-[11px] text-zinc-400 mt-2 flex gap-2">
+                            <span>Jewellery: <span id="jewellery-count" class="font-semibold text-white">---</span></span>
+                            <span class="text-zinc-700">•</span>
+                            <span>Garments: <span id="garments-count" class="font-semibold text-white">---</span></span>
+                        </div>
                     </div>
 
-                    <!-- Active Products -->
-                    <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 hover:shadow-md transition-shadow">
-                        <div class="flex items-center justify-between mb-4">
-                            <div class="w-12 h-12 bg-purple-50 rounded-xl flex items-center justify-center text-purple-600">
-                                <i class="fas fa-box text-xl"></i>
+                    <!-- Inventory Health Card -->
+                    <div class="bg-black p-5 rounded-xl border border-zinc-800 flex flex-col justify-between h-36">
+                        <div>
+                            <div class="flex justify-between items-center">
+                                <h3 class="text-zinc-500 text-[10px] font-bold uppercase tracking-wider">Inventory Health</h3>
+                                <span class="w-1.5 h-1.5 bg-red-500 rounded-full animate-pulse"></span>
                             </div>
-                            <span class="text-xs font-semibold text-purple-600 bg-purple-50 px-2 py-1 rounded-full">Active</span>
-                        </div>
-                        <h3 class="text-gray-500 text-sm font-medium">Active Products</h3>
-                        <p id="active-products" class="text-2xl font-bold text-gray-800 mt-1">---</p>
-                    </div>
-
-                    <!-- Active Rentals -->
-                    <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 hover:shadow-md transition-shadow">
-                        <div class="flex items-center justify-between mb-4">
-                            <div class="w-12 h-12 bg-orange-50 rounded-xl flex items-center justify-center text-orange-600">
-                                <i class="fas fa-calendar-check text-xl"></i>
+                            <div class="flex items-baseline mt-2">
+                                <span id="out-of-stock" class="text-2xl font-bold text-red-500">---</span>
+                                <span class="ml-2 text-[10px] text-zinc-500">Out of Stock</span>
                             </div>
-                            <span class="text-xs font-semibold text-orange-600 bg-orange-50 px-2 py-1 rounded-full">Live</span>
                         </div>
-                        <h3 class="text-gray-500 text-sm font-medium">Active Rentals</h3>
-                        <p id="active-rentals" class="text-2xl font-bold text-gray-800 mt-1">---</p>
-                    </div>
-                </div>
-
-                <!-- Secondary Metrics / Stock & Categories Breakdown -->
-                <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6 mb-8">
-                    <!-- Jewellery -->
-                    <div class="bg-black p-6 rounded-xl border border-zinc-800">
-                        <h3 class="text-zinc-500 text-xs font-semibold uppercase tracking-wider">Jewellery Items</h3>
-                        <p id="jewellery-count" class="text-2xl font-bold text-white mt-2">---</p>
-                    </div>
-
-                    <!-- Garments -->
-                    <div class="bg-black p-6 rounded-xl border border-zinc-800">
-                        <h3 class="text-zinc-500 text-xs font-semibold uppercase tracking-wider">Garments Items</h3>
-                        <p id="garments-count" class="text-2xl font-bold text-white mt-2">---</p>
-                    </div>
-
-                    <!-- Out of Stock -->
-                    <div class="bg-black p-6 rounded-xl border border-zinc-800">
-                        <div class="flex items-center justify-between">
-                            <h3 class="text-zinc-500 text-xs font-semibold uppercase tracking-wider">Out of Stock</h3>
-                            <span class="w-2.5 h-2.5 bg-red-500 rounded-full animate-pulse"></span>
+                        <div class="text-[11px] text-zinc-400 mt-2">
+                            Low Stock Alerts: <span id="low-stock" class="font-semibold text-orange-500">---</span>
                         </div>
-                        <p id="out-of-stock" class="text-2xl font-bold text-red-500 mt-2">---</p>
                     </div>
 
-                    <!-- Low Stock Alert -->
-                    <div class="bg-black p-6 rounded-xl border border-zinc-800">
-                        <div class="flex items-center justify-between">
-                            <h3 class="text-zinc-500 text-xs font-semibold uppercase tracking-wider">Low Stock Alerts</h3>
-                            <span class="w-2.5 h-2.5 bg-orange-500 rounded-full"></span>
+                    <!-- Rental Operations Card -->
+                    <div class="bg-black p-5 rounded-xl border border-zinc-800 flex flex-col justify-between h-36">
+                        <div>
+                            <div class="flex justify-between items-center">
+                                <h3 class="text-zinc-500 text-[10px] font-bold uppercase tracking-wider">Rental Operations</h3>
+                                <span class="text-[9px] bg-green-500/10 text-green-400 border border-green-500/20 px-1 rounded uppercase font-bold tracking-tighter">Live</span>
+                            </div>
+                            <div class="flex items-baseline mt-2">
+                                <span id="active-rentals" class="text-2xl font-bold text-white">---</span>
+                            </div>
                         </div>
-                        <p id="low-stock" class="text-2xl font-bold text-orange-500 mt-2">---</p>
+                        <div class="text-[11px] text-zinc-400 mt-2">
+                            Active Bookings Today
+                        </div>
                     </div>
                 </div>
 

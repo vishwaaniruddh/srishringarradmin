@@ -22,88 +22,103 @@ function isActive($controller, $action = null) {
         </button>
     </div>
     
-    <nav class="mt-6 px-4 space-y-2">
-        <a href="index.php" class="flex items-center px-4 py-3 rounded-xl transition-all group <?php echo isActive('dashboard') ? 'text-white bg-gradient-to-r from-primary to-secondary shadow-lg' : 'text-gray-500 hover:bg-gray-100 hover:text-primary'; ?>">
-            <i class="fas fa-grid-2 mr-3"></i>
-            <span>Dashboard</span>
-        </a>
-        
+    <nav class="mt-6 px-4 pb-8 space-y-6">
+        <!-- Main Section -->
         <div class="space-y-1">
-            <button class="w-full flex items-center justify-between px-4 py-3 rounded-xl transition-all group submenu-toggle <?php echo (isActive('product') || isActive('category')) ? 'text-primary bg-gray-50 font-semibold' : 'text-gray-500 hover:bg-gray-100 hover:text-primary'; ?>">
-                <div class="flex items-center">
-                    <i class="fas fa-box mr-3 group-hover:scale-110 transition-transform"></i>
-                    <span>Products</span>
-                </div>
-                <i class="fas fa-chevron-right text-xs transition-transform duration-200 chevron <?php echo (isActive('product') || isActive('category')) ? 'rotate-90' : ''; ?>"></i>
-            </button>
-            <div class="submenu <?php echo (isActive('product') || isActive('category')) ? '' : 'hidden'; ?> overflow-hidden transition-all duration-300 pl-12 pr-4 space-y-1">
-                <a href="index.php?controller=product&action=index" class="block py-2 text-sm <?php echo isActive('product', 'index') ? 'text-primary font-semibold' : 'text-gray-500 hover:text-primary'; ?> transition-colors">All Products</a>
-                <a href="index.php?controller=wooproduct&action=index" class="block py-2 text-sm <?php echo isActive('wooproduct') ? 'text-primary font-semibold' : 'text-gray-500 hover:text-primary'; ?> transition-colors font-medium">Yn Products <span class="ml-1 text-[10px] bg-blue-100 text-blue-600 px-1 rounded uppercase tracking-tighter">Remote</span></a>
-                <a href="index.php?controller=product&action=add" class="block py-2 text-sm <?php echo isActive('product', 'add') ? 'text-primary font-semibold' : 'text-gray-500 hover:text-primary'; ?> transition-colors">Add New</a>
-                <a href="index.php?controller=category&action=index" class="block py-2 text-sm <?php echo isActive('category') ? 'text-primary font-semibold' : 'text-gray-500 hover:text-primary'; ?> transition-colors">Categories</a>
-            </div>
+            <a href="index.php" class="flex items-center px-3 py-2 text-xs font-semibold rounded-lg transition-all <?php echo isActive('dashboard') ? 'text-white bg-zinc-900' : 'text-zinc-400 hover:text-white hover:bg-zinc-900/50'; ?>">
+                <i class="fas fa-chart-pie w-5 mr-2 text-zinc-400"></i>
+                <span>Dashboard</span>
+            </a>
         </div>
 
-        <div class="px-4 mb-4">
-            <p class="px-4 text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">Bulk Operations</p>
-            <div class="space-y-1">
-                <a href="index.php?controller=product&action=import" class="flex items-center px-4 py-3 text-sm font-medium rounded-xl transition-all <?php echo isActive('product', 'import') ? 'bg-primary text-white shadow-lg shadow-primary/20' : 'text-gray-500 hover:bg-gray-100'; ?>">
-                    <i class="fas fa-file-import w-5 mr-3"></i>
-                    Add Products
-                </a>
-                <a href="index.php?controller=product&action=bulkDelete" class="flex items-center px-4 py-3 text-sm font-medium rounded-xl transition-all <?php echo isActive('product', 'bulkDelete') ? 'bg-primary text-white shadow-lg shadow-primary/20' : 'text-gray-500 hover:bg-gray-100'; ?>">
-                    <i class="fas fa-trash-alt w-5 mr-3"></i>
-                    Delete Product
-                </a>
-            </div>
-        </div>
-
+        <!-- Catalog Section -->
         <div class="space-y-1">
-            <button class="w-full flex items-center justify-between px-4 py-3 rounded-xl transition-all group submenu-toggle <?php echo (isActive('report')) ? 'text-primary bg-gray-50 font-semibold' : 'text-gray-500 hover:bg-gray-100 hover:text-primary'; ?>">
-                <div class="flex items-center">
-                    <i class="fas fa-chart-line mr-3 group-hover:scale-110 transition-transform"></i>
-                    <span>Reports</span>
-                </div>
-                <i class="fas fa-chevron-right text-xs transition-transform duration-200 chevron <?php echo (isActive('report')) ? 'rotate-90' : ''; ?>"></i>
-            </button>
-            <div class="submenu <?php echo (isActive('report')) ? '' : 'hidden'; ?> overflow-hidden transition-all duration-300 pl-12 pr-4 space-y-1">
-                <a href="index.php?controller=report&action=sku" class="block py-2 text-sm <?php echo isActive('report', 'sku') ? 'text-primary font-semibold' : 'text-gray-500 hover:text-primary'; ?> transition-colors">SKU Master Audit</a>
-            </div>
+            <p class="px-3 text-[10px] font-bold text-zinc-500 uppercase tracking-widest mb-2">Catalog</p>
+            
+            <a href="index.php?controller=product&action=index" class="flex items-center px-3 py-2 text-xs font-semibold rounded-lg transition-all <?php echo isActive('product', 'index') ? 'text-white bg-zinc-900' : 'text-zinc-400 hover:text-white hover:bg-zinc-900/50'; ?>">
+                <i class="fas fa-box w-5 mr-2 text-zinc-400"></i>
+                <span>All Products</span>
+            </a>
+            <a href="index.php?controller=wooproduct&action=index" class="flex items-center px-3 py-2 text-xs font-semibold rounded-lg transition-all <?php echo isActive('wooproduct') ? 'text-white bg-zinc-900' : 'text-zinc-400 hover:text-white hover:bg-zinc-900/50'; ?>">
+                <i class="fas fa-globe w-5 mr-2 text-zinc-400"></i>
+                <span>YN Web Products</span>
+                <span class="ml-auto text-[9px] bg-blue-500/10 text-blue-400 px-1 rounded font-bold uppercase tracking-tighter">Remote</span>
+            </a>
+            <a href="index.php?controller=product&action=add" class="flex items-center px-3 py-2 text-xs font-semibold rounded-lg transition-all <?php echo isActive('product', 'add') ? 'text-white bg-zinc-900' : 'text-zinc-400 hover:text-white hover:bg-zinc-900/50'; ?>">
+                <i class="fas fa-plus w-5 mr-2 text-zinc-400"></i>
+                <span>Add Product</span>
+            </a>
+            <a href="index.php?controller=category&action=index" class="flex items-center px-3 py-2 text-xs font-semibold rounded-lg transition-all <?php echo isActive('category') ? 'text-white bg-zinc-900' : 'text-zinc-400 hover:text-white hover:bg-zinc-900/50'; ?>">
+                <i class="fas fa-tags w-5 mr-2 text-zinc-400"></i>
+                <span>Categories</span>
+            </a>
         </div>
-        
-        <a href="index.php?controller=orders" class="flex items-center px-4 py-3 rounded-xl transition-all group <?php echo isActive('orders') ? 'text-white bg-gradient-to-r from-primary to-secondary shadow-lg' : 'text-gray-500 hover:bg-gray-100 hover:text-primary'; ?>">
-            <i class="fas fa-shopping-cart mr-3 group-hover:scale-110 transition-transform"></i>
-            <span>Orders</span>
-        </a>
-        
-        <a href="index.php?controller=coupon" class="flex items-center px-4 py-3 rounded-xl transition-all group <?php echo isActive('coupon') ? 'text-white bg-gradient-to-r from-primary to-secondary shadow-lg' : 'text-gray-500 hover:bg-gray-100 hover:text-primary'; ?>">
-            <i class="fas fa-ticket-alt mr-3 group-hover:scale-110 transition-transform"></i>
-            <span>Coupon</span>
-        </a>
 
-        <a href="index.php?controller=discount" class="flex items-center px-4 py-3 rounded-xl transition-all group <?php echo isActive('discount') ? 'text-white bg-gradient-to-r from-primary to-secondary shadow-lg' : 'text-gray-500 hover:bg-gray-100 hover:text-primary'; ?>">
-            <i class="fas fa-percentage mr-3 group-hover:scale-110 transition-transform"></i>
-            <span>Discount</span>
-        </a>
-        
-        <a href="#" class="flex items-center px-4 py-3 text-gray-500 hover:bg-gray-100 hover:text-primary rounded-xl transition-all group">
-            <i class="fas fa-users mr-3 group-hover:scale-110 transition-transform"></i>
-            <span>Customers</span>
-        </a>
+        <!-- Bulk Operations -->
+        <div class="space-y-1">
+            <p class="px-3 text-[10px] font-bold text-zinc-500 uppercase tracking-widest mb-2">Bulk Actions</p>
+            <a href="index.php?controller=product&action=import" class="flex items-center px-3 py-2 text-xs font-semibold rounded-lg transition-all <?php echo isActive('product', 'import') ? 'text-white bg-zinc-900' : 'text-zinc-400 hover:text-white hover:bg-zinc-900/50'; ?>">
+                <i class="fas fa-file-import w-5 mr-2 text-zinc-400"></i>
+                <span>Import Excel</span>
+            </a>
+            <a href="index.php?controller=product&action=bulkDelete" class="flex items-center px-3 py-2 text-xs font-semibold rounded-lg transition-all <?php echo isActive('product', 'bulkDelete') ? 'text-white bg-zinc-900' : 'text-zinc-400 hover:text-white hover:bg-zinc-900/50'; ?>">
+                <i class="fas fa-trash-alt w-5 mr-2 text-zinc-400"></i>
+                <span>Bulk Delete</span>
+            </a>
+        </div>
 
-        <a href="index.php?controller=email" class="flex items-center px-4 py-3 rounded-xl transition-all group <?php echo isActive('email') ? 'text-white bg-gradient-to-r from-primary to-secondary shadow-lg' : 'text-gray-500 hover:bg-gray-100 hover:text-primary'; ?>">
-            <i class="fas fa-envelope mr-3 group-hover:scale-110 transition-transform"></i>
-            <span>Emails</span>
-        </a>
+        <!-- Sales Operations -->
+        <div class="space-y-1">
+            <p class="px-3 text-[10px] font-bold text-zinc-500 uppercase tracking-widest mb-2">Sales</p>
+            <a href="index.php?controller=orders" class="flex items-center px-3 py-2 text-xs font-semibold rounded-lg transition-all <?php echo isActive('orders') ? 'text-white bg-zinc-900' : 'text-zinc-400 hover:text-white hover:bg-zinc-900/50'; ?>">
+                <i class="fas fa-shopping-cart w-5 mr-2 text-zinc-400"></i>
+                <span>Orders & Bookings</span>
+            </a>
+            <a href="#" class="flex items-center px-3 py-2 text-xs font-semibold rounded-lg transition-all text-zinc-400 hover:text-white hover:bg-zinc-900/50">
+                <i class="fas fa-users w-5 mr-2 text-zinc-400"></i>
+                <span>Customers</span>
+            </a>
+        </div>
 
-        <a href="index.php?controller=newsletter" class="flex items-center px-4 py-3 rounded-xl transition-all group <?php echo isActive('newsletter') ? 'text-white bg-gradient-to-r from-primary to-secondary shadow-lg' : 'text-gray-500 hover:bg-gray-100 hover:text-primary'; ?>">
-            <i class="fas fa-paper-plane mr-3 group-hover:scale-110 transition-transform"></i>
-            <span>Newsletter</span>
-        </a>
+        <!-- Marketing -->
+        <div class="space-y-1">
+            <p class="px-3 text-[10px] font-bold text-zinc-500 uppercase tracking-widest mb-2">Marketing</p>
+            <a href="index.php?controller=coupon" class="flex items-center px-3 py-2 text-xs font-semibold rounded-lg transition-all <?php echo isActive('coupon') ? 'text-white bg-zinc-900' : 'text-zinc-400 hover:text-white hover:bg-zinc-900/50'; ?>">
+                <i class="fas fa-ticket-alt w-5 mr-2 text-zinc-400"></i>
+                <span>Coupons</span>
+            </a>
+            <a href="index.php?controller=discount" class="flex items-center px-3 py-2 text-xs font-semibold rounded-lg transition-all <?php echo isActive('discount') ? 'text-white bg-zinc-900' : 'text-zinc-400 hover:text-white hover:bg-zinc-900/50'; ?>">
+                <i class="fas fa-percentage w-5 mr-2 text-zinc-400"></i>
+                <span>Discounts</span>
+            </a>
+        </div>
 
-        <div class="pt-4 mt-4 border-t border-gray-100">
-            <a href="#" class="flex items-center px-4 py-3 text-gray-500 hover:bg-red-50 hover:text-red-600 rounded-xl transition-all group">
-                <i class="fas fa-power-off mr-3"></i>
+        <!-- Communications -->
+        <div class="space-y-1">
+            <p class="px-3 text-[10px] font-bold text-zinc-500 uppercase tracking-widest mb-2">Comms</p>
+            <a href="index.php?controller=email" class="flex items-center px-3 py-2 text-xs font-semibold rounded-lg transition-all <?php echo isActive('email') ? 'text-white bg-zinc-900' : 'text-zinc-400 hover:text-white hover:bg-zinc-900/50'; ?>">
+                <i class="fas fa-envelope w-5 mr-2 text-zinc-400"></i>
+                <span>Emails</span>
+            </a>
+            <a href="index.php?controller=newsletter" class="flex items-center px-3 py-2 text-xs font-semibold rounded-lg transition-all <?php echo isActive('newsletter') ? 'text-white bg-zinc-900' : 'text-zinc-400 hover:text-white hover:bg-zinc-900/50'; ?>">
+                <i class="fas fa-paper-plane w-5 mr-2 text-zinc-400"></i>
+                <span>Newsletter</span>
+            </a>
+        </div>
+
+        <!-- Analytics -->
+        <div class="space-y-1">
+            <p class="px-3 text-[10px] font-bold text-zinc-500 uppercase tracking-widest mb-2">Analytics</p>
+            <a href="index.php?controller=report&action=sku" class="flex items-center px-3 py-2 text-xs font-semibold rounded-lg transition-all <?php echo isActive('report', 'sku') ? 'text-white bg-zinc-900' : 'text-zinc-400 hover:text-white hover:bg-zinc-900/50'; ?>">
+                <i class="fas fa-chart-bar w-5 mr-2 text-zinc-400"></i>
+                <span>SKU Master Audit</span>
+            </a>
+        </div>
+
+        <!-- System -->
+        <div class="pt-4 border-t border-zinc-800">
+            <a href="#" class="flex items-center px-3 py-2 text-xs font-semibold rounded-lg transition-all text-zinc-500 hover:text-red-500 hover:bg-red-500/10">
+                <i class="fas fa-power-off w-5 mr-2"></i>
                 <span>Logout</span>
             </a>
         </div>
