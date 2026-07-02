@@ -138,6 +138,7 @@ th {
     letter-spacing: 0.05em !important;
     border-bottom: 1px solid var(--border-dark) !important;
     padding: 0.75rem 1.25rem !important;
+    white-space: nowrap !important;
 }
 
 td {
@@ -145,6 +146,7 @@ td {
     padding: 1rem 1.25rem !important;
     color: var(--text-light) !important;
     font-size: 0.85rem !important;
+    white-space: nowrap !important;
 }
 
 tr:hover td {
