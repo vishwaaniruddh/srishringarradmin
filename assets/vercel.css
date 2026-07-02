@@ -10,11 +10,21 @@
     --text-white: #ffffff;
 }
 
+html, body {
+    height: 100vh !important;
+    overflow: hidden !important;
+}
+
 body {
     background-color: var(--bg-black) !important;
     color: var(--text-light) !important;
     font-family: 'Inter', sans-serif !important;
     -webkit-font-smoothing: antialiased;
+}
+
+body > div.flex, body > div.min-h-screen {
+    height: 100vh !important;
+    overflow: hidden !important;
 }
 
 /* Sidebar Styles */
