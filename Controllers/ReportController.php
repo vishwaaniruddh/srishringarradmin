@@ -224,7 +224,7 @@ class ReportController extends Controller {
             $synced_count = 0;
             $date_path = date('Y') . "/" . date('m') . "/";
             $upload_dir_rel = "yn/uploads/" . $date_path;
-            $abs_upload_dir = __DIR__ . "/../../../" . $upload_dir_rel;
+            $abs_upload_dir = __DIR__ . "/../../" . $upload_dir_rel;
             
             if (!file_exists($abs_upload_dir)) mkdir($abs_upload_dir, 0777, true);
 

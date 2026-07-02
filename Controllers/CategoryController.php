@@ -64,7 +64,7 @@ class CategoryController extends Controller {
 
         // Handle Image Upload
         if (isset($_FILES['category_image']) && $_FILES['category_image']['error'] === UPLOAD_ERR_OK) {
-            $uploadDir = '../../uploads/categories/';
+            $uploadDir = __DIR__ . '/../../uploads/categories/';
             if (!is_dir($uploadDir)) {
                 mkdir($uploadDir, 0777, true);
             }
