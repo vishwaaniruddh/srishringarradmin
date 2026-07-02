@@ -71,12 +71,15 @@ class ChatbotController extends Controller {
         if ($isConfigured) {
             // Perform a live diagnostic ping to the AI provider
             if ($provider === 'gemini') {
-                $endpoint = $providerConfig['endpoint'] . $providerConfig['model'] . ':generateContent?key=' . $providerConfig['api_key'];
+                $endpoint = $providerConfig['endpoint'] . $providerConfig['model'] . ':generateContent';
                 $payload = [
                     'contents' => [['parts' => [['text' => 'ping']]]],
                     'generationConfig' => ['maxOutputTokens' => 5]
                 ];
-                $headers = ['Content-Type: application/json'];
+                $headers = [
+                    'Content-Type: application/json',
+                    'x-goog-api-key: ' . $providerConfig['api_key']
+                ];
             } else {
                 $endpoint = $providerConfig['endpoint'];
                 $payload = [

@@ -309,7 +309,7 @@ PROMPT;
         $pc = $this->getProviderConfig();
         $apiKey = $pc['api_key'];
         $model = $pc['model'];
-        $endpoint = $pc['endpoint'] . $model . ':generateContent?key=' . $apiKey;
+        $endpoint = $pc['endpoint'] . $model . ':generateContent';
 
         $contents = [];
         
@@ -358,7 +358,12 @@ PROMPT;
             ]
         ];
 
-        $response = $this->makeHttpRequest($endpoint, $payload, ['Content-Type: application/json']);
+        $headers = [
+            'Content-Type: application/json',
+            'x-goog-api-key: ' . $apiKey
+        ];
+
+        $response = $this->makeHttpRequest($endpoint, $payload, $headers);
 
         if (!$response) return null;
 
