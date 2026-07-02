@@ -12,12 +12,12 @@ function isActive($controller, $action = null) {
     return $c === $targetC && $a === strtolower($action);
 }
 ?>
-<aside id="sidebar" class="sidebar-transition fixed inset-y-0 left-0 z-50 w-64 bg-white shadow-xl transform -translate-x-full lg:translate-x-0 lg:static lg:inset-0">
-    <div class="flex items-center justify-between h-20 px-6 bg-white border-b">
-        <span class="text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-primary to-secondary">
-            Srishringarr
+<aside id="sidebar" class="sidebar-transition fixed inset-y-0 left-0 z-50 w-64 bg-black border-r border-zinc-800 transform -translate-x-full lg:translate-x-0 lg:static lg:inset-0">
+    <div class="flex items-center justify-between h-20 px-6 bg-black border-b border-zinc-800">
+        <span class="text-lg font-bold text-white tracking-tight flex items-center">
+            <span class="mr-2 text-md">▲</span> Srishringarr
         </span>
-        <button id="close-sidebar" class="lg:hidden text-gray-500 hover:text-primary">
+        <button id="close-sidebar" class="lg:hidden text-zinc-500 hover:text-white">
             <i class="fas fa-times"></i>
         </button>
     </div>

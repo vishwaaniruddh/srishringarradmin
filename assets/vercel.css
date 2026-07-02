@@ -1,0 +1,252 @@
+/* Vercel Dark Theme Stylesheet for Srishringarr Admin Panel */
+
+:root {
+    --bg-black: #000000;
+    --bg-dark: #0a0a0a;
+    --border-dark: #1f1f1f;
+    --border-focus: #444444;
+    --text-muted: #888888;
+    --text-light: #a1a1aa;
+    --text-white: #ffffff;
+}
+
+body {
+    background-color: var(--bg-black) !important;
+    color: var(--text-light) !important;
+    font-family: 'Inter', sans-serif !important;
+    -webkit-font-smoothing: antialiased;
+}
+
+/* Sidebar Styles */
+#sidebar {
+    background-color: var(--bg-black) !important;
+    border-right: 1px solid var(--border-dark) !important;
+    box-shadow: none !important;
+}
+
+#sidebar .bg-white {
+    background-color: var(--bg-black) !important;
+}
+
+#sidebar .border-b {
+    border-bottom: 1px solid var(--border-dark) !important;
+}
+
+#sidebar nav a, #sidebar nav button {
+    color: var(--text-muted) !important;
+    font-size: 0.85rem !important;
+    padding: 0.5rem 0.75rem !important;
+    border-radius: 6px !important;
+    font-weight: 500 !important;
+    transition: all 0.15s ease !important;
+    background: transparent !important;
+    box-shadow: none !important;
+}
+
+#sidebar nav a:hover, #sidebar nav button:hover {
+    background-color: rgba(255, 255, 255, 0.08) !important;
+    color: var(--text-white) !important;
+}
+
+#sidebar nav a.bg-gradient-to-r, 
+#sidebar nav a[class*="bg-primary"],
+#sidebar nav button[class*="bg-primary"] {
+    background-color: rgba(255, 255, 255, 0.1) !important;
+    color: var(--text-white) !important;
+    border: 1px solid rgba(255, 255, 255, 0.15) !important;
+    box-shadow: none !important;
+}
+
+#sidebar .submenu {
+    border-left: 1px solid var(--border-dark) !important;
+    margin-left: 1.5rem !important;
+    padding-left: 1rem !important;
+}
+
+#sidebar .submenu a {
+    color: var(--text-muted) !important;
+    padding: 0.35rem 0 !important;
+}
+
+#sidebar .submenu a:hover {
+    color: var(--text-white) !important;
+}
+
+#sidebar .submenu a[class*="text-primary"] {
+    color: var(--text-white) !important;
+    font-weight: 600 !important;
+}
+
+/* Header/Topbar Styles */
+header.h-20 {
+    background-color: var(--bg-black) !important;
+    border-bottom: 1px solid var(--border-dark) !important;
+}
+
+header.h-20 h1 {
+    color: var(--text-white) !important;
+    font-size: 1.15rem !important;
+    font-weight: 600 !important;
+}
+
+header.h-20 .text-gray-600 {
+    color: var(--text-muted) !important;
+}
+
+/* Main Content Area */
+main {
+    background-color: var(--bg-black) !important;
+}
+
+/* Cards & Content Containers */
+.bg-white, main .bg-white, .rounded-2xl {
+    background-color: var(--bg-black) !important;
+    border: 1px solid var(--border-dark) !important;
+    box-shadow: none !important;
+    border-radius: 8px !important;
+}
+
+.bg-gray-50, .bg-gray-50\/50, .bg-gray-100 {
+    background-color: var(--bg-black) !important;
+}
+
+/* General Typography */
+.text-gray-900, .text-gray-800, h1, h2, h3, h4, h5, h6 {
+    color: var(--text-white) !important;
+}
+
+.text-gray-500, .text-gray-400 {
+    color: var(--text-muted) !important;
+}
+
+/* Tables */
+.table-responsive, table {
+    background-color: var(--bg-black) !important;
+}
+
+table {
+    border-collapse: collapse !important;
+    width: 100%;
+}
+
+th {
+    background-color: var(--bg-black) !important;
+    color: var(--text-muted) !important;
+    font-weight: 500 !important;
+    font-size: 0.75rem !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.05em !important;
+    border-bottom: 1px solid var(--border-dark) !important;
+    padding: 0.75rem 1.25rem !important;
+}
+
+td {
+    border-bottom: 1px solid var(--border-dark) !important;
+    padding: 1rem 1.25rem !important;
+    color: var(--text-light) !important;
+    font-size: 0.85rem !important;
+}
+
+tr:hover td {
+    background-color: var(--bg-dark) !important;
+}
+
+/* Form Styling */
+input[type="text"], 
+input[type="number"], 
+input[type="email"], 
+input[type="password"], 
+input[type="date"],
+select, 
+textarea {
+    background-color: var(--bg-black) !important;
+    border: 1px solid var(--border-dark) !important;
+    color: var(--text-white) !important;
+    border-radius: 6px !important;
+    font-size: 0.85rem !important;
+    padding: 0.5rem 0.75rem !important;
+    transition: all 0.15s ease !important;
+}
+
+input:focus, select:focus, textarea:focus {
+    border-color: var(--border-focus) !important;
+    outline: none !important;
+    box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.05) !important;
+}
+
+/* Status Badges */
+.bg-blue-50, .bg-blue-100, [class*="text-blue"] {
+    background-color: rgba(0, 112, 243, 0.1) !important;
+    color: #0070f3 !important;
+    border-color: rgba(0, 112, 243, 0.2) !important;
+}
+
+.bg-green-50, .bg-green-100, [class*="text-green"] {
+    background-color: rgba(16, 185, 129, 0.1) !important;
+    color: #10b981 !important;
+    border-color: rgba(16, 185, 129, 0.2) !important;
+}
+
+.bg-purple-50, .bg-purple-100, [class*="text-purple"] {
+    background-color: rgba(139, 92, 246, 0.1) !important;
+    color: #8b5cf6 !important;
+    border-color: rgba(139, 92, 246, 0.2) !important;
+}
+
+.bg-orange-50, .bg-orange-100, [class*="text-orange"] {
+    background-color: rgba(249, 115, 22, 0.1) !important;
+    color: #f97316 !important;
+    border-color: rgba(249, 115, 22, 0.2) !important;
+}
+
+.bg-red-50, .bg-red-100, [class*="text-red"] {
+    background-color: rgba(239, 68, 68, 0.1) !important;
+    color: #ef4444 !important;
+    border-color: rgba(239, 68, 68, 0.2) !important;
+}
+
+/* Buttons */
+button[type="submit"], 
+.bg-gradient-to-r[type="submit"],
+.bg-primary {
+    background-color: var(--text-white) !important;
+    color: var(--bg-black) !important;
+    border: 1px solid var(--text-white) !important;
+    font-weight: 500 !important;
+    transition: all 0.15s ease !important;
+    border-radius: 6px !important;
+}
+
+button[type="submit"]:hover, 
+.bg-gradient-to-r[type="submit"]:hover,
+.bg-primary:hover {
+    background-color: var(--bg-black) !important;
+    color: var(--text-white) !important;
+    border-color: var(--border-focus) !important;
+}
+
+/* Secondary / Outline Buttons */
+.bg-primary\/10, .bg-gray-100 {
+    background-color: rgba(255, 255, 255, 0.05) !important;
+    color: var(--text-white) !important;
+    border: 1px solid var(--border-dark) !important;
+    border-radius: 6px !important;
+    transition: all 0.15s ease !important;
+}
+
+.bg-primary\/10:hover, .bg-gray-100:hover {
+    background-color: rgba(255, 255, 255, 0.1) !important;
+    border-color: var(--border-focus) !important;
+}
+
+/* Chatbot Override */
+#chatbot-window {
+    background-color: var(--bg-black) !important;
+    border: 1px solid var(--border-dark) !important;
+    color: var(--text-white) !important;
+}
+
+.chatbot-header {
+    background-color: var(--bg-black) !important;
+    border-bottom: 1px solid var(--border-dark) !important;
+}
