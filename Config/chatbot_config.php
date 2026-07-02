@@ -19,7 +19,7 @@ require_once __DIR__ . '/env.php';
 
 return [
     // ===== ACTIVE PROVIDER =====
-    'provider' => 'groq',  // Options: 'groq', 'gemini', 'openrouter'
+    'provider' => 'gemini',  // Options: 'groq', 'gemini', 'openrouter'
 
     // ===== GROQ (Recommended) =====
     'groq' => [
