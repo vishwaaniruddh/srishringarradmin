@@ -171,6 +171,9 @@
                                                 <div class="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity rounded-xl flex items-center justify-center">
                                                     <span class="text-white text-xs font-semibold">Existing</span>
                                                 </div>
+                                                <button type="button" onclick="deleteProductImage(this, <?php echo $img['id']; ?>)" class="absolute -top-2 -right-2 bg-red-500 hover:bg-red-600 text-white rounded-full w-7 h-7 flex items-center justify-center shadow-md transition-all scale-0 group-hover:scale-100 focus:outline-none z-10 cursor-pointer" title="Delete Image">
+                                                    <i class="fas fa-trash-alt text-xs"></i>
+                                                </button>
                                             </div>
                                         <?php endforeach; ?>
                                     </div>
@@ -265,6 +268,31 @@
                 reader.readAsDataURL(file);
             });
         });
+
+        async function deleteProductImage(btn, imgId) {
+            if (!confirm('Are you sure you want to delete this image?')) return;
+            
+            try {
+                const response = await fetch('index.php?controller=product&action=deleteImage', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ id: imgId })
+                });
+                
+                const data = await response.json();
+                if (data.success) {
+                    const imgCard = btn.closest('.relative');
+                    imgCard.remove();
+                } else {
+                    alert(data.error || 'Failed to delete the image');
+                }
+            } catch (error) {
+                console.error('Error deleting image:', error);
+                alert('An error occurred while deleting the image.');
+            }
+        }
     </script>
 </body>
 </html>

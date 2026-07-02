@@ -181,6 +181,30 @@ class ProductController extends Controller {
         }
     }
 
+    public function deleteImage() {
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            $this->json(['error' => 'Method not allowed'], 405);
+        }
+        
+        $input = json_decode(file_get_contents('php://input'), true);
+        $id = (int)($input['id'] ?? 0);
+        
+        if (!$id) {
+            $this->json(['error' => 'Missing image ID'], 400);
+        }
+        
+        $productModel = new ProductModel();
+        try {
+            if ($productModel->deleteImage($id)) {
+                $this->json(['success' => true]);
+            } else {
+                $this->json(['error' => 'Failed to delete image from database'], 500);
+            }
+        } catch (\Exception $e) {
+            $this->json(['error' => $e->getMessage()], 500);
+        }
+    }
+
     private function handleImageUploads($code) {
         $uploadedImages = [];
         if (isset($_FILES['images'])) {

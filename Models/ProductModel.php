@@ -611,6 +611,12 @@ class ProductModel extends Model {
         }
     }
 
+    public function deleteImage($imageId) {
+        $imageId = (int)$imageId;
+        $sql = "DELETE FROM product_images_new WHERE id = $imageId";
+        return $this->query($this->db, $sql);
+    }
+
     public function syncProductBySku($type, $data, $images = []) {
         $sku = $data['code'];
         $name = $data['name'];
