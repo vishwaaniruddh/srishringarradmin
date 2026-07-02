@@ -1,4 +1,4 @@
-Config/secrets.php
+# Config/secrets.php
 vendor/
 .env
 *.log
