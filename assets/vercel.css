@@ -262,3 +262,24 @@ button[type="submit"]:hover,
     background-color: var(--bg-black) !important;
     border-bottom: 1px solid var(--border-dark) !important;
 }
+
+/* Thin Scrollbar for Sidebar */
+#sidebar::-webkit-scrollbar {
+    width: 6px !important;
+    height: 6px !important;
+}
+#sidebar::-webkit-scrollbar-track {
+    background: transparent !important;
+}
+#sidebar::-webkit-scrollbar-thumb {
+    background: #222 !important;
+    border-radius: 10px !important;
+}
+#sidebar::-webkit-scrollbar-thumb:hover {
+    background: #444 !important;
+}
+/* For Firefox */
+#sidebar {
+    scrollbar-width: thin !important;
+    scrollbar-color: #222 transparent !important;
+}
