@@ -180,10 +180,14 @@
                                     <img src="${p.details.image_path}" alt="" class="product-img mr-4 shadow-sm border border-gray-100 hover:opacity-80 transition-opacity" onerror="this.src='assets/default-product.jpg'">
                                 </a>
                                 <div>
-                                    <a href="index.php?controller=product&action=view_details&id=${p.id}&type=${p.type}" class="text-sm font-semibold text-gray-800 hover:text-primary transition-colors block">
-                                        ${p.name.toLowerCase().replace(/\b\w/g, l => l.toUpperCase())}
+                                    <a href="index.php?controller=product&action=view_details&id=${p.id}&type=${p.type}" 
+                                       class="text-sm font-semibold text-gray-800 hover:text-primary transition-colors block" 
+                                       title="${(p.name || '').toLowerCase().replace(/\b\w/g, l => l.toUpperCase())}">
+                                        ${(p.name || '').length > 40 
+                                            ? (p.name || '').substring(0, 40).toLowerCase().replace(/\b\w/g, l => l.toUpperCase()) + '...' 
+                                            : (p.name || '').toLowerCase().replace(/\b\w/g, l => l.toUpperCase())}
                                     </a>
-                                    <div class="text-xs text-gray-400 capitalize">${p.details.product_type_label}</div>
+                                    <div class="text-xs text-zinc-500 capitalize mt-0.5">${p.details.product_type_label}</div>
                                 </div>
                             </div>
                         </td>

@@ -24,6 +24,16 @@ body {
     box-shadow: none !important;
 }
 
+@media (min-width: 1024px) {
+    #sidebar {
+        position: sticky !important;
+        top: 0 !important;
+        height: 100vh !important;
+        overflow-y: auto !important;
+        flex-shrink: 0 !important;
+    }
+}
+
 #sidebar .bg-white {
     background-color: var(--bg-black) !important;
 }
