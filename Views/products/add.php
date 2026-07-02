@@ -160,10 +160,15 @@
 
                                 <!-- Images -->
                                 <div class="space-y-4 pt-8 border-t border-gray-100">
-                                    <h3 class="text-lg font-semibold text-gray-800 flex items-center">
-                                        <span class="w-8 h-8 bg-primary/10 text-primary rounded-full flex items-center justify-center mr-3 text-sm">4</span>
-                                        Product Images
-                                    </h3>
+                                    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-2">
+                                        <h3 class="text-lg font-semibold text-gray-800 flex items-center">
+                                            <span class="w-8 h-8 bg-primary/10 text-primary rounded-full flex items-center justify-center mr-3 text-sm">4</span>
+                                            Product Images
+                                        </h3>
+                                        <button type="button" id="btn_ai_suggest" onclick="suggestProductDetails()" class="px-4 py-2 bg-gradient-to-r from-primary/10 to-secondary/10 hover:from-primary/20 hover:to-secondary/20 text-primary rounded-xl text-xs font-semibold transition-all flex items-center border border-primary/25 cursor-pointer shadow-sm">
+                                            <i class="fas fa-robot mr-1.5 text-sm animate-pulse"></i> Suggest Name & Description via AI
+                                        </button>
+                                    </div>
                                     <div class="border-2 border-dashed border-gray-200 rounded-2xl p-8 text-center hover:border-primary transition-all group">
                                         <input type="file" name="images[]" id="img_upload" multiple accept="image/*" class="hidden">
                                         <label for="img_upload" class="cursor-pointer">
@@ -286,6 +291,109 @@
                 reader.readAsDataURL(file);
             });
         });
+
+        function readAsBase64(fileOrBlob) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = () => resolve(reader.result);
+                reader.onerror = error => reject(error);
+                reader.readAsDataURL(fileOrBlob);
+            });
+        }
+
+        async function suggestProductDetails() {
+            const btn = document.getElementById('btn_ai_suggest');
+            const originalText = btn.innerHTML;
+            
+            const imgUpload = document.getElementById('img_upload');
+            let imageBase64 = null;
+            
+            try {
+                if (imgUpload && imgUpload.files && imgUpload.files.length > 0) {
+                    btn.disabled = true;
+                    btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-1.5"></i> Reading image...';
+                    imageBase64 = await readAsBase64(imgUpload.files[0]);
+                }
+                
+                if (!imageBase64) {
+                    alert('Please select or upload at least one product image first.');
+                    btn.disabled = false;
+                    btn.innerHTML = originalText;
+                    return;
+                }
+                
+                btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-1.5"></i> AI is analyzing...';
+                
+                const fab = document.getElementById('chatbot-fab');
+                const chatWindow = document.getElementById('chatbot-window');
+                if (chatWindow && !chatWindow.classList.contains('visible') && fab) {
+                    fab.click();
+                }
+                
+                const type = document.getElementById('product_type')?.value || 'jewellery';
+                const prompt = `Please analyze this uploaded product image for a ${type} product. Suggest a premium, attractive, and SEO-optimized Product Name and a detailed Product Description (mentioning the design style, fabric/materials, and collection appeal if appropriate). Formulate the suggestions clearly as:
+Product Name: [Your suggested name]
+Product Description: [Your suggested description]`;
+                
+                const response = await fetch('index.php?controller=chatbot&action=chat', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        message: prompt,
+                        image: imageBase64,
+                        history: []
+                    })
+                });
+                
+                const data = await response.json();
+                if (data.success && data.reply) {
+                    if (typeof addMessage === 'function') {
+                        addMessage(data.reply, 'bot');
+                        conversationHistory.push({ role: 'model', text: data.reply });
+                    }
+                    
+                    const reply = data.reply;
+                    const nameMatch = reply.match(/(?:Product Name|Suggested Name):\s*(.*?)(?:\n|$)/i);
+                    const descMatch = reply.match(/(?:Product Description|Suggested Description|Description):\s*([\s\S]*)/i);
+                    
+                    let updatedCount = 0;
+                    
+                    if (nameMatch && nameMatch[1]) {
+                        const suggestedName = nameMatch[1].replace(/^[\["']|[\]"']$/g, '').trim();
+                        const nameInput = document.querySelector('input[name="name"]');
+                        if (nameInput) {
+                            nameInput.value = suggestedName;
+                            nameInput.classList.add('ring-2', 'ring-green-400');
+                            setTimeout(() => nameInput.classList.remove('ring-2', 'ring-green-400'), 3000);
+                            updatedCount++;
+                        }
+                    }
+                    
+                    if (descMatch && descMatch[1]) {
+                        const suggestedDesc = descMatch[1].replace(/^[\["']|[\]"']$/g, '').trim();
+                        const descTextarea = document.querySelector('textarea[name="description"]');
+                        if (descTextarea) {
+                            descTextarea.value = suggestedDesc;
+                            descTextarea.classList.add('ring-2', 'ring-green-400');
+                            setTimeout(() => descTextarea.classList.remove('ring-2', 'ring-green-400'), 3000);
+                            updatedCount++;
+                        }
+                    }
+                    
+                    if (updatedCount > 0) {
+                        alert('AI suggestions successfully applied to the form fields!');
+                    }
+                } else {
+                    alert(data.error || 'Failed to get suggestions from AI.');
+                }
+            } catch (e) {
+                console.error(e);
+                alert('An error occurred during AI analysis: ' + e.message);
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = originalText;
+            }
+        }
     </script>
 </body>
 </html>

@@ -22,12 +22,12 @@ class ChatbotModel extends Model {
     /**
      * Main entry: process a user message and return the AI response.
      */
-    public function processMessage($userMessage, $conversationHistory = []) {
+    public function processMessage($userMessage, $conversationHistory = [], $imageBase64 = null) {
         // Step 1: Build the system prompt with knowledge base
         $systemPrompt = $this->buildSystemPrompt();
         
         // Step 2: Send to AI to classify intent and possibly get SQL
-        $aiResponse = $this->callAI($systemPrompt, $userMessage, $conversationHistory);
+        $aiResponse = $this->callAI($systemPrompt, $userMessage, $conversationHistory, $imageBase64);
         
         if (!$aiResponse) {
             return [
@@ -38,13 +38,13 @@ class ChatbotModel extends Model {
 
         // Step 3: Check if AI wants to execute SQL
         $sqlMatch = [];
-        if (preg_match('/\[SQL_QUERY\](.*?)\[\/SQL_QUERY\]/s', $aiResponse, $sqlMatch)) {
+        if (preg_match('/\\\\?\[SQL_QUERY\\\\?\](.*?)\\\\?\[\\\\?\/SQL_QUERY\\\\?\]/s', $aiResponse, $sqlMatch)) {
             $sqlQuery = trim($sqlMatch[1]);
             $dbType = 'con'; // default
             
             // Detect which database to use
             $dbMatch = [];
-            if (preg_match('/\[DB\](.*?)\[\/DB\]/s', $aiResponse, $dbMatch)) {
+            if (preg_match('/\\\\?\[DB\\\\?\](.*?)\\\\?\[\\\\?\/DB\\\\?\]/s', $aiResponse, $dbMatch)) {
                 $dbType = trim($dbMatch[1]);
             }
             
@@ -76,8 +76,8 @@ class ChatbotModel extends Model {
         }
         
         // Clean up any remaining tags from the response
-        $cleanResponse = preg_replace('/\[(?:SQL_QUERY|\/SQL_QUERY|DB|\/DB)\].*?\[\/(?:SQL_QUERY|DB)\]/s', '', $aiResponse);
-        $cleanResponse = preg_replace('/\[(SQL_QUERY|\/SQL_QUERY|DB|\/DB)\]/s', '', $cleanResponse);
+        $cleanResponse = preg_replace('/\\\\?\[(?:SQL_QUERY|\/SQL_QUERY|DB|\/DB)\\\\?\].*?\\\\?\[\\\\?\/(?:SQL_QUERY|DB)\\\\?\]/s', '', $aiResponse);
+        $cleanResponse = preg_replace('/\\\\?\[(?:SQL_QUERY|\/SQL_QUERY|DB|\/DB)\\\\?\]/s', '', $cleanResponse);
         
         return [
             'reply' => trim($cleanResponse),
@@ -122,6 +122,7 @@ You are "Shri", the intelligent AI assistant for the Srishringarr admin panel. Y
 2. **Query live data** from the databases when the user asks about real-time numbers, products, orders, etc.
 3. **Explain business logic** like pricing formulas, rental calculations, commission, etc.
 4. **Guide navigation** - tell users which page to go to and how to use features.
+5. **Suggest product names and descriptions** when an image is provided. Keep recommendations premium and SEO-friendly.
 
 ## WHEN YOU NEED LIVE DATA:
 If the user asks for real-time data (counts, lists, specific products, orders, revenue, etc.), you MUST generate a SQL query.
@@ -163,12 +164,12 @@ PROMPT;
     //  AI CALL ROUTER (routes to correct provider)
     // ============================================================
 
-    private function callAI($systemPrompt, $userMessage, $history = []) {
+    private function callAI($systemPrompt, $userMessage, $history = [], $imageBase64 = null) {
         if ($this->provider === 'gemini') {
-            return $this->callGemini($systemPrompt, $userMessage, $history);
+            return $this->callGemini($systemPrompt, $userMessage, $history, $imageBase64);
         }
         // Groq and OpenRouter both use OpenAI-compatible format
-        return $this->callOpenAICompatible($systemPrompt, $userMessage, $history);
+        return $this->callOpenAICompatible($systemPrompt, $userMessage, $history, $imageBase64);
     }
 
     private function callAIWithResults($systemPrompt, $userMessage, $sqlQuery, $data, $history = []) {
@@ -191,7 +192,7 @@ PROMPT;
     //  OPENAI-COMPATIBLE PROVIDER (Groq, OpenRouter, etc.)
     // ============================================================
 
-    private function callOpenAICompatible($systemPrompt, $userMessage, $history = []) {
+    private function callOpenAICompatible($systemPrompt, $userMessage, $history = [], $imageBase64 = null) {
         $pc = $this->getProviderConfig();
         $apiKey = $pc['api_key'];
         $model = $pc['model'];
@@ -206,7 +207,28 @@ PROMPT;
             $messages[] = ['role' => $role, 'content' => $turn['text']];
         }
 
-        $messages[] = ['role' => 'user', 'content' => $userMessage];
+        if ($imageBase64) {
+            // Override model to Groq's vision model if using Groq and the model isn't already a vision model
+            if ($this->provider === 'groq' && strpos($model, 'vision') === false) {
+                $model = 'llama-3.2-11b-vision-preview';
+            }
+            
+            $content = [
+                [
+                    'type' => 'text',
+                    'text' => $userMessage
+                ],
+                [
+                    'type' => 'image_url',
+                    'image_url' => [
+                        'url' => strpos($imageBase64, 'data:') === 0 ? $imageBase64 : "data:image/jpeg;base64," . $imageBase64
+                    ]
+                ]
+            ];
+            $messages[] = ['role' => 'user', 'content' => $content];
+        } else {
+            $messages[] = ['role' => 'user', 'content' => $userMessage];
+        }
 
         $payload = [
             'model' => $model,
@@ -247,7 +269,7 @@ PROMPT;
     //  GEMINI PROVIDER
     // ============================================================
 
-    private function callGemini($systemPrompt, $userMessage, $history = []) {
+    private function callGemini($systemPrompt, $userMessage, $history = [], $imageBase64 = null) {
         $pc = $this->getProviderConfig();
         $apiKey = $pc['api_key'];
         $model = $pc['model'];
@@ -263,9 +285,30 @@ PROMPT;
             ];
         }
 
+        $parts = [];
+        if ($imageBase64) {
+            $mimeType = 'image/jpeg';
+            $data = $imageBase64;
+            // Parse data:image/png;base64,blah
+            if (preg_match('/^data:(image\/[a-zA-Z+.-]+);base64,(.*)$/', $imageBase64, $matches)) {
+                $mimeType = $matches[1];
+                $data = $matches[2];
+            } else {
+                // If it's a raw base64 string without data: prefix
+                $data = preg_replace('/^data:image\/[a-z]+;base64,/', '', $imageBase64);
+            }
+            $parts[] = [
+                'inlineData' => [
+                    'mimeType' => $mimeType,
+                    'data' => $data
+                ]
+            ];
+        }
+        $parts[] = ['text' => $userMessage];
+
         $contents[] = [
             'role' => 'user',
-            'parts' => [['text' => $userMessage]]
+            'parts' => $parts
         ];
 
         $payload = [

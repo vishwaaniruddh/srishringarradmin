@@ -27,6 +27,7 @@ class ChatbotController extends Controller {
 
         $userMessage = trim($input['message']);
         $history = $input['history'] ?? [];
+        $imageBase64 = $input['image'] ?? null;
 
         // Limit history to prevent token overflow
         $maxHistory = 20;
@@ -47,7 +48,7 @@ class ChatbotController extends Controller {
             return;
         }
 
-        $response = $chatbot->processMessage($userMessage, $history);
+        $response = $chatbot->processMessage($userMessage, $history, $imageBase64);
 
         $this->json([
             'success' => true,
