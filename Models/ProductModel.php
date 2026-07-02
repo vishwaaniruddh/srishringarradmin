@@ -534,6 +534,7 @@ class ProductModel extends Model {
         mysqli_begin_transaction($this->db);
         try {
             $id = (int)$id;
+            $featured = (int)($data['featured'] ?? 0);
             if ($type === 'jewellery') {
                 $sql = "UPDATE product SET 
                     product_name = '{$data['name']}', 
@@ -543,7 +544,7 @@ class ProductModel extends Model {
                     sales_price = '{$data['s_price']}', 
                     rent_price = '{$data['rental_price']}', 
                     deposit = '{$data['deposit']}',
-                    featured = '{$data['featured']}'
+                    featured = '$featured'
                     WHERE product_id = $id";
                 if (!$this->query($this->db, $sql)) throw new \Exception(mysqli_error($this->db));
             } else {
@@ -555,7 +556,7 @@ class ProductModel extends Model {
                     sales_price = '{$data['s_price']}', 
                     rent_price = '{$data['rental_price']}', 
                     deposit = '{$data['deposit']}',
-                    featured = '{$data['featured']}'
+                    featured = '$featured'
                     WHERE gproduct_id = $id";
                 if (!$this->query($this->db, $sql)) throw new \Exception(mysqli_error($this->db));
             }
