@@ -59,7 +59,7 @@ class StatsModel extends Model {
     }
 
     public function getRecentBookings($limit = 5) {
-        $sql = "SELECT r.bill_id, r.bill_date, r.pick_date, r.delivery_date, r.booking_status, r.rent_amount, r.deposit_amount,
+        $sql = "SELECT r.bill_id, r.bill_date, r.pick_date, r.delivery_date, r.booking_status, r.rent_amount,
                 (SELECT GROUP_CONCAT(item_id SEPARATOR ', ') FROM order_detail WHERE bill_id = r.bill_id) as items
                 FROM phppos_rent r
                 ORDER BY r.bill_id DESC
