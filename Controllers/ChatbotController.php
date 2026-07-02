@@ -57,10 +57,6 @@ class ChatbotController extends Controller {
         ]);
     }
 
-    /**
-     * GET endpoint: Health check / config status.
-     * URL: index.php?controller=chatbot&action=status
-     */
     public function status() {
         $config = include(__DIR__ . '/../Config/chatbot_config.php');
         $provider = $config['provider'] ?? 'groq';
@@ -68,13 +64,66 @@ class ChatbotController extends Controller {
         
         $chatbot = new ChatbotModel();
         $isConfigured = $chatbot->isConfigured();
+        
+        $pingSuccess = false;
+        $pingError = '';
+        
+        if ($isConfigured) {
+            // Perform a live diagnostic ping to the AI provider
+            if ($provider === 'gemini') {
+                $endpoint = $providerConfig['endpoint'] . $providerConfig['model'] . ':generateContent?key=' . $providerConfig['api_key'];
+                $payload = [
+                    'contents' => [['parts' => [['text' => 'ping']]]],
+                    'generationConfig' => ['maxOutputTokens' => 5]
+                ];
+                $headers = ['Content-Type: application/json'];
+            } else {
+                $endpoint = $providerConfig['endpoint'];
+                $payload = [
+                    'model' => $providerConfig['model'],
+                    'messages' => [['role' => 'user', 'content' => 'ping']],
+                    'max_tokens' => 5
+                ];
+                $headers = [
+                    'Content-Type: application/json',
+                    'Authorization: Bearer ' . $providerConfig['api_key']
+                ];
+            }
+            
+            $ch = curl_init($endpoint);
+            curl_setopt_array($ch, [
+                CURLOPT_RETURNTRANSFER => true,
+                CURLOPT_POST => true,
+                CURLOPT_HTTPHEADER => $headers,
+                CURLOPT_POSTFIELDS => json_encode($payload),
+                CURLOPT_TIMEOUT => 10,
+                CURLOPT_SSL_VERIFYPEER => false,
+            ]);
+            
+            $response = curl_exec($ch);
+            $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+            $curlError = curl_error($ch);
+            curl_close($ch);
+            
+            if ($curlError) {
+                $pingError = 'cURL Error: ' . $curlError;
+            } elseif ($httpCode !== 200) {
+                $decoded = json_decode($response, true);
+                $errMsg = $decoded['error']['message'] ?? $response;
+                $pingError = "API Error (HTTP {$httpCode}): " . $errMsg;
+            } else {
+                $pingSuccess = true;
+            }
+        }
 
         $this->json([
             'configured' => $isConfigured,
             'provider' => $provider,
             'model' => $providerConfig['model'] ?? 'unknown',
+            'ping_success' => $pingSuccess,
+            'ping_error' => $pingError,
             'message' => $isConfigured 
-                ? "Chatbot is ready! (Provider: {$provider})" 
+                ? ($pingSuccess ? "Chatbot is ready and connected! (Provider: {$provider})" : "Chatbot API configured, but connection failed: {$pingError}")
                 : "Please set your API key for '{$provider}' in Config/chatbot_config.php"
         ]);
     }
