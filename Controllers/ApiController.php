@@ -12,7 +12,12 @@ class ApiController extends Controller {
             'total_orders' => $statsModel->getTotalOrders(),
             'monthly_revenue' => $statsModel->getMonthlyRevenue(),
             'active_products' => $statsModel->getActiveProducts(),
-            'active_rentals' => $statsModel->getActiveRentals()
+            'active_rentals' => $statsModel->getActiveRentals(),
+            'jewellery_count' => $statsModel->getJewelleryCount(),
+            'garments_count' => $statsModel->getGarmentsCount(),
+            'out_of_stock' => $statsModel->getOutOfStockCount(),
+            'low_stock' => $statsModel->getLowStockCount(),
+            'recent_bookings' => $statsModel->getRecentBookings(5)
         ];
         $this->json($data);
     }

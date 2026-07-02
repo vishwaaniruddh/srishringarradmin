@@ -84,27 +84,86 @@
                     </div>
                 </div>
 
-                <!-- Placeholder for Charts or Recent Orders -->
+                <!-- Secondary Metrics / Stock & Categories Breakdown -->
+                <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6 mb-8">
+                    <!-- Jewellery -->
+                    <div class="bg-black p-6 rounded-xl border border-zinc-800">
+                        <h3 class="text-zinc-500 text-xs font-semibold uppercase tracking-wider">Jewellery Items</h3>
+                        <p id="jewellery-count" class="text-2xl font-bold text-white mt-2">---</p>
+                    </div>
+
+                    <!-- Garments -->
+                    <div class="bg-black p-6 rounded-xl border border-zinc-800">
+                        <h3 class="text-zinc-500 text-xs font-semibold uppercase tracking-wider">Garments Items</h3>
+                        <p id="garments-count" class="text-2xl font-bold text-white mt-2">---</p>
+                    </div>
+
+                    <!-- Out of Stock -->
+                    <div class="bg-black p-6 rounded-xl border border-zinc-800">
+                        <div class="flex items-center justify-between">
+                            <h3 class="text-zinc-500 text-xs font-semibold uppercase tracking-wider">Out of Stock</h3>
+                            <span class="w-2.5 h-2.5 bg-red-500 rounded-full animate-pulse"></span>
+                        </div>
+                        <p id="out-of-stock" class="text-2xl font-bold text-red-500 mt-2">---</p>
+                    </div>
+
+                    <!-- Low Stock Alert -->
+                    <div class="bg-black p-6 rounded-xl border border-zinc-800">
+                        <div class="flex items-center justify-between">
+                            <h3 class="text-zinc-500 text-xs font-semibold uppercase tracking-wider">Low Stock Alerts</h3>
+                            <span class="w-2.5 h-2.5 bg-orange-500 rounded-full"></span>
+                        </div>
+                        <p id="low-stock" class="text-2xl font-bold text-orange-500 mt-2">---</p>
+                    </div>
+                </div>
+
                 <div class="grid grid-cols-1 xl:grid-cols-2 gap-8">
-                    <div class="bg-white p-8 rounded-2xl shadow-sm border border-gray-100">
-                        <h3 class="text-lg font-bold text-gray-800 mb-6">Recent Activities</h3>
+                    <!-- Recent Bookings Table -->
+                    <div class="bg-black p-6 rounded-xl border border-zinc-800">
+                        <div class="flex items-center justify-between mb-6">
+                            <h3 class="text-sm font-semibold uppercase tracking-wider text-zinc-400">Recent Bookings (POS)</h3>
+                            <a href="index.php?controller=orders" class="text-xs text-white hover:underline">View All</a>
+                        </div>
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-left text-xs border-collapse">
+                                <thead>
+                                    <tr class="border-b border-zinc-800">
+                                        <th class="px-4 py-2 text-zinc-500 font-semibold uppercase tracking-wider">Bill ID</th>
+                                        <th class="px-4 py-2 text-zinc-500 font-semibold uppercase tracking-wider">SKUs</th>
+                                        <th class="px-4 py-2 text-zinc-500 font-semibold uppercase tracking-wider">Dates</th>
+                                        <th class="px-4 py-2 text-zinc-500 font-semibold uppercase tracking-wider">Pricing</th>
+                                        <th class="px-4 py-2 text-zinc-500 font-semibold uppercase tracking-wider">Status</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="recent-bookings-body" class="divide-y divide-zinc-900">
+                                    <tr>
+                                        <td colspan="5" class="px-4 py-6 text-center text-zinc-500">Loading bookings...</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- Recent Activities -->
+                    <div class="bg-black p-6 rounded-xl border border-zinc-800">
+                        <h3 class="text-sm font-semibold uppercase tracking-wider text-zinc-400 mb-6">Recent Activities</h3>
                         <div class="space-y-6">
                             <div class="flex items-center">
-                                <div class="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center mr-4">
-                                    <i class="fas fa-plus text-gray-400"></i>
+                                <div class="w-8 h-8 rounded-full bg-zinc-950 border border-zinc-800 flex items-center justify-center mr-4">
+                                    <i class="fas fa-plus text-zinc-500 text-xs"></i>
                                 </div>
                                 <div>
-                                    <p class="text-sm font-medium text-gray-800">New product added</p>
-                                    <p class="text-xs text-gray-500">2 hours ago</p>
+                                    <p class="text-xs font-semibold text-white">New product added</p>
+                                    <p class="text-[10px] text-zinc-500">2 hours ago</p>
                                 </div>
                             </div>
                             <div class="flex items-center">
-                                <div class="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center mr-4">
-                                    <i class="fas fa-check text-gray-400"></i>
+                                <div class="w-8 h-8 rounded-full bg-zinc-950 border border-zinc-800 flex items-center justify-center mr-4">
+                                    <i class="fas fa-check text-zinc-500 text-xs"></i>
                                 </div>
                                 <div>
-                                    <p class="text-sm font-medium text-gray-800">Order #1234 completed</p>
-                                    <p class="text-xs text-gray-500">5 hours ago</p>
+                                    <p class="text-xs font-semibold text-white">Order #1234 completed</p>
+                                    <p class="text-[10px] text-zinc-500">5 hours ago</p>
                                 </div>
                             </div>
                         </div>
@@ -130,6 +189,45 @@
                     document.getElementById('monthly-revenue').textContent = '₹' + new Intl.NumberFormat().format(data.monthly_revenue);
                     document.getElementById('active-products').textContent = new Intl.NumberFormat().format(data.active_products);
                     document.getElementById('active-rentals').textContent = new Intl.NumberFormat().format(data.active_rentals);
+                    
+                    document.getElementById('jewellery-count').textContent = new Intl.NumberFormat().format(data.jewellery_count);
+                    document.getElementById('garments-count').textContent = new Intl.NumberFormat().format(data.garments_count);
+                    document.getElementById('out-of-stock').textContent = new Intl.NumberFormat().format(data.out_of_stock);
+                    document.getElementById('low-stock').textContent = new Intl.NumberFormat().format(data.low_stock);
+
+                    // Render Recent Bookings Table
+                    const bookingsTbody = document.getElementById('recent-bookings-body');
+                    if (bookingsTbody) {
+                        bookingsTbody.innerHTML = '';
+                        if (data.recent_bookings && data.recent_bookings.length > 0) {
+                            data.recent_bookings.forEach(b => {
+                                let statusClass = 'bg-zinc-800 text-white';
+                                if (b.booking_status === 'Returned') statusClass = 'bg-green-100/10 text-green-500 border border-green-500/20';
+                                else if (b.booking_status === 'Picked') statusClass = 'bg-blue-100/10 text-blue-500 border border-blue-500/20';
+                                else if (b.booking_status === 'Booked' || b.booking_status === 'Confirmed') statusClass = 'bg-orange-100/10 text-orange-500 border border-orange-500/20';
+
+                                bookingsTbody.innerHTML += `
+                                    <tr>
+                                        <td class="px-4 py-3 font-semibold text-white">#${b.bill_id}</td>
+                                        <td class="px-4 py-3 text-xs text-zinc-400 max-w-[150px] truncate" title="${b.items || ''}">${b.items || 'N/A'}</td>
+                                        <td class="px-4 py-3 text-xs">
+                                            <div class="text-zinc-300">Pick: ${b.pick_date}</div>
+                                            <div class="text-zinc-500">Return: ${b.delivery_date}</div>
+                                        </td>
+                                        <td class="px-4 py-3 text-xs">
+                                            <div class="font-semibold text-white">Rent: ₹${parseFloat(b.rent_amount).toLocaleString('en-IN')}</div>
+                                            <div class="text-zinc-500">Dep: ₹${parseFloat(b.deposit_amount).toLocaleString('en-IN')}</div>
+                                        </td>
+                                        <td class="px-4 py-3">
+                                            <span class="px-2 py-0.5 rounded text-[10px] font-bold ${statusClass}">${b.booking_status}</span>
+                                        </td>
+                                    </tr>
+                                `;
+                            });
+                        } else {
+                            bookingsTbody.innerHTML = '<tr><td colspan="5" class="px-4 py-6 text-center text-zinc-500 text-xs">No recent bookings found.</td></tr>';
+                        }
+                    }
                     
                 } catch (error) {
                     console.error('Error fetching stats:', error);
