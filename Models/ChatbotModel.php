@@ -61,8 +61,18 @@ class ChatbotModel extends Model {
                     $conversationHistory
                 );
                 
+                if (!$followUp) {
+                    $totalCount = count($sqlResult['data']);
+                    $followUp = "I retrieved **{$totalCount}** record(s) from the database but ran into an issue formatting the response using the AI model (possibly due to token size or rate limits). Here is the raw data:\n\n";
+                    if ($totalCount > 0) {
+                        $followUp .= "```json\n" . json_encode($sqlResult['data'], JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_INVALID_UTF8_SUBSTITUTE) . "\n```";
+                    } else {
+                        $followUp .= "*No matching records found.*";
+                    }
+                }
+                
                 return [
-                    'reply' => $followUp ?: "Here are the results, but I couldn't format them nicely.",
+                    'reply' => $followUp,
                     'type'  => 'data',
                     'query' => $sqlQuery,
                     'raw_data' => $sqlResult['data']
@@ -141,6 +151,7 @@ Database options:
 - Always add LIMIT clause (max 50 rows for lists).
 - Use proper table and column names from the knowledge base.
 - For product counts, remember there are TWO tables: `product` (jewellery) and `garment_product` (garments).
+- For specific product lookups by code/SKU, use `LIKE '%[code]%'` instead of exact `=` to handle potential hidden whitespace or trailing spaces.
 - For POS data, the SKU is stored in the `name` column of `phppos_items`.
 - Commission amounts in order_detail may have commas - use REPLACE(commission_amt, ',', '') for calculations.
 
@@ -173,14 +184,27 @@ PROMPT;
     }
 
     private function callAIWithResults($systemPrompt, $userMessage, $sqlQuery, $data, $history = []) {
-        $dataJson = json_encode($data, JSON_PRETTY_PRINT);
+        // Limit the size of data sent to the AI to prevent exceeding Groq TPM / context limits
+        $maxRows = 10;
+        $limitedData = $data;
+        $hasMore = false;
+        if (is_array($data) && count($data) > $maxRows) {
+            $limitedData = array_slice($data, 0, $maxRows);
+            $hasMore = true;
+        }
+
+        $dataJson = json_encode($limitedData, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_INVALID_UTF8_SUBSTITUTE);
         
         // Build an augmented history that includes the SQL results
         $augmentedHistory = $history;
         $augmentedHistory[] = ['role' => 'user', 'text' => $userMessage];
         $augmentedHistory[] = ['role' => 'model', 'text' => "I executed this query: `{$sqlQuery}` and got these results:"];
         
-        $followUpMessage = "Here are the database results. Please provide a clear, formatted answer to my original question based on this data:\n\n```json\n{$dataJson}\n```\n\nRemember: Format the response nicely for the user. Do NOT include any SQL_QUERY tags. Just give a direct, helpful answer.";
+        $followUpMessage = "Here are the database results (showing " . ($hasMore ? "first {$maxRows}" : "all " . count($data)) . " records):\n\n```json\n{$dataJson}\n```\n\n";
+        if ($hasMore) {
+            $followUpMessage .= "Note: There are more records in the database, but please only summarize the first {$maxRows} and mention that additional records exist.\n\n";
+        }
+        $followUpMessage .= "Remember: Format the response nicely for the user. Do NOT include any SQL_QUERY tags. Just give a direct, helpful answer based on this data.";
 
         if ($this->provider === 'gemini') {
             return $this->callGemini($systemPrompt, $followUpMessage, $augmentedHistory);
