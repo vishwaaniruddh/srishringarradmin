@@ -77,23 +77,23 @@
                     </div>
 
                     <!-- Products Table -->
-                    <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+                    <div class="bg-black rounded-xl border border-zinc-800 overflow-hidden">
                         <div class="table-responsive">
                             <table class="w-full text-left border-collapse">
-                                <thead class="bg-gray-50 border-b border-gray-100">
+                                <thead class="bg-zinc-950 border-b border-zinc-800">
                                     <tr>
-                                        <th class="px-6 py-4 text-xs font-semibold text-gray-500 uppercase tracking-wider w-16">#</th>
-                                        <th class="px-6 py-4 text-xs font-semibold text-gray-500 uppercase tracking-wider min-w-[320px]">Product</th>
-                                        <th class="px-6 py-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">Code</th>
-                                        <th class="px-6 py-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">Category</th>
-                                        <th class="px-6 py-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">Inventory</th>
-                                        <th class="px-6 py-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">Pricing</th>
-                                        <th class="px-6 py-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">Bookings</th>
-                                        <th class="px-6 py-4 text-xs font-semibold text-gray-500 uppercase tracking-wider text-center">Featured</th>
-                                        <th class="px-6 py-4 text-xs font-semibold text-gray-500 uppercase tracking-wider text-right">Actions</th>
+                                        <th class="px-6 py-4 text-xs font-semibold text-zinc-500 uppercase tracking-wider w-16">#</th>
+                                        <th class="px-6 py-4 text-xs font-semibold text-zinc-500 uppercase tracking-wider min-w-[320px]">Product</th>
+                                        <th class="px-6 py-4 text-xs font-semibold text-zinc-500 uppercase tracking-wider">Code</th>
+                                        <th class="px-6 py-4 text-xs font-semibold text-zinc-500 uppercase tracking-wider">Category</th>
+                                        <th class="px-6 py-4 text-xs font-semibold text-zinc-500 uppercase tracking-wider">Inventory</th>
+                                        <th class="px-6 py-4 text-xs font-semibold text-zinc-500 uppercase tracking-wider">Pricing</th>
+                                        <th class="px-6 py-4 text-xs font-semibold text-zinc-500 uppercase tracking-wider">Bookings</th>
+                                        <th class="px-6 py-4 text-xs font-semibold text-zinc-500 uppercase tracking-wider text-center">Featured</th>
+                                        <th class="px-6 py-4 text-xs font-semibold text-zinc-500 uppercase tracking-wider text-right">Actions</th>
                                     </tr>
                                 </thead>
-                                <tbody id="products-body" class="divide-y divide-gray-100">
+                                <tbody id="products-body" class="divide-y divide-zinc-800/40">
                                     <tr>
                                         <td colspan="8" class="px-6 py-10 text-center text-gray-500">
                                             <div class="flex flex-col items-center">
@@ -168,59 +168,68 @@
 
             data.products.forEach((p, index) => {
                 const bookingText = p.details.bookings.length > 0 
-                    ? `<span class="text-xs font-semibold text-red-500">${p.details.bookings.length} Active Bookings</span>`
-                    : `<span class="text-xs text-gray-400">No Bookings</span>`;
+                    ? `<span class="px-2 py-0.5 rounded text-[10px] font-bold bg-red-500/10 text-red-500 border border-red-500/20">${p.details.bookings.length} Booked</span>`
+                    : `<span class="text-xs text-zinc-500">–</span>`;
+
+                const rawName = (p.name || '').trim();
+                const cleanName = (rawName && rawName.toLowerCase() !== 'jewellery' && rawName.toLowerCase() !== 'garments' && rawName.toLowerCase() !== 'garment_product') ? rawName : '';
+                const displayName = cleanName ? cleanName.toLowerCase().replace(/\b\w/g, l => l.toUpperCase()) : 'Unnamed Product (' + p.code + ')';
+                const truncatedName = displayName.length > 40 ? displayName.substring(0, 40) + '...' : displayName;
+
+                const qtyVal = parseFloat(p.details.quantity || 0);
+                const qtyText = qtyVal > 0 
+                    ? `<span class="text-xs text-zinc-300 font-medium">${qtyVal % 1 === 0 ? qtyVal.toFixed(0) : qtyVal.toFixed(2)} in stock</span>`
+                    : `<span class="px-2 py-0.5 rounded text-[10px] font-bold bg-red-500/10 text-red-500 border border-red-500/20">Out of Stock</span>`;
+
+                const rentPrice = parseFloat(p.details.rent_price || 0);
+                const salePrice = parseFloat(p.details.sale_price || 0);
 
                 html += `
-                    <tr class="hover:bg-gray-50/50 transition-colors">
-                        <td class="px-6 py-4 text-sm text-gray-400 font-medium">${serialStart + index}</td>
+                    <tr class="hover:bg-zinc-900/30 transition-colors border-b border-zinc-900">
+                        <td class="px-6 py-4 text-xs text-zinc-500 font-medium">${serialStart + index}</td>
                         <td class="px-6 py-4 min-w-[320px]">
                             <div class="flex items-center">
                                 <a href="index.php?controller=product&action=view_details&id=${p.id}&type=${p.type}" class="block flex-shrink-0">
-                                    <img src="${p.details.image_path}" alt="" class="product-img mr-4 shadow-sm border border-gray-100 hover:opacity-80 transition-opacity" onerror="this.src='assets/default-product.jpg'">
+                                    <img src="${p.details.image_path}" alt="" class="product-img mr-4 border border-zinc-800 hover:opacity-85 transition-opacity" onerror="this.src='assets/default-product.jpg'">
                                 </a>
                                 <div>
                                     <a href="index.php?controller=product&action=view_details&id=${p.id}&type=${p.type}" 
-                                       class="text-sm font-semibold text-gray-800 hover:text-primary transition-colors block" 
-                                       title="${(p.name || '').toLowerCase().replace(/\b\w/g, l => l.toUpperCase())}">
-                                        ${(p.name || '').length > 40 
-                                            ? (p.name || '').substring(0, 40).toLowerCase().replace(/\b\w/g, l => l.toUpperCase()) + '...' 
-                                            : (p.name || '').toLowerCase().replace(/\b\w/g, l => l.toUpperCase())}
+                                       class="text-sm font-semibold text-white hover:text-zinc-300 transition-colors block" 
+                                       title="${displayName}">
+                                        ${truncatedName}
                                     </a>
-                                    <div class="text-xs text-zinc-500 capitalize mt-0.5">${p.details.product_type_label}</div>
+                                    <div class="text-[10px] text-zinc-500 font-medium capitalize mt-0.5">${p.details.product_type_label}</div>
                                 </div>
                             </div>
                         </td>
                         <td class="px-6 py-4">
-                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-50 text-blue-800">${p.code}</span>
+                            <span class="font-mono text-xs text-zinc-300 bg-zinc-900 border border-zinc-800 px-2 py-0.5 rounded">${p.code}</span>
                         </td>
-                        <td class="px-6 py-4 text-sm text-gray-500">${p.details.category_name.toLowerCase().replace(/\b\w/g, l => l.toUpperCase())}</td>
+                        <td class="px-6 py-4 text-xs text-zinc-400 font-medium">${(p.details.category_name || 'N/A').toLowerCase().replace(/\b\w/g, l => l.toUpperCase())}</td>
+                        <td class="px-6 py-4">${qtyText}</td>
                         <td class="px-6 py-4">
-                            <div class="text-sm font-medium ${p.details.quantity > 0 ? 'text-gray-800' : 'text-red-500'}">Qty: ${p.details.quantity}</div>
-                        </td>
-                        <td class="px-6 py-4">
-                            <div class="text-xs text-gray-400">Sale: <span class="text-sm font-semibold text-gray-800">₹${parseFloat(p.details.sale_price).toLocaleString('en-IN', {minimumFractionDigits: 2})}</span></div>
-                            <div class="text-xs text-gray-400">Rent: <span class="text-sm font-semibold text-primary">₹${parseFloat(p.details.rent_price).toLocaleString('en-IN', {minimumFractionDigits: 2})}</span></div>
+                            <div class="text-xs font-bold text-white">Rent: ₹${rentPrice.toLocaleString('en-IN', {minimumFractionDigits: 0})}</div>
+                            <div class="text-[10px] text-zinc-500 mt-0.5">Sale: ₹${salePrice.toLocaleString('en-IN', {minimumFractionDigits: 0})}</div>
                         </td>
                         <td class="px-6 py-4">${bookingText}</td>
                         <td class="px-6 py-4 text-center">
-                            <button onclick="toggleFeatured(${p.id}, '${p.type}', ${p.featured == 1 ? 0 : 1})" class="transition-all transform hover:scale-125">
-                                <i class="${p.featured == 1 ? 'fas fa-star text-yellow-400' : 'far fa-star text-gray-300'} text-xl"></i>
+                            <button onclick="toggleFeatured(${p.id}, '${p.type}', ${p.featured == 1 ? 0 : 1})" class="transition-all transform hover:scale-110 text-zinc-500">
+                                <i class="${p.featured == 1 ? 'fas fa-star text-yellow-500' : 'far fa-star text-zinc-700'} text-lg"></i>
                             </button>
                         </td>
                         <td class="px-6 py-4 text-right">
-                            <div class="flex items-center justify-end space-x-2">
-                                <a href="index.php?controller=product&action=view_details&id=${p.id}&type=${p.type}" title="View Details" class="p-2 text-gray-400 hover:text-green-500 transition-colors">
-                                    <i class="fas fa-eye"></i>
+                            <div class="flex items-center justify-end space-x-2.5">
+                                <a href="index.php?controller=product&action=view_details&id=${p.id}&type=${p.type}" title="View Details" class="text-zinc-500 hover:text-white transition-colors">
+                                    <i class="fas fa-eye text-xs"></i>
                                 </a>
-                                <a href="index.php?controller=product&action=edit&id=${p.id}&type=${p.type}" title="Edit Product" class="p-2 text-gray-400 hover:text-primary transition-colors">
-                                    <i class="fas fa-edit"></i>
+                                <a href="index.php?controller=product&action=edit&id=${p.id}&type=${p.type}" title="Edit Product" class="text-zinc-500 hover:text-white transition-colors">
+                                    <i class="fas fa-edit text-xs"></i>
                                 </a>
                                 <a href="index.php?controller=product&action=delete&id=${p.id}&type=${p.type}" 
                                    title="Delete Product"
                                    onclick="return confirm('Are you sure you want to delete this product?')"
-                                   class="p-2 text-gray-400 hover:text-red-500 transition-colors">
-                                    <i class="fas fa-trash"></i>
+                                   class="text-zinc-500 hover:text-red-500 transition-colors">
+                                    <i class="fas fa-trash text-xs"></i>
                                 </a>
                             </div>
                         </td>
