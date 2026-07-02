@@ -204,12 +204,24 @@ PROMPT;
         if ($hasMore) {
             $followUpMessage .= "Note: There are more records in the database, but please only summarize the first {$maxRows} and mention that additional records exist.\n\n";
         }
-        $followUpMessage .= "Remember: Format the response nicely for the user. Do NOT include any SQL_QUERY tags. Just give a direct, helpful answer based on this data.";
+
+        // Automatically scan the results for any local product image paths
+        $imageBase64 = null;
+        $imagePath = $this->findImagePathInResults($data);
+        if ($imagePath) {
+            $imageBase64 = $this->getBase64ImageFromFilePath($imagePath);
+        }
+
+        if ($imageBase64) {
+            $followUpMessage .= "I have also attached the matching product image file from the server (`{$imagePath}`). Please analyze both the visual attributes of the product image (style, design, colors) and the database records to provide an accurate response (e.g. suggesting titles/descriptions or answering questions about it). Format the output beautifully.";
+        } else {
+            $followUpMessage .= "Remember: Format the response nicely for the user. Do NOT include any SQL_QUERY tags. Just give a direct, helpful answer based on this data.";
+        }
 
         if ($this->provider === 'gemini') {
-            return $this->callGemini($systemPrompt, $followUpMessage, $augmentedHistory);
+            return $this->callGemini($systemPrompt, $followUpMessage, $augmentedHistory, $imageBase64);
         }
-        return $this->callOpenAICompatible($systemPrompt, $followUpMessage, $augmentedHistory);
+        return $this->callOpenAICompatible($systemPrompt, $followUpMessage, $augmentedHistory, $imageBase64);
     }
 
     // ============================================================
@@ -468,5 +480,70 @@ PROMPT;
         mysqli_free_result($result);
 
         return ['success' => true, 'error' => null, 'data' => $rows];
+    }
+
+    /**
+     * Recursively find an image file path inside the database response arrays.
+     */
+    private function findImagePathInResults($data) {
+        if (!is_array($data)) return null;
+        foreach ($data as $key => $value) {
+            if (is_array($value)) {
+                $res = $this->findImagePathInResults($value);
+                if ($res) return $res;
+            } elseif (is_string($value)) {
+                $cleanVal = trim($value);
+                if (preg_match('/\.(png|jpg|jpeg|webp)$/i', $cleanVal)) {
+                    if (stripos($cleanVal, 'http') === false) {
+                        return $cleanVal;
+                    }
+                }
+            }
+        }
+        return null;
+    }
+
+    /**
+     * Locate an image file on the server disk and convert it to a Base64 data URL.
+     */
+    private function getBase64ImageFromFilePath($imagePath) {
+        $cleanPath = ltrim($imagePath, '/');
+        
+        $basePaths = [
+            __DIR__ . '/../../yn/uploads/',
+            __DIR__ . '/../../uploads/',
+            __DIR__ . '/../yn/uploads/',
+            __DIR__ . '/../uploads/'
+        ];
+        
+        foreach ($basePaths as $base) {
+            $fullPath = $base . $cleanPath;
+            if (file_exists($fullPath) && is_file($fullPath)) {
+                $content = @file_get_contents($fullPath);
+                if ($content !== false) {
+                    $ext = pathinfo($fullPath, PATHINFO_EXTENSION);
+                    $mime = 'image/jpeg';
+                    if (in_array(strtolower($ext), ['png', 'jpg', 'jpeg', 'webp', 'gif'])) {
+                        $mime = 'image/' . (strtolower($ext) === 'jpg' ? 'jpeg' : strtolower($ext));
+                    }
+                    return 'data:' . $mime . ';base64,' . base64_encode($content);
+                }
+            }
+            
+            $strippedPath = preg_replace('/^(yn\/uploads\/|uploads\/)/i', '', $cleanPath);
+            $fullPath = $base . $strippedPath;
+            if (file_exists($fullPath) && is_file($fullPath)) {
+                $content = @file_get_contents($fullPath);
+                if ($content !== false) {
+                    $ext = pathinfo($fullPath, PATHINFO_EXTENSION);
+                    $mime = 'image/jpeg';
+                    if (in_array(strtolower($ext), ['png', 'jpg', 'jpeg', 'webp', 'gif'])) {
+                        $mime = 'image/' . (strtolower($ext) === 'jpg' ? 'jpeg' : strtolower($ext));
+                    }
+                    return 'data:' . $mime . ';base64,' . base64_encode($content);
+                }
+            }
+        }
+        return null;
     }
 }
