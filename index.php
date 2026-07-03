@@ -3,7 +3,6 @@ ini_set('display_errors', 1);
 ini_set('display_startup_errors', 1);
 error_reporting(E_ALL);
 
-// phpinfo();
 // Autoloader
 require __DIR__ . '/vendor/autoload.php';
 spl_autoload_register(function ($class) {
@@ -18,9 +17,23 @@ spl_autoload_register(function ($class) {
 set_exception_handler(['Core\ErrorHandler', 'handleException']);
 set_error_handler(['Core\ErrorHandler', 'handleError']);
 
+// Start session for auth
+\Core\Auth::startSession();
+
 // Front Controller
 $controllerName = isset($_GET['controller']) ? ucfirst($_GET['controller']) : 'Dashboard';
 $actionName = isset($_GET['action']) ? $_GET['action'] : 'index';
+
+// Controllers that DON'T require authentication
+$publicControllers = ['Auth'];
+
+// Enforce authentication for all non-public controllers
+if (!in_array($controllerName, $publicControllers)) {
+    if (!\Core\Auth::isLoggedIn()) {
+        header('Location: index.php?controller=auth&action=login');
+        exit;
+    }
+}
 
 $controllerClass = "Controllers\\" . $controllerName . "Controller";
 
@@ -34,7 +47,6 @@ if (class_exists($controllerClass)) {
 } else {
     // Default to Dashboard if not found, or show error
     if ($controllerName === 'Dashboard') {
-        // We'll create this next
         require_once 'Controllers/DashboardController.php';
         $controller = new \Controllers\DashboardController();
         $controller->index();

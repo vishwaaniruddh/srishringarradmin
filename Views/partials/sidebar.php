@@ -117,7 +117,7 @@ function isActive($controller, $action = null) {
 
         <!-- System -->
         <div class="pt-4 border-t border-zinc-800">
-            <a href="#" class="flex items-center px-3 py-2 text-xs font-semibold rounded-lg transition-all text-zinc-500 hover:text-red-500 hover:bg-red-500/10">
+            <a href="index.php?controller=auth&action=logout" class="flex items-center px-3 py-2 text-xs font-semibold rounded-lg transition-all text-zinc-500 hover:text-red-500 hover:bg-red-500/10">
                 <i class="fas fa-power-off w-5 mr-2"></i>
                 <span>Logout</span>
             </a>

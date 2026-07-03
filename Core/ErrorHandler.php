@@ -38,6 +38,13 @@ class ErrorHandler {
 
     public static function handleError($errno, $errstr, $errfile, $errline) {
         if (!(error_reporting() & $errno)) return;
+
+        // Suppress harmless session_start() notices when session is already active
+        // (caused by legacy API/config.php also calling session_start())
+        if (stripos($errstr, 'session_start()') !== false && stripos($errstr, 'already active') !== false) {
+            return;
+        }
+
         throw new \ErrorException($errstr, 0, $errno, $errfile, $errline);
     }
 }
