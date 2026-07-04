@@ -516,4 +516,130 @@ class ProductController extends Controller {
             'skus' => $skus
         ]);
     }
+
+    public function bulkUpdate() {
+        $this->view('products/bulk_update');
+    }
+
+    public function processBulkUpdate() {
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') $this->json(['error' => 'Method not allowed'], 405);
+
+        $input = json_decode(file_get_contents('php://input'), true);
+        if (!$input) {
+            $input = $_POST;
+        }
+
+        $rawSkus = $input['skus'] ?? '';
+        $priceSource = $input['price_source'] ?? 'no_change';
+        $availability = $input['availability'] ?? 'no_change';
+
+        // Parse SKUs (split by newline, comma, space)
+        $skusList = preg_split('/[\n,\s]+/', $rawSkus);
+        $skus = array_filter(array_map('trim', $skusList));
+
+        if (empty($skus)) {
+            $this->json(['error' => 'Please enter at least one SKU.'], 400);
+            return;
+        }
+
+        $productModel = new ProductModel();
+        $db = $productModel->getDbConnection();
+
+        $updatedCount = 0;
+        $notFoundSkus = [];
+        $errors = [];
+
+        // Build sets based on selections
+        $sets = [];
+        $params = [];
+        $types = "";
+
+        if ($priceSource !== 'no_change') {
+            $sets[] = "price_source = ?";
+            $params[] = $priceSource;
+            $types .= "s";
+        }
+        if ($availability !== 'no_change') {
+            $sets[] = "availability = ?";
+            $params[] = $availability;
+            $types .= "s";
+        }
+
+        if (empty($sets)) {
+            $this->json(['error' => 'No update actions selected. Please choose at least one setting to update.'], 400);
+            return;
+        }
+
+        $setString = implode(', ', $sets);
+
+        // Prepare statements
+        $jewelSql = "UPDATE product SET $setString WHERE product_code = ?";
+        $garmentSql = "UPDATE garment_product SET $setString WHERE gproduct_code = ?";
+
+        $jewelStmt = mysqli_prepare($db, $jewelSql);
+        $garmentStmt = mysqli_prepare($db, $garmentSql);
+
+        if (!$jewelStmt || !$garmentStmt) {
+            $this->json(['error' => 'Failed to prepare database statements: ' . mysqli_error($db)], 500);
+            return;
+        }
+
+        $bindTypes = $types . "s";
+
+        foreach ($skus as $sku) {
+            $existsJewel = $productModel->checkProductExists($sku, 'jewellery');
+            $existsGarment = $productModel->checkProductExists($sku, 'garments');
+
+            if (!$existsJewel && !$existsGarment) {
+                $notFoundSkus[] = $sku;
+                continue;
+            }
+
+            $success = false;
+
+            if ($existsJewel) {
+                if (count($params) === 1) {
+                    mysqli_stmt_bind_param($jewelStmt, $bindTypes, $params[0], $sku);
+                } else {
+                    mysqli_stmt_bind_param($jewelStmt, $bindTypes, $params[0], $params[1], $sku);
+                }
+                
+                if (mysqli_stmt_execute($jewelStmt)) {
+                    $success = true;
+                } else {
+                    $errors[] = "SKU $sku: " . mysqli_stmt_error($jewelStmt);
+                }
+            }
+
+            if ($existsGarment) {
+                if (count($params) === 1) {
+                    mysqli_stmt_bind_param($garmentStmt, $bindTypes, $params[0], $sku);
+                } else {
+                    mysqli_stmt_bind_param($garmentStmt, $bindTypes, $params[0], $params[1], $sku);
+                }
+
+                if (mysqli_stmt_execute($garmentStmt)) {
+                    $success = true;
+                } else {
+                    $errors[] = "SKU $sku: " . mysqli_stmt_error($garmentStmt);
+                }
+            }
+
+            if ($success) {
+                $updatedCount++;
+            }
+        }
+
+        mysqli_stmt_close($jewelStmt);
+        mysqli_stmt_close($garmentStmt);
+
+        $this->json([
+            'success' => true,
+            'message' => "Bulk update completed.",
+            'updatedCount' => $updatedCount,
+            'notFoundCount' => count($notFoundSkus),
+            'notFoundSkus' => $notFoundSkus,
+            'errors' => $errors
+        ]);
+    }
 }

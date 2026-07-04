@@ -61,6 +61,10 @@ function isActive($controller, $action = null) {
                 <i class="fas fa-file-import w-5 mr-2 text-zinc-400"></i>
                 <span>Import Excel</span>
             </a>
+            <a href="index.php?controller=product&action=bulkUpdate" class="flex items-center px-3 py-2 text-xs font-semibold rounded-lg transition-all <?php echo isActive('product', 'bulkUpdate') ? 'text-white bg-zinc-900' : 'text-zinc-400 hover:text-white hover:bg-zinc-900/50'; ?>">
+                <i class="fas fa-edit w-5 mr-2 text-zinc-400"></i>
+                <span>Bulk Update</span>
+            </a>
             <a href="index.php?controller=product&action=bulkDelete" class="flex items-center px-3 py-2 text-xs font-semibold rounded-lg transition-all <?php echo isActive('product', 'bulkDelete') ? 'text-white bg-zinc-900' : 'text-zinc-400 hover:text-white hover:bg-zinc-900/50'; ?>">
                 <i class="fas fa-trash-alt w-5 mr-2 text-zinc-400"></i>
                 <span>Bulk Delete</span>
