@@ -12,7 +12,19 @@ class ChatbotModel extends Model {
     public function __construct() {
         parent::__construct();
         $this->config = include(__DIR__ . '/../Config/chatbot_config.php');
-        $this->provider = $this->config['provider'] ?? 'groq';
+        
+        // Fetch dynamic settings from database
+        $db = \Core\Database::getConnection('con');
+        $result = $db->query("SELECT * FROM chatbot_settings LIMIT 1");
+        if ($result && $result->num_rows > 0) {
+            $settings = $result->fetch_assoc();
+            $this->config['provider'] = $settings['provider'];
+            $this->config['groq']['api_key'] = $settings['groq_key'];
+            $this->config['gemini']['api_key'] = $settings['gemini_key'];
+            $this->config['openrouter']['api_key'] = $settings['openrouter_key'];
+        }
+
+        $this->provider = $this->config['provider'] ?? 'gemini';
         $this->knowledgeBase = json_decode(
             file_get_contents(__DIR__ . '/../Config/chatbot_knowledge.json'), 
             true

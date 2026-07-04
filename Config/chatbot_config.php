@@ -19,7 +19,7 @@ require_once __DIR__ . '/env.php';
 
 return [
     // ===== ACTIVE PROVIDER =====
-    'provider' => 'gemini',  // Options: 'groq', 'gemini', 'openrouter'
+    'provider' => get_config_secret('CHATBOT_PROVIDER', 'gemini'),  // Options: 'groq', 'gemini', 'openrouter'
 
     // ===== GROQ (Recommended) =====
     'groq' => [

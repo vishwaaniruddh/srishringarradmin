@@ -23,6 +23,11 @@
                 <span class="dot"></span>
                 <span id="chatbot-status-text">Online • Srishringarr Assistant</span>
             </div>
+            <select id="chatbot-model-select" class="chatbot-model-select" title="Switch AI Model">
+                <option value="groq">Groq (Llama 3.3)</option>
+                <option value="gemini">Google Gemini</option>
+                <option value="openrouter">OpenRouter (DeepSeek)</option>
+            </select>
         </div>
         <button class="chatbot-header-close" id="chatbot-close" title="Close chat">
             <i class="fas fa-times"></i>
@@ -84,11 +89,38 @@
 
     // ========== Initialize ==========
     async function init() {
+        const modelSelect = document.getElementById('chatbot-model-select');
+        
+        // Handle model changes
+        if (modelSelect) {
+            modelSelect.addEventListener('change', async (e) => {
+                const newProvider = e.target.value;
+                try {
+                    const res = await fetch('index.php?controller=chatbot&action=updateProvider', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ provider: newProvider })
+                    });
+                    const data = await res.json();
+                    if (data.success) {
+                        console.log('Switched provider to', newProvider);
+                    }
+                } catch (err) {
+                    console.error('Failed to update provider', err);
+                }
+            });
+        }
+
         // Check if API key is configured
         try {
             const res = await fetch('index.php?controller=chatbot&action=status');
             const data = await res.json();
             isConfigured = data.configured;
+            
+            // Set the active provider in dropdown
+            if (modelSelect && data.provider) {
+                modelSelect.value = data.provider;
+            }
         } catch (e) {
             console.warn('Chatbot status check failed:', e);
         }

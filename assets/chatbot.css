@@ -140,7 +140,25 @@
     color: rgba(255, 255, 255, 0.8);
     display: flex;
     align-items: center;
-    gap: 5px;
+    gap: 4px;
+    margin-top: 2px;
+}
+
+.chatbot-model-select {
+    margin-top: 4px;
+    background: rgba(0, 0, 0, 0.2);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    color: white;
+    border-radius: 4px;
+    font-size: 11px;
+    padding: 2px 6px;
+    cursor: pointer;
+    outline: none;
+    font-family: inherit;
+}
+.chatbot-model-select option {
+    background: #18181b;
+    color: white;
 }
 
 .chatbot-header-status .dot {
