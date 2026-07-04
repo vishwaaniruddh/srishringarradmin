@@ -585,6 +585,21 @@ class ProductModel extends Model {
 
     public function getProductImages($id, $type) {
         $id = (int)$id;
+        $table = ($type === 'jewellery') ? 'product' : 'garment_product';
+        $id_field = ($type === 'jewellery') ? 'product_id' : 'gproduct_id';
+        $code_field = ($type === 'jewellery') ? 'product_code' : 'gproduct_code';
+        
+        $code_query = "SELECT $code_field as code FROM $table WHERE $id_field = $id LIMIT 1";
+        $code_result = $this->query($this->db, $code_query);
+        $product = $this->fetchOne($code_result);
+        
+        if ($product && !empty($product['code'])) {
+            $sku = mysqli_real_escape_string($this->db, $product['code']);
+            $sql = "SELECT id, img_name, rank FROM product_images_new WHERE pro_code = '$sku' ORDER BY rank ASC";
+            $result = $this->query($this->db, $sql);
+            return $this->fetchAll($result);
+        }
+        
         $img_field = ($type === 'jewellery') ? 'product_id' : 'gproduct_id';
         $sql = "SELECT id, img_name, rank FROM product_images_new WHERE $img_field = $id ORDER BY rank ASC";
         $result = $this->query($this->db, $sql);
