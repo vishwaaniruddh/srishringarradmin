@@ -7,6 +7,16 @@
     </div>
     
     <div class="flex items-center space-x-4">
+        <!-- Quick product search box -->
+        <form method="GET" action="index.php" class="relative hidden sm:block">
+            <input type="hidden" name="controller" value="product">
+            <input type="hidden" name="action" value="index">
+            <span class="absolute inset-y-0 left-0 pl-3 flex items-center text-zinc-500 text-xs pointer-events-none">
+                <i class="fas fa-search"></i>
+            </span>
+            <input type="text" name="search" value="<?php echo htmlspecialchars($_GET['search'] ?? ''); ?>" placeholder="Quick SKU/Name search..." class="bg-zinc-900 border border-zinc-800 text-white text-xs rounded-xl pl-8 pr-4 py-2 w-48 lg:w-64 focus:ring-1 focus:ring-zinc-700 focus:border-zinc-700 focus:outline-none transition-all" style="padding-left: 2.25rem !important;">
+        </form>
+
         <div class="relative">
             <button class="flex items-center text-zinc-400 hover:text-white transition-colors">
                 <span class="mr-2 text-sm font-medium"><?php echo htmlspecialchars(ucfirst($_SESSION['admin_username'] ?? 'Admin')); ?></span>

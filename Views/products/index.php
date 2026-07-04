@@ -55,7 +55,7 @@
                                     <span class="absolute inset-y-0 left-0 pl-3 flex items-center text-zinc-500 text-xs">
                                         <i class="fas fa-search"></i>
                                     </span>
-                                    <input type="text" name="search" id="searchInput" value="<?php echo htmlspecialchars($search); ?>" placeholder="Search by name or code..." class="w-full bg-black border border-zinc-800 text-white text-xs rounded-lg focus:ring-1 focus:ring-zinc-700 focus:border-zinc-700 block pl-8 py-2">
+                                    <input type="text" name="search" id="searchInput" value="<?php echo htmlspecialchars($search); ?>" placeholder="Search by name or code..." class="w-full bg-black border border-zinc-800 text-white text-xs rounded-lg focus:ring-1 focus:ring-zinc-700 focus:border-zinc-700 block pl-8 py-2" style="padding-left: 2.25rem !important;">
                                 </div>
                             </div>
                             
