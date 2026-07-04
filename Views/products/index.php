@@ -208,10 +208,16 @@
                         <td class="px-6 py-4 text-xs text-zinc-400 font-medium">${(p.details.category_name || 'N/A').toLowerCase().replace(/\b\w/g, l => l.toUpperCase())}</td>
                         <td class="px-6 py-4">${qtyText}</td>
                         <td class="px-6 py-4">
-                            <div class="flex items-center gap-1.5">
-                                <span class="px-1.5 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider ${p.details.price_source === 'manual' ? 'bg-amber-500/10 text-amber-600 border border-amber-500/20' : 'bg-blue-500/10 text-blue-500 border border-blue-500/20'}">${p.details.price_source === 'manual' ? 'Manual' : 'POS'}</span>
+                            <div class="flex items-center gap-2 mb-1.5">
+                                <label class="relative inline-flex items-center cursor-pointer">
+                                    <input type="checkbox" class="sr-only peer" ${p.details.price_source === 'manual' ? 'checked' : ''} onchange="togglePriceSourceRow(${p.id}, '${p.type}', this.checked ? 'manual' : 'pos')">
+                                    <div class="w-8 h-4 bg-zinc-800 rounded-full peer peer-focus:ring-0 peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-zinc-600 after:border after:rounded-full after:h-3 after:w-3 after:transition-all peer-checked:bg-amber-500"></div>
+                                </label>
+                                <span class="text-[9px] font-bold uppercase tracking-wider ${p.details.price_source === 'manual' ? 'text-amber-500' : 'text-zinc-500'}">
+                                    ${p.details.price_source === 'manual' ? 'Manual' : 'POS'}
+                                </span>
                             </div>
-                            <div class="text-xs font-bold text-white mt-1">Rent: ₹${rentPrice.toLocaleString('en-IN', {minimumFractionDigits: 0})}</div>
+                            <div class="text-xs font-bold text-white">Rent: ₹${rentPrice.toLocaleString('en-IN', {minimumFractionDigits: 0})}</div>
                             <div class="text-[10px] text-zinc-500 mt-0.5">Sale: ₹${salePrice.toLocaleString('en-IN', {minimumFractionDigits: 0})}</div>
                         </td>
                         <td class="px-6 py-4">${bookingText}</td>
@@ -335,6 +341,25 @@
             }
         } catch (error) {
             console.error('Error toggling featured status:', error);
+            alert('Something went wrong. Please try again.');
+        }
+    }
+
+    async function togglePriceSourceRow(id, type, priceSource) {
+        try {
+            const response = await fetch('index.php?controller=api&action=togglePriceSource', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ id, type, price_source: priceSource })
+            });
+            const data = await response.json();
+            if (data.success) {
+                loadProducts(currentPage);
+            } else {
+                alert(data.error || 'Failed to update price source');
+            }
+        } catch (error) {
+            console.error('Error toggling price source:', error);
             alert('Something went wrong. Please try again.');
         }
     }

@@ -789,6 +789,17 @@ class ProductModel extends Model {
         return $this->query($this->db, $sql);
     }
 
+    public function togglePriceSource($id, $type, $priceSource) {
+        $id = (int)$id;
+        $priceSource = $priceSource === 'manual' ? 'manual' : 'pos';
+        if ($type === 'jewellery') {
+            $sql = "UPDATE product SET price_source = '$priceSource' WHERE product_id = $id";
+        } else {
+            $sql = "UPDATE garment_product SET price_source = '$priceSource' WHERE gproduct_id = $id";
+        }
+        return $this->query($this->db, $sql);
+    }
+
     public function getDbConnection() {
         return $this->db;
     }

@@ -75,4 +75,28 @@ class ApiController extends Controller {
             $this->json(['error' => 'Failed to update featured status'], 500);
         }
     }
+
+    public function togglePriceSource() {
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            $this->json(['error' => 'Method not allowed'], 405);
+            return;
+        }
+
+        $input = json_decode(file_get_contents('php://input'), true);
+        $id = (int)($input['id'] ?? 0);
+        $type = $input['type'] ?? '';
+        $priceSource = $input['price_source'] ?? 'pos';
+
+        if (!$id || !$type) {
+            $this->json(['error' => 'Missing parameters'], 400);
+            return;
+        }
+
+        $productModel = new \Models\ProductModel();
+        if ($productModel->togglePriceSource($id, $type, $priceSource)) {
+            $this->json(['success' => true]);
+        } else {
+            $this->json(['error' => 'Failed to update price source'], 500);
+        }
+    }
 }
