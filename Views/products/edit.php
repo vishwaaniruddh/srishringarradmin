@@ -221,16 +221,16 @@
                                     
                                     <!-- Existing Images -->
                                     <div class="grid grid-cols-4 md:grid-cols-6 gap-4 mb-6">
-                                        <?php foreach ($images as $img): ?>
+                                        <?php foreach ($images as $index => $img): ?>
                                             <div class="aspect-square relative group">
                                                 <img src="../../yn/uploads<?php echo $img['img_name']; ?>" class="w-full h-full object-contain rounded-xl shadow-sm border border-gray-100">
                                                 <div class="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity rounded-xl flex items-center justify-center">
                                                     <span class="text-white text-xs font-semibold">
-                                                        <?php echo ((int)($img['rank'] ?? 1) === 0) ? 'Main Image' : 'Existing'; ?>
+                                                        <?php echo ($index === 0) ? 'Main Image' : 'Existing'; ?>
                                                     </span>
                                                 </div>
                                                 
-                                                <?php if (((int)($img['rank'] ?? 1) === 0)): ?>
+                                                <?php if ($index === 0): ?>
                                                     <div class="absolute top-2 left-2 bg-yellow-400 text-white w-7 h-7 rounded-full flex items-center justify-center shadow-md" title="Main Image">
                                                         <i class="fas fa-star text-xs"></i>
                                                     </div>
