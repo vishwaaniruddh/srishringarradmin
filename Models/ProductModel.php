@@ -819,6 +819,44 @@ class ProductModel extends Model {
         return $this->query($this->db, $sql);
     }
 
+    public function addImagesToProduct($sku, $images) {
+        $existsJewel = $this->checkProductExists($sku, 'jewellery');
+        $existsGarment = $this->checkProductExists($sku, 'garments');
+
+        if (!$existsJewel && !$existsGarment) {
+            return false;
+        }
+
+        $type = $existsJewel ? 'jewellery' : 'garments';
+        $product = $this->getProductById($existsJewel ? $existsJewel['product_id'] : $existsGarment['gproduct_id'], $type);
+        if (!$product) return false;
+
+        $id = $product['id'];
+        $name = $product['name'];
+        $sub = $product['sub_category'] ?? 0;
+        
+        $img_field = ($type === 'jewellery') ? 'product_id' : 'gproduct_id';
+        $subcat_val = ($type === 'jewellery') ? $sub : 0;
+        $date_added = date('Y-m-d H:i:s');
+
+        foreach ($images as $path) {
+            $full_path = '/' . $path;
+            
+            $img_sql = "INSERT INTO product_images_new (
+                prod_name, prod_image, pro_code, img_name, 
+                subcat_id, $img_field, date_added
+            ) VALUES (?, ?, ?, ?, ?, ?, ?)";
+            
+            $stmt = mysqli_prepare($this->db, $img_sql);
+            if (!$stmt) throw new \Exception(mysqli_error($this->db));
+            mysqli_stmt_bind_param($stmt, "ssssiis", $name, $full_path, $sku, $full_path, $subcat_val, $id, $date_added);
+            if (!mysqli_stmt_execute($stmt)) throw new \Exception(mysqli_error($this->db));
+            mysqli_stmt_close($stmt);
+        }
+
+        return true;
+    }
+
     public function getDbConnection() {
         return $this->db;
     }

@@ -642,4 +642,70 @@ class ProductController extends Controller {
             'errors' => $errors
         ]);
     }
+
+    public function uploadSkuImages() {
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') $this->json(['error' => 'Method not allowed'], 405);
+
+        $sku = trim($_POST['sku'] ?? '');
+        if (empty($sku)) {
+            $this->json(['error' => 'SKU is required'], 400);
+            return;
+        }
+
+        if (empty($_FILES['files']['name'])) {
+            $this->json(['error' => 'No files uploaded'], 400);
+            return;
+        }
+
+        $productModel = new ProductModel();
+        $existsJewel = $productModel->checkProductExists($sku, 'jewellery');
+        $existsGarment = $productModel->checkProductExists($sku, 'garments');
+
+        if (!$existsJewel && !$existsGarment) {
+            $this->json(['error' => "SKU '$sku' not found in database"], 404);
+            return;
+        }
+
+        $uploadedPaths = [];
+        $files = $_FILES['files'];
+        $current_year = date('Y');
+        $current_month = date('m');
+        $upload_base = __DIR__ . "/../../yn/uploads/";
+        $upload_path = $current_year . '/' . $current_month . '/';
+        $full_upload_path = $upload_base . $upload_path;
+
+        if (!file_exists($full_upload_path)) {
+            mkdir($full_upload_path, 0777, true);
+        }
+
+        // Loop files
+        for ($i = 0; $i < count($files['name']); $i++) {
+            if ($files['error'][$i] !== UPLOAD_ERR_OK) continue;
+
+            $ext = pathinfo($files['name'][$i], PATHINFO_EXTENSION) ?: 'jpg';
+            $filename = $sku . '_' . time() . '_' . uniqid() . '.' . $ext;
+
+            if (move_uploaded_file($files['tmp_name'][$i], $full_upload_path . $filename)) {
+                $uploadedPaths[] = $upload_path . $filename;
+            }
+        }
+
+        if (empty($uploadedPaths)) {
+            $this->json(['error' => 'Failed to save any uploaded images'], 500);
+            return;
+        }
+
+        try {
+            if ($productModel->addImagesToProduct($sku, $uploadedPaths)) {
+                $this->json([
+                    'success' => true,
+                    'message' => "Successfully uploaded " . count($uploadedPaths) . " images for SKU $sku."
+                ]);
+            } else {
+                $this->json(['error' => 'Failed to link images to product database'], 500);
+            }
+        } catch (\Exception $e) {
+            $this->json(['error' => $e->getMessage()], 500);
+        }
+    }
 }
