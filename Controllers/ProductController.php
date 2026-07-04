@@ -554,12 +554,15 @@ class ProductController extends Controller {
 
         $output = fopen('php://output', 'w');
         // Suppress deprecation warnings with @ for PHP 8.4 compatibility
-        @fputcsv($output, ['sku', 'name', 'description', 'type', 'category_id', 'subcat_id', 's_price', 'rental_price', 'deposit', 'images'], ',', '"', '\\');
+        @fputcsv($output, ['sku', 'name', 'description', 'type', 'category_id', 'subcat_id', 's_price', 'rental_price', 'deposit', 'qty', 'images'], ',', '"', '\\');
 
         $i = 0;
         while ($p = mysqli_fetch_assoc($result)) {
             $fullProduct = $productModel->getProductById($p['id'], $p['type']);
             if (!$fullProduct) continue;
+
+            $sku = $fullProduct['code'] ?? $p['code'] ?? '';
+            $qty = $productModel->getPosQuantity($sku);
 
             $images = $productModel->getProductImages($p['id'], $p['type']);
             $imageUrls = [];
@@ -570,7 +573,7 @@ class ProductController extends Controller {
             }
 
             @fputcsv($output, [
-                $fullProduct['code'] ?? $p['code'] ?? '',
+                $sku,
                 $fullProduct['name'] ?? $p['name'] ?? '',
                 $fullProduct['description'] ?? '',
                 $p['type'] ?? '',
@@ -579,6 +582,7 @@ class ProductController extends Controller {
                 $fullProduct['s_price'] ?? 0,
                 $fullProduct['rental_price'] ?? 0,
                 $fullProduct['deposit'] ?? 0,
+                $qty,
                 implode(',', $imageUrls)
             ], ',', '"', '\\');
             

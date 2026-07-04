@@ -887,6 +887,14 @@ class ProductModel extends Model {
         return true;
     }
 
+    public function getPosQuantity($sku) {
+        $sku = mysqli_real_escape_string($this->db3, $sku);
+        $query = "SELECT quantity FROM phppos_items WHERE name = '$sku' LIMIT 1";
+        $result = $this->query($this->db3, $query);
+        $row = $this->fetchOne($result);
+        return (int)($row['quantity'] ?? 0);
+    }
+
     public function getDbConnection() {
         return $this->db;
     }
