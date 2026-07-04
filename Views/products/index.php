@@ -208,7 +208,10 @@
                         <td class="px-6 py-4 text-xs text-zinc-400 font-medium">${(p.details.category_name || 'N/A').toLowerCase().replace(/\b\w/g, l => l.toUpperCase())}</td>
                         <td class="px-6 py-4">${qtyText}</td>
                         <td class="px-6 py-4">
-                            <div class="text-xs font-bold text-white">Rent: ₹${rentPrice.toLocaleString('en-IN', {minimumFractionDigits: 0})}</div>
+                            <div class="flex items-center gap-1.5">
+                                <span class="px-1.5 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider ${p.details.price_source === 'manual' ? 'bg-amber-500/10 text-amber-600 border border-amber-500/20' : 'bg-blue-500/10 text-blue-500 border border-blue-500/20'}">${p.details.price_source === 'manual' ? 'Manual' : 'POS'}</span>
+                            </div>
+                            <div class="text-xs font-bold text-white mt-1">Rent: ₹${rentPrice.toLocaleString('en-IN', {minimumFractionDigits: 0})}</div>
                             <div class="text-[10px] text-zinc-500 mt-0.5">Sale: ₹${salePrice.toLocaleString('en-IN', {minimumFractionDigits: 0})}</div>
                         </td>
                         <td class="px-6 py-4">${bookingText}</td>

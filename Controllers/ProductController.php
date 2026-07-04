@@ -52,6 +52,7 @@ class ProductController extends Controller {
 
     public function checkSku() {
         $sku = $_GET['sku'] ?? '';
+        $priceSource = $_GET['price_source'] ?? 'pos';
         if (!$sku) $this->json(['error' => 'Missing SKU'], 400);
 
         $productModel = new ProductModel();
@@ -68,7 +69,16 @@ class ProductController extends Controller {
             return;
         }
 
-        // 2. Check if exists in POS
+        // 2. Manual price source: no POS validation needed
+        if ($priceSource === 'manual') {
+            $this->json([
+                'allowed' => true,
+                'message' => 'Manual pricing mode — POS validation skipped.'
+            ]);
+            return;
+        }
+
+        // 3. Check if exists in POS
         $posItem = $productModel->validateSkuInPos($sku);
         
         if ($posItem) {
@@ -160,7 +170,7 @@ class ProductController extends Controller {
             $uploadedImages = $this->handleImageUploads($code);
 
             $productModel->updateProduct($type, $id, $_POST, $uploadedImages);
-            $this->redirect('index.php?controller=product&action=index&success=1');
+            $this->redirect("index.php?controller=product&action=edit&id=$id&type=$type&success=1");
         } catch (\Exception $e) {
             $this->redirect("index.php?controller=product&action=edit&id=$id&type=$type&error=" . urlencode($e->getMessage()));
         }

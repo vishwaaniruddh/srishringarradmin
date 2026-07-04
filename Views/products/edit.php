@@ -18,6 +18,12 @@
 
             <main class="flex-1 overflow-y-auto p-8">
                 <div class="max-w-4xl mx-auto">
+                    <?php if (isset($_GET['success'])): ?>
+                        <div class="mb-6 p-4 bg-green-50 border-l-4 border-green-500 text-green-700 rounded-r-xl shadow-sm">
+                            <i class="fas fa-check-circle mr-2"></i> Product updated successfully!
+                        </div>
+                    <?php endif; ?>
+
                     <?php if (isset($_GET['error'])): ?>
                         <div class="mb-6 p-4 bg-red-50 border-l-4 border-red-500 text-red-700 rounded-r-xl shadow-sm">
                             <i class="fas fa-exclamation-circle mr-2"></i> <?php echo htmlspecialchars($_GET['error']); ?>
@@ -131,7 +137,32 @@
                                         <span class="w-8 h-8 bg-primary/10 text-primary rounded-full flex items-center justify-center mr-3 text-sm">3</span>
                                         Pricing Information
                                     </h3>
-                                    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+
+                                    <!-- Price Source Toggle -->
+                                    <div class="bg-gray-50 rounded-xl p-4 border border-gray-200">
+                                        <div class="flex items-center justify-between">
+                                            <div>
+                                                <label class="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">Price Source</label>
+                                                <p class="text-xs text-gray-400" id="price_source_description">
+                                                    <?php echo ($product['price_source'] ?? 'pos') === 'manual' 
+                                                        ? 'Prices are set manually from the fields below.' 
+                                                        : 'Prices are auto-calculated from POS system data.'; ?>
+                                                </p>
+                                            </div>
+                                            <div class="flex items-center gap-3">
+                                                <span class="text-xs font-semibold <?php echo ($product['price_source'] ?? 'pos') === 'pos' ? 'text-primary' : 'text-gray-400'; ?>" id="label_pos">POS</span>
+                                                <label class="relative inline-flex items-center cursor-pointer">
+                                                    <input type="checkbox" name="price_source" value="manual" 
+                                                           <?php echo ($product['price_source'] ?? 'pos') === 'manual' ? 'checked' : ''; ?> 
+                                                           class="sr-only peer" id="price_source_toggle" onchange="togglePriceSource()">
+                                                    <div class="w-11 h-6 bg-gray-300 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-primary/20 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-amber-500"></div>
+                                                </label>
+                                                <span class="text-xs font-semibold <?php echo ($product['price_source'] ?? 'pos') === 'manual' ? 'text-amber-600' : 'text-gray-400'; ?>" id="label_manual">Manual</span>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div class="grid grid-cols-1 md:grid-cols-3 gap-6" id="pricing_fields">
                                         <div>
                                             <label class="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Sales Price</label>
                                             <div class="relative">
@@ -153,6 +184,9 @@
                                                 <input type="number" name="deposit" step="0.01" value="<?php echo $product['deposit']; ?>" class="w-full bg-gray-50 border border-gray-200 rounded-xl pl-8 p-3 text-sm focus:ring-primary focus:border-primary">
                                             </div>
                                         </div>
+                                    </div>
+                                    <div id="pos_price_note" class="<?php echo ($product['price_source'] ?? 'pos') === 'manual' ? 'hidden' : ''; ?> bg-blue-50 border border-blue-200 rounded-xl px-4 py-3 text-xs text-blue-700">
+                                        <i class="fas fa-info-circle mr-1"></i> These values are stored but <strong>overridden</strong> by POS-calculated prices on the frontend. Switch to "Manual" to use these values directly.
                                     </div>
                                 </div>
 
@@ -410,6 +444,29 @@ Product Description: [Your suggested description]`;
             } finally {
                 btn.disabled = false;
                 btn.innerHTML = originalText;
+            }
+        }
+        function togglePriceSource() {
+            const toggle = document.getElementById('price_source_toggle');
+            const isManual = toggle.checked;
+            const desc = document.getElementById('price_source_description');
+            const labelPos = document.getElementById('label_pos');
+            const labelManual = document.getElementById('label_manual');
+            const posNote = document.getElementById('pos_price_note');
+            const pricingFields = document.getElementById('pricing_fields');
+
+            if (isManual) {
+                desc.textContent = 'Prices are set manually from the fields below.';
+                labelPos.className = 'text-xs font-semibold text-gray-400';
+                labelManual.className = 'text-xs font-semibold text-amber-600';
+                posNote.classList.add('hidden');
+                pricingFields.classList.add('ring-2', 'ring-amber-400', 'rounded-xl', 'p-3');
+            } else {
+                desc.textContent = 'Prices are auto-calculated from POS system data.';
+                labelPos.className = 'text-xs font-semibold text-primary';
+                labelManual.className = 'text-xs font-semibold text-gray-400';
+                posNote.classList.remove('hidden');
+                pricingFields.classList.remove('ring-2', 'ring-amber-400', 'rounded-xl', 'p-3');
             }
         }
     </script>

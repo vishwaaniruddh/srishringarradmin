@@ -56,7 +56,10 @@ class ProductModel extends Model {
                 featured,
                 categories_id as category_id,
                 subcat_id as subcategory_id,
-                sales_price as original_sales_price
+                sales_price as original_sales_price,
+                rent_price as db_rent_price,
+                deposit as db_deposit,
+                price_source
             FROM product 
             WHERE 1=1 $jewellery_search)
             UNION ALL
@@ -69,7 +72,10 @@ class ProductModel extends Model {
                 featured,
                 garment_id as category_id,
                 0 as subcategory_id,
-                sales_price as original_sales_price
+                sales_price as original_sales_price,
+                rent_price as db_rent_price,
+                deposit as db_deposit,
+                price_source
             FROM garment_product 
             WHERE 1=1 $garments_search)
             ORDER BY id DESC 
@@ -221,6 +227,7 @@ class ProductModel extends Model {
     private function getProductDetails($product) {
         $sku = $product['code'];
         $type = $product['type'];
+        $priceSource = $product['price_source'] ?? 'pos';
         
         // POS Data
         $pos_query = "SELECT category, category_type, unit_price, quantity, cost_price FROM phppos_items WHERE name LIKE '$sku'";
@@ -244,6 +251,53 @@ class ProductModel extends Model {
             $cost_price = $pos_item['cost_price'] ?? 0;
         }
 
+        // --- Manual price source: use DB values directly ---
+        if ($priceSource === 'manual') {
+            $lastSellingPrice = (float)($product['original_sales_price'] ?? 0);
+            $addedRentPrice = (float)($product['db_rent_price'] ?? 0);
+            $deposit = (float)($product['db_deposit'] ?? 0);
+
+            // Booking Status (still useful for manual products)
+            $todaysdt = date('Y-m-d');
+            $order_query = "SELECT b.pick_date, b.delivery_date, b.booking_status 
+                            FROM order_detail a 
+                            JOIN phppos_rent b ON a.bill_id = b.bill_id 
+                            WHERE a.item_id='$sku' 
+                            AND (b.pick_date >= '$todaysdt' OR b.delivery_date >= '$todaysdt') 
+                            AND b.booking_status != 'Returned' 
+                            ORDER BY b.pick_date ASC";
+            $order_result = $this->query($this->db3, $order_query);
+            $bookings = $this->fetchAll($order_result);
+
+            // Image
+            $img_field = ($type == 'jewellery') ? "product_id" : "gproduct_id";
+            $pid = $product['id'];
+            $img_query = "SELECT img_name FROM product_images_new WHERE $img_field = '$pid' ORDER BY rank LIMIT 1";
+            $img_result = $this->query($this->db, $img_query);
+            $img_row = $this->fetchOne($img_result);
+            
+            $img_name = $img_row['img_name'] ?? '';
+            if (!empty($img_name)) {
+                $clean_img_name = ltrim(str_replace(['../../yn/uploads', '../yn/uploads', '/yn/uploads'], '', $img_name), '/');
+                $image_path = "https://srishringarr.com/yn/uploads/" . $clean_img_name;
+            } else {
+                $image_path = 'https://srishringarr.com/static/images/default.jpg';
+            }
+
+            return [
+                'category_name' => $category_name,
+                'product_type_label' => $product_type_label,
+                'quantity' => $quantity,
+                'sale_price' => $lastSellingPrice,
+                'rent_price' => $addedRentPrice,
+                'deposit' => $deposit,
+                'bookings' => $bookings,
+                'image_path' => $image_path,
+                'price_source' => 'manual'
+            ];
+        }
+
+        // --- POS price source: existing formula logic ---
         // Commission
         $comm_query = "SELECT SUM(CAST(REPLACE(commission_amt, ',', '') AS DECIMAL(10,2))) 
                        FROM order_detail 
@@ -364,7 +418,8 @@ class ProductModel extends Model {
             'rent_price' => ceil($addedRentPrice / 100) * 100,
             'deposit' => ceil($deposit / 100) * 100,
             'bookings' => $bookings,
-            'image_path' => $image_path
+            'image_path' => $image_path,
+            'price_source' => 'pos'
         ];
     }
     public function validateSkuInPos($sku) {
@@ -421,26 +476,27 @@ class ProductModel extends Model {
             $rent = (float)($data['rental_price'] ?? 0);
             $dep = (float)($data['deposit'] ?? 0);
             $featured = (int)($data['featured'] ?? 0);
+            $priceSource = ($data['price_source'] ?? 'pos') === 'manual' ? 'manual' : 'pos';
             
             if ($type === 'jewellery') {
                 $sql = "INSERT INTO product (
                     product_code, product_name, product_desc, date_added, 
-                    categories_id, subcat_id, sales_price, rent_price, deposit, featured
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+                    categories_id, subcat_id, sales_price, rent_price, deposit, featured, price_source
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
                 
                 $stmt = mysqli_prepare($this->db, $sql);
-                mysqli_stmt_bind_param($stmt, "ssssiidddi", $code, $name, $desc, $date_added, $cat, $sub, $price, $rent, $dep, $featured);
+                mysqli_stmt_bind_param($stmt, "ssssiidddis", $code, $name, $desc, $date_added, $cat, $sub, $price, $rent, $dep, $featured, $priceSource);
                 mysqli_stmt_execute($stmt);
                 $product_id = mysqli_insert_id($this->db);
                 mysqli_stmt_close($stmt);
             } else {
                 $sql = "INSERT INTO garment_product (
                     gproduct_code, gproduct_name, gproduct_desc, date_added, 
-                    garment_id, product_for, sales_price, rent_price, deposit, featured
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+                    garment_id, product_for, sales_price, rent_price, deposit, featured, price_source
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
                 
                 $stmt = mysqli_prepare($this->db, $sql);
-                mysqli_stmt_bind_param($stmt, "ssssiidddi", $code, $name, $desc, $date_added, $cat, $cat, $price, $rent, $dep, $featured);
+                mysqli_stmt_bind_param($stmt, "ssssiidddis", $code, $name, $desc, $date_added, $cat, $cat, $price, $rent, $dep, $featured, $priceSource);
                 mysqli_stmt_execute($stmt);
                 $product_id = mysqli_insert_id($this->db);
                 mysqli_stmt_close($stmt);
@@ -502,7 +558,7 @@ class ProductModel extends Model {
         if ($type === 'jewellery') {
             $sql = "SELECT p.product_id as id, p.product_code as code, p.product_name as name, p.product_desc as description, 
                            p.categories_id as category, p.subcat_id as sub_category, p.sales_price as s_price, 
-                           p.rent_price as rental_price, p.deposit, p.discount, p.featured,
+                           p.rent_price as rental_price, p.deposit, p.discount, p.featured, p.price_source,
                            c.categories_name as category_name, s.name as subcategory_name
                     FROM product p
                     LEFT JOIN jewel_subcat c ON p.categories_id = c.subcat_id
@@ -511,7 +567,7 @@ class ProductModel extends Model {
         } else {
             $sql = "SELECT p.gproduct_id as id, p.gproduct_code as code, p.gproduct_name as name, p.gproduct_desc as description, 
                            p.garment_id as category, p.product_for as sub_category, p.sales_price as s_price, 
-                           p.rent_price as rental_price, p.deposit, p.discount, p.featured,
+                           p.rent_price as rental_price, p.deposit, p.discount, p.featured, p.price_source,
                            c.name as category_name, s.name as subcategory_name
                     FROM garment_product p
                     LEFT JOIN garments c ON p.garment_id = c.garment_id
@@ -535,46 +591,69 @@ class ProductModel extends Model {
         try {
             $id = (int)$id;
             $featured = (int)($data['featured'] ?? 0);
+            $priceSource = ($data['price_source'] ?? 'pos') === 'manual' ? 'manual' : 'pos';
+            $name = $data['name'];
+            $desc = $data['description'] ?? '';
+            $cat = (int)($data['category'] ?? 0);
+            $sub = (int)($data['sub_category'] ?? 0);
+            $price = (float)($data['s_price'] ?? 0);
+            $rent = (float)($data['rental_price'] ?? 0);
+            $dep = (float)($data['deposit'] ?? 0);
+
             if ($type === 'jewellery') {
                 $sql = "UPDATE product SET 
-                    product_name = '{$data['name']}', 
-                    product_desc = '{$data['description']}', 
-                    categories_id = '{$data['category']}', 
-                    subcat_id = '{$data['sub_category']}', 
-                    sales_price = '{$data['s_price']}', 
-                    rent_price = '{$data['rental_price']}', 
-                    deposit = '{$data['deposit']}',
-                    featured = '$featured'
-                    WHERE product_id = $id";
-                if (!$this->query($this->db, $sql)) throw new \Exception(mysqli_error($this->db));
+                    product_name = ?, 
+                    product_desc = ?, 
+                    categories_id = ?, 
+                    subcat_id = ?, 
+                    sales_price = ?, 
+                    rent_price = ?, 
+                    deposit = ?,
+                    featured = ?,
+                    price_source = ?
+                    WHERE product_id = ?";
+                $stmt = mysqli_prepare($this->db, $sql);
+                if (!$stmt) throw new \Exception(mysqli_error($this->db));
+                mysqli_stmt_bind_param($stmt, "ssiidddisi", $name, $desc, $cat, $sub, $price, $rent, $dep, $featured, $priceSource, $id);
+                if (!mysqli_stmt_execute($stmt)) throw new \Exception(mysqli_error($this->db));
+                mysqli_stmt_close($stmt);
             } else {
                 $sql = "UPDATE garment_product SET 
-                    gproduct_name = '{$data['name']}', 
-                    gproduct_desc = '{$data['description']}', 
-                    garment_id = '{$data['category']}', 
-                    product_for = '{$data['category']}', 
-                    sales_price = '{$data['s_price']}', 
-                    rent_price = '{$data['rental_price']}', 
-                    deposit = '{$data['deposit']}',
-                    featured = '$featured'
-                    WHERE gproduct_id = $id";
-                if (!$this->query($this->db, $sql)) throw new \Exception(mysqli_error($this->db));
+                    gproduct_name = ?, 
+                    gproduct_desc = ?, 
+                    garment_id = ?, 
+                    product_for = ?, 
+                    sales_price = ?, 
+                    rent_price = ?, 
+                    deposit = ?,
+                    featured = ?,
+                    price_source = ?
+                    WHERE gproduct_id = ?";
+                $stmt = mysqli_prepare($this->db, $sql);
+                if (!$stmt) throw new \Exception(mysqli_error($this->db));
+                mysqli_stmt_bind_param($stmt, "ssiidddisi", $name, $desc, $cat, $cat, $price, $rent, $dep, $featured, $priceSource, $id);
+                if (!mysqli_stmt_execute($stmt)) throw new \Exception(mysqli_error($this->db));
+                mysqli_stmt_close($stmt);
             }
 
             // Save New Images
             $date_added = date('Y-m-d H:i:s');
             foreach ($images as $path) {
                 $img_field = ($type === 'jewellery') ? 'product_id' : 'gproduct_id';
-                $subcat_val = ($type === 'jewellery') ? $data['sub_category'] : 0;
+                $subcat_val = ($type === 'jewellery') ? $sub : 0;
+                $full_path = '/' . $path;
+                $code = $data['code'];
                 
                 $img_sql = "INSERT INTO product_images_new (
                     prod_name, prod_image, pro_code, img_name, 
                     subcat_id, $img_field, date_added
-                ) VALUES (
-                    '{$data['name']}', '/$path', '{$data['code']}', '/$path',
-                    '$subcat_val', '$id', '$date_added'
-                )";
-                if (!$this->query($this->db, $img_sql)) throw new \Exception(mysqli_error($this->db));
+                ) VALUES (?, ?, ?, ?, ?, ?, ?)";
+                
+                $stmt = mysqli_prepare($this->db, $img_sql);
+                if (!$stmt) throw new \Exception(mysqli_error($this->db));
+                mysqli_stmt_bind_param($stmt, "ssssiis", $name, $full_path, $code, $full_path, $subcat_val, $id, $date_added);
+                if (!mysqli_stmt_execute($stmt)) throw new \Exception(mysqli_error($this->db));
+                mysqli_stmt_close($stmt);
             }
 
             mysqli_commit($this->db);
@@ -584,7 +663,6 @@ class ProductModel extends Model {
             throw $e;
         }
     }
-
     public function deleteProduct($id, $type) {
         mysqli_begin_transaction($this->db);
         try {

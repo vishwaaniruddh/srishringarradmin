@@ -44,6 +44,26 @@
                                     <span class="w-8 h-8 bg-primary/10 text-primary rounded-full flex items-center justify-center mr-3 text-sm">1</span>
                                     POS Verification
                                 </h3>
+
+                                <!-- Price Source Toggle -->
+                                <div class="bg-gray-50 rounded-xl p-4 border border-gray-200">
+                                    <div class="flex items-center justify-between">
+                                        <div>
+                                            <label class="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">Price Source</label>
+                                            <p class="text-xs text-gray-400" id="price_source_description">Prices are auto-calculated from POS system data.</p>
+                                        </div>
+                                        <div class="flex items-center gap-3">
+                                            <span class="text-xs font-semibold text-primary" id="label_pos">POS</span>
+                                            <label class="relative inline-flex items-center cursor-pointer">
+                                                <input type="checkbox" name="price_source" value="manual" 
+                                                       class="sr-only peer" id="price_source_toggle" onchange="togglePriceSource()">
+                                                <div class="w-11 h-6 bg-gray-300 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-primary/20 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-amber-500"></div>
+                                            </label>
+                                            <span class="text-xs font-semibold text-gray-400" id="label_manual">Manual</span>
+                                        </div>
+                                    </div>
+                                </div>
+
                                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                                     <div>
                                         <label class="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">SKU / Product Code</label>
@@ -56,7 +76,7 @@
                                         <p id="sku_message" class="mt-2 text-xs"></p>
                                     </div>
                                     <div class="flex items-end">
-                                        <button type="button" onclick="verifySKU()" class="bg-gray-100 text-gray-700 px-6 py-3 rounded-xl text-sm font-semibold hover:bg-gray-200 transition-all">
+                                        <button type="button" onclick="verifySKU()" id="verify_sku_btn" class="bg-gray-100 text-gray-700 px-6 py-3 rounded-xl text-sm font-semibold hover:bg-gray-200 transition-all">
                                             Verify SKU
                                         </button>
                                     </div>
@@ -133,7 +153,7 @@
                                         <span class="w-8 h-8 bg-primary/10 text-primary rounded-full flex items-center justify-center mr-3 text-sm">3</span>
                                         Pricing Information
                                     </h3>
-                                    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                                    <div class="grid grid-cols-1 md:grid-cols-3 gap-6" id="pricing_fields">
                                         <div>
                                             <label class="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Sales Price</label>
                                             <div class="relative">
@@ -155,6 +175,9 @@
                                                 <input type="number" name="deposit" step="0.01" class="w-full bg-gray-50 border border-gray-200 rounded-xl pl-8 p-3 text-sm focus:ring-primary focus:border-primary">
                                             </div>
                                         </div>
+                                    </div>
+                                    <div id="pos_price_note" class="bg-blue-50 border border-blue-200 rounded-xl px-4 py-3 text-xs text-blue-700">
+                                        <i class="fas fa-info-circle mr-1"></i> These values are stored but <strong>overridden</strong> by POS-calculated prices on the frontend. Switch to "Manual" to use these values directly.
                                     </div>
                                 </div>
 
@@ -225,13 +248,14 @@
             const message = document.getElementById('sku_message');
             const loader = document.getElementById('sku_loader');
             const content = document.getElementById('form_content');
+            const priceSource = document.getElementById('price_source_toggle').checked ? 'manual' : 'pos';
 
             if (!sku) return;
             loader.classList.remove('hidden');
             message.textContent = '';
 
             try {
-                const response = await fetch(`index.php?controller=product&action=checkSku&sku=${encodeURIComponent(sku)}`);
+                const response = await fetch(`index.php?controller=product&action=checkSku&sku=${encodeURIComponent(sku)}&price_source=${priceSource}`);
                 const data = await response.json();
 
                 if (data.allowed) {
@@ -392,6 +416,39 @@ Product Description: [Your suggested description]`;
             } finally {
                 btn.disabled = false;
                 btn.innerHTML = originalText;
+            }
+        }
+        function togglePriceSource() {
+            const toggle = document.getElementById('price_source_toggle');
+            const isManual = toggle.checked;
+            const desc = document.getElementById('price_source_description');
+            const labelPos = document.getElementById('label_pos');
+            const labelManual = document.getElementById('label_manual');
+            const posNote = document.getElementById('pos_price_note');
+            const pricingFields = document.getElementById('pricing_fields');
+            const content = document.getElementById('form_content');
+            const message = document.getElementById('sku_message');
+
+            if (isManual) {
+                desc.textContent = 'Prices are set manually. POS validation is not required.';
+                labelPos.className = 'text-xs font-semibold text-gray-400';
+                labelManual.className = 'text-xs font-semibold text-amber-600';
+                posNote.classList.add('hidden');
+                pricingFields.classList.add('ring-2', 'ring-amber-400', 'rounded-xl', 'p-3');
+                // Unlock form content — manual products don't need POS verification
+                content.classList.remove('opacity-50', 'pointer-events-none');
+                message.className = 'mt-2 text-xs text-amber-600 font-medium';
+                message.innerHTML = '<i class="fas fa-info-circle mr-1"></i> Manual pricing mode — you can still verify the SKU or proceed without it.';
+            } else {
+                desc.textContent = 'Prices are auto-calculated from POS system data.';
+                labelPos.className = 'text-xs font-semibold text-primary';
+                labelManual.className = 'text-xs font-semibold text-gray-400';
+                posNote.classList.remove('hidden');
+                pricingFields.classList.remove('ring-2', 'ring-amber-400', 'rounded-xl', 'p-3');
+                // Re-lock form content — POS mode requires SKU verification
+                content.classList.add('opacity-50', 'pointer-events-none');
+                message.className = 'mt-2 text-xs';
+                message.textContent = '';
             }
         }
     </script>
