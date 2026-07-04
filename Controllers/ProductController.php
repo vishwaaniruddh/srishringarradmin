@@ -39,6 +39,246 @@ class ProductController extends Controller {
             'type' => $type
         ]);
     }
+
+    public function aiSuggestNames() {
+        $id = (int)($_GET['id'] ?? 0);
+        $type = $_GET['type'] ?? 'jewellery';
+
+        if (!$id) {
+            $this->json(['error' => 'Product ID is required'], 400);
+            return;
+        }
+
+        $secrets = include(__DIR__ . '/../Config/secrets.php');
+        $apiKey = $secrets['GEMINI_API_KEY'] ?? '';
+
+        if (empty($apiKey)) {
+            $this->json(['error' => 'Gemini API Key is not configured in secrets.php'], 400);
+            return;
+        }
+
+        $productModel = new ProductModel();
+        $images = $productModel->getProductImages($id, $type);
+
+        if (empty($images)) {
+            $this->json(['error' => 'Product has no images to analyze.'], 400);
+            return;
+        }
+
+        $imgRelativePath = $images[0]['img_name'];
+        $localPath = __DIR__ . '/../../yn/uploads' . $imgRelativePath;
+        $imgContent = null;
+        $mimeType = 'image/jpeg';
+
+        if (file_exists($localPath)) {
+            $imgContent = file_get_contents($localPath);
+            $mime = mime_content_type($localPath);
+            if ($mime) $mimeType = $mime;
+        } else {
+            $remoteUrl = 'https://srishringarr.com/yn/uploads' . $imgRelativePath;
+            $imgContent = @file_get_contents($remoteUrl);
+            $ext = strtolower(pathinfo($imgRelativePath, PATHINFO_EXTENSION));
+            if ($ext === 'png') $mimeType = 'image/png';
+            elseif ($ext === 'webp') $mimeType = 'image/webp';
+        }
+
+        if (empty($imgContent)) {
+            $this->json(['error' => 'Failed to load product image for analysis.'], 400);
+            return;
+        }
+
+        $base64Image = base64_encode($imgContent);
+        $prompt = "You are a professional luxury fashion brand manager and copywriter for Srishringarr. " .
+                  "Analyze the product in the image. Suggest exactly 5 beautiful, premium, elegant names suitable for a high-end $type item. " .
+                  "Return ONLY a raw JSON array of strings containing the 5 suggested names. Do not include markdown code block formatting (no ```json, no ```).";
+
+        $url = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=' . $apiKey;
+        $payload = json_encode([
+            'contents' => [
+                [
+                    'parts' => [
+                        ['text' => $prompt],
+                        [
+                            'inlineData' => [
+                                'mimeType' => $mimeType,
+                                'data' => $base64Image
+                            ]
+                        ]
+                    ]
+                ]
+            ]
+        ]);
+
+        $ch = curl_init($url);
+        curl_setopt_array($ch, [
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_POST => true,
+            CURLOPT_HTTPHEADER => ['Content-Type: application/json'],
+            CURLOPT_POSTFIELDS => $payload,
+            CURLOPT_TIMEOUT => 25,
+            CURLOPT_SSL_VERIFYPEER => false,
+        ]);
+
+        $response = curl_exec($ch);
+        $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        curl_close($ch);
+
+        if ($httpCode !== 200) {
+            $this->json(['error' => 'Gemini API request failed: ' . $response], 500);
+            return;
+        }
+
+        $decoded = json_decode($response, true);
+        $text = $decoded['candidates'][0]['content']['parts'][0]['text'] ?? '';
+        
+        $text = trim(preg_replace('/^```json|```$/', '', trim($text)));
+        $names = json_decode($text, true);
+
+        if (!is_array($names)) {
+            preg_match_all('/"(.*?)"/', $text, $matches);
+            $names = !empty($matches[1]) ? array_slice($matches[1], 0, 5) : [];
+        }
+
+        $this->json(['success' => true, 'names' => $names]);
+    }
+
+    public function aiSuggestDescription() {
+        $id = (int)($_GET['id'] ?? 0);
+        $type = $_GET['type'] ?? 'jewellery';
+
+        if (!$id) {
+            $this->json(['error' => 'Product ID is required'], 400);
+            return;
+        }
+
+        $secrets = include(__DIR__ . '/../Config/secrets.php');
+        $apiKey = $secrets['GEMINI_API_KEY'] ?? '';
+
+        if (empty($apiKey)) {
+            $this->json(['error' => 'Gemini API Key is not configured in secrets.php'], 400);
+            return;
+        }
+
+        $productModel = new ProductModel();
+        $images = $productModel->getProductImages($id, $type);
+
+        if (empty($images)) {
+            $this->json(['error' => 'Product has no images to analyze.'], 400);
+            return;
+        }
+
+        $imgRelativePath = $images[0]['img_name'];
+        $localPath = __DIR__ . '/../../yn/uploads' . $imgRelativePath;
+        $imgContent = null;
+        $mimeType = 'image/jpeg';
+
+        if (file_exists($localPath)) {
+            $imgContent = file_get_contents($localPath);
+            $mime = mime_content_type($localPath);
+            if ($mime) $mimeType = $mime;
+        } else {
+            $remoteUrl = 'https://srishringarr.com/yn/uploads' . $imgRelativePath;
+            $imgContent = @file_get_contents($remoteUrl);
+            $ext = strtolower(pathinfo($imgRelativePath, PATHINFO_EXTENSION));
+            if ($ext === 'png') $mimeType = 'image/png';
+            elseif ($ext === 'webp') $mimeType = 'image/webp';
+        }
+
+        if (empty($imgContent)) {
+            $this->json(['error' => 'Failed to load product image for analysis.'], 400);
+            return;
+        }
+
+        $base64Image = base64_encode($imgContent);
+        $prompt = "You are a professional luxury fashion copywriter for Srishringarr. " .
+                  "Analyze the product in the image. Write a premium, compelling product description (2 to 3 sentences maximum) for this $type item. " .
+                  "Emphasize the design detail, visual elegance, craftsmanship, and suitability for weddings, parties, or special occasions. " .
+                  "Do not include any placeholders, conversational text, or greetings. Return ONLY the description text.";
+
+        $url = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=' . $apiKey;
+        $payload = json_encode([
+            'contents' => [
+                [
+                    'parts' => [
+                        ['text' => $prompt],
+                        [
+                            'inlineData' => [
+                                'mimeType' => $mimeType,
+                                'data' => $base64Image
+                            ]
+                        ]
+                    ]
+                ]
+            ]
+        ]);
+
+        $ch = curl_init($url);
+        curl_setopt_array($ch, [
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_POST => true,
+            CURLOPT_HTTPHEADER => ['Content-Type: application/json'],
+            CURLOPT_POSTFIELDS => $payload,
+            CURLOPT_TIMEOUT => 25,
+            CURLOPT_SSL_VERIFYPEER => false,
+        ]);
+
+        $response = curl_exec($ch);
+        $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        curl_close($ch);
+
+        if ($httpCode !== 200) {
+            $this->json(['error' => 'Gemini API request failed: ' . $response], 500);
+            return;
+        }
+
+        $decoded = json_decode($response, true);
+        $description = $decoded['candidates'][0]['content']['parts'][0]['text'] ?? '';
+        
+        $this->json(['success' => true, 'description' => trim($description)]);
+    }
+
+    public function saveProductField() {
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') $this->json(['error' => 'Method not allowed'], 405);
+
+        $input = json_decode(file_get_contents('php://input'), true) ?: $_POST;
+        $id = (int)($input['id'] ?? 0);
+        $type = $input['type'] ?? 'jewellery';
+        $field = $input['field'] ?? '';
+        $value = trim($input['value'] ?? '');
+
+        if (!$id || !in_array($type, ['jewellery', 'garments']) || !in_array($field, ['name', 'description']) || empty($value)) {
+            $this->json(['error' => 'Invalid parameters'], 400);
+            return;
+        }
+
+        $productModel = new ProductModel();
+        $db = $productModel->getDbConnection();
+
+        if ($type === 'jewellery') {
+            $column = ($field === 'name') ? 'product_name' : 'description';
+            $sql = "UPDATE product SET $column = ? WHERE product_id = ?";
+        } else {
+            $column = ($field === 'name') ? 'gproduct_name' : 'description';
+            $sql = "UPDATE garment_product SET $column = ? WHERE gproduct_id = ?";
+        }
+
+        $stmt = mysqli_prepare($db, $sql);
+        if (!$stmt) {
+            $this->json(['error' => mysqli_error($db)], 500);
+            return;
+        }
+
+        mysqli_stmt_bind_param($stmt, "si", $value, $id);
+        if (mysqli_stmt_execute($stmt)) {
+            mysqli_stmt_close($stmt);
+            $this->json(['success' => true, 'message' => ucfirst($field) . ' updated successfully']);
+        } else {
+            $err = mysqli_stmt_error($stmt);
+            mysqli_stmt_close($stmt);
+            $this->json(['error' => $err], 500);
+        }
+    }
+
     public function add() {
         $productModel = new ProductModel();
         $jewelCategories = $productModel->getJewelCategories();
@@ -703,6 +943,31 @@ class ProductController extends Controller {
                 ]);
             } else {
                 $this->json(['error' => 'Failed to link images to product database'], 500);
+            }
+        } catch (\Exception $e) {
+            $this->json(['error' => $e->getMessage()], 500);
+        }
+    }
+
+    public function setMainImage() {
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') $this->json(['error' => 'Method not allowed'], 405);
+
+        $input = json_decode(file_get_contents('php://input'), true) ?: $_POST;
+        $imageId = (int)($input['image_id'] ?? 0);
+        $productId = (int)($input['product_id'] ?? 0);
+        $type = $input['type'] ?? 'jewellery';
+
+        if (!$imageId || !$productId || !in_array($type, ['jewellery', 'garments'])) {
+            $this->json(['error' => 'Invalid parameters'], 400);
+            return;
+        }
+
+        $productModel = new ProductModel();
+        try {
+            if ($productModel->setMainProductImage($imageId, $productId, $type)) {
+                $this->json(['success' => true, 'message' => 'Main product image updated successfully']);
+            } else {
+                $this->json(['error' => 'Failed to update main image'], 500);
             }
         } catch (\Exception $e) {
             $this->json(['error' => $e->getMessage()], 500);

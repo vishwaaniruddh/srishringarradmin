@@ -586,7 +586,7 @@ class ProductModel extends Model {
     public function getProductImages($id, $type) {
         $id = (int)$id;
         $img_field = ($type === 'jewellery') ? 'product_id' : 'gproduct_id';
-        $sql = "SELECT id, img_name FROM product_images_new WHERE $img_field = $id ORDER BY rank ASC";
+        $sql = "SELECT id, img_name, rank FROM product_images_new WHERE $img_field = $id ORDER BY rank ASC";
         $result = $this->query($this->db, $sql);
         return $this->fetchAll($result);
     }
@@ -851,6 +851,36 @@ class ProductModel extends Model {
             if (!$stmt) throw new \Exception(mysqli_error($this->db));
             mysqli_stmt_bind_param($stmt, "ssssiis", $name, $full_path, $sku, $full_path, $subcat_val, $id, $date_added);
             if (!mysqli_stmt_execute($stmt)) throw new \Exception(mysqli_error($this->db));
+            mysqli_stmt_close($stmt);
+        }
+
+        return true;
+    }
+
+    public function setMainProductImage($imageId, $productId, $type) {
+        $imageId = (int)$imageId;
+        $productId = (int)$productId;
+        $img_field = ($type === 'jewellery') ? 'product_id' : 'gproduct_id';
+
+        $sql1 = "UPDATE product_images_new SET rank = 1 WHERE $img_field = $productId";
+        $this->query($this->db, $sql1);
+
+        $sql2 = "UPDATE product_images_new SET rank = 0 WHERE id = $imageId";
+        $this->query($this->db, $sql2);
+
+        $imgQ = "SELECT img_name FROM product_images_new WHERE id = $imageId LIMIT 1";
+        $res = $this->query($this->db, $imgQ);
+        $row = $this->fetchOne($res);
+        if ($row) {
+            $main_image = $row['img_name'];
+            $table = ($type === 'jewellery') ? 'product' : 'garment_product';
+            $field = ($type === 'jewellery') ? 'product_image' : 'gproduct_image';
+            $pk = ($type === 'jewellery') ? 'product_id' : 'gproduct_id';
+            
+            $sql3 = "UPDATE $table SET $field = ? WHERE $pk = ?";
+            $stmt = mysqli_prepare($this->db, $sql3);
+            mysqli_stmt_bind_param($stmt, "si", $main_image, $productId);
+            mysqli_stmt_execute($stmt);
             mysqli_stmt_close($stmt);
         }
 

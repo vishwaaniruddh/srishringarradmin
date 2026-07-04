@@ -223,10 +223,23 @@
                                     <div class="grid grid-cols-4 md:grid-cols-6 gap-4 mb-6">
                                         <?php foreach ($images as $img): ?>
                                             <div class="aspect-square relative group">
-                                                <img src="../../yn/uploads<?php echo $img['img_name']; ?>" class="w-full h-full object-cover rounded-xl shadow-sm border border-gray-100">
+                                                <img src="../../yn/uploads<?php echo $img['img_name']; ?>" class="w-full h-full object-contain rounded-xl shadow-sm border border-gray-100">
                                                 <div class="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity rounded-xl flex items-center justify-center">
-                                                    <span class="text-white text-xs font-semibold">Existing</span>
+                                                    <span class="text-white text-xs font-semibold">
+                                                        <?php echo ((int)($img['rank'] ?? 1) === 0) ? 'Main Image' : 'Existing'; ?>
+                                                    </span>
                                                 </div>
+                                                
+                                                <?php if (((int)($img['rank'] ?? 1) === 0)): ?>
+                                                    <div class="absolute top-2 left-2 bg-yellow-400 text-white w-7 h-7 rounded-full flex items-center justify-center shadow-md" title="Main Image">
+                                                        <i class="fas fa-star text-xs"></i>
+                                                    </div>
+                                                <?php else: ?>
+                                                    <button type="button" onclick="setMainImage(this, <?php echo $img['id']; ?>)" class="absolute top-2 left-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-full w-7 h-7 flex items-center justify-center shadow-md scale-0 group-hover:scale-100 transition-all focus:outline-none z-10 cursor-pointer" title="Set as Main Image">
+                                                        <i class="far fa-star text-xs"></i>
+                                                    </button>
+                                                <?php endif; ?>
+
                                                 <button type="button" onclick="deleteProductImage(this, <?php echo $img['id']; ?>)" class="absolute -top-2 -right-2 bg-red-500 hover:bg-red-600 text-white rounded-full w-7 h-7 flex items-center justify-center shadow-md transition-all scale-0 group-hover:scale-100 focus:outline-none z-10 cursor-pointer" title="Delete Image">
                                                     <i class="fas fa-trash-alt text-xs"></i>
                                                 </button>
@@ -484,6 +497,32 @@ Product Description: [Your suggested description]`;
                 labelManual.className = 'text-xs font-semibold text-gray-400';
                 posNote.classList.remove('hidden');
                 pricingFields.classList.remove('ring-2', 'ring-amber-400', 'rounded-xl', 'p-3');
+            }
+        }
+
+        async function setMainImage(btn, imageId) {
+            if (!confirm('Make this the main product image?')) return;
+
+            try {
+                const response = await fetch('index.php?controller=product&action=setMainImage', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        image_id: imageId,
+                        product_id: <?php echo $product['id']; ?>,
+                        type: '<?php echo $type; ?>'
+                    })
+                });
+                const data = await response.json();
+                if (data.success) {
+                    alert('Main image updated successfully!');
+                    window.location.reload();
+                } else {
+                    alert('Error: ' + data.error);
+                }
+            } catch (err) {
+                console.error(err);
+                alert('Network request failed');
             }
         }
     </script>

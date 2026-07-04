@@ -44,9 +44,13 @@
                         <div class="lg:col-span-1 space-y-6">
                             <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
                                 <div class="p-2">
-                                    <div class="aspect-[3/4] rounded-xl overflow-hidden bg-gray-100 relative group">
-                                        <img id="main-image" src="<?php echo !empty($images) ? 'https://srishringarr.com/yn/uploads' . $images[0]['img_name'] : 'assets/default-product.jpg'; ?>" 
-                                             class="w-full h-full object-cover transition-transform duration-500" alt="Product Image">
+                                     <div class="aspect-[2/3] rounded-xl overflow-hidden bg-gray-100 relative group">
+                                         <!-- Blurred Background -->
+                                         <img src="<?php echo !empty($images) ? 'https://srishringarr.com/yn/uploads' . $images[0]['img_name'] : 'assets/default-product.jpg'; ?>" 
+                                              class="absolute inset-0 w-full h-full object-cover filter blur-md opacity-30 scale-105 pointer-events-none" alt="">
+                                         <!-- Main Contain Image -->
+                                         <img id="main-image" src="<?php echo !empty($images) ? 'https://srishringarr.com/yn/uploads' . $images[0]['img_name'] : 'assets/default-product.jpg'; ?>" 
+                                              class="relative w-full h-full object-contain z-10 transition-transform duration-500" alt="Product Image">
                                         <?php if($product['featured']): ?>
                                             <div class="absolute top-4 right-4 bg-yellow-400 text-white px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider shadow-md">
                                                 <i class="fas fa-star mr-1"></i> Featured
@@ -77,6 +81,48 @@
                                     <span class="text-lg font-bold <?php echo ($product['quantity'] ?? 0) > 0 ? 'text-gray-800' : 'text-red-500'; ?>">
                                         <?php echo $product['quantity'] ?? 0; ?> Units
                                     </span>
+                                </div>
+                            </div>
+
+                            <!-- AI Assistant Card -->
+                            <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 mt-6">
+                                <h3 class="text-sm font-bold text-zinc-800 uppercase tracking-wider mb-4 flex items-center">
+                                    <i class="fas fa-magic text-indigo-600 mr-2 animate-pulse"></i> AI Copywriter (Gemini)
+                                </h3>
+                                <p class="text-xs text-gray-400 mb-6">Analyze this product's photo using Google Gemini AI to generate names or descriptions.</p>
+
+                                <div class="space-y-4">
+                                    <div class="grid grid-cols-2 gap-3">
+                                        <button onclick="aiGenerateNames()" id="aiNamesBtn" class="flex items-center justify-center space-x-2 py-3 px-4 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 rounded-xl text-xs font-bold transition-all border border-indigo-100/50 cursor-pointer">
+                                            <i class="fas fa-heading"></i>
+                                            <span>Suggest Names</span>
+                                        </button>
+                                        <button onclick="aiGenerateDescription()" id="aiDescBtn" class="flex items-center justify-center space-x-2 py-3 px-4 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 rounded-xl text-xs font-bold transition-all border border-indigo-100/50 cursor-pointer">
+                                            <i class="fas fa-align-left"></i>
+                                            <span>Gen Description</span>
+                                        </button>
+                                    </div>
+
+                                    <!-- Loading indicator -->
+                                    <div id="aiLoading" class="hidden flex items-center justify-center space-x-2 py-3 bg-gray-50 rounded-xl text-xs font-semibold text-gray-600">
+                                        <div class="w-4 h-4 rounded-full border-2 border-indigo-600 border-t-transparent animate-spin"></div>
+                                        <span>AI is analyzing image...</span>
+                                    </div>
+
+                                    <!-- Results: Name Suggestions -->
+                                    <div id="aiNamesResult" class="hidden space-y-3 pt-3 border-t border-gray-100">
+                                        <h4 class="text-xs font-bold text-gray-700 uppercase tracking-wider">Suggested Names (Click to Apply)</h4>
+                                        <div id="aiNamesList" class="space-y-2"></div>
+                                    </div>
+
+                                    <!-- Results: Description Generator -->
+                                    <div id="aiDescResult" class="hidden space-y-3 pt-3 border-t border-gray-100">
+                                        <h4 class="text-xs font-bold text-gray-700 uppercase tracking-wider">Suggested Description</h4>
+                                        <textarea id="aiDescTextarea" rows="4" class="w-full bg-gray-50 border border-gray-200 rounded-xl p-3 text-xs focus:ring-indigo-600 focus:border-indigo-600 focus:bg-white transition-all"></textarea>
+                                        <button onclick="applyAiDescription()" id="applyDescBtn" class="w-full py-2.5 bg-indigo-600 text-white rounded-xl text-xs font-bold hover:bg-indigo-700 transition-all shadow-md cursor-pointer">
+                                            Apply & Save Description
+                                        </button>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -150,6 +196,137 @@
                 main.src = url;
                 main.style.opacity = '1';
             }, 200);
+        }
+
+        const productId = <?php echo $product['id']; ?>;
+        const productType = '<?php echo $type; ?>';
+
+        async function aiGenerateNames() {
+            const btn = document.getElementById('aiNamesBtn');
+            const loader = document.getElementById('aiLoading');
+            const resultBox = document.getElementById('aiNamesResult');
+            const namesList = document.getElementById('aiNamesList');
+
+            btn.disabled = true;
+            loader.classList.remove('hidden');
+            resultBox.classList.add('hidden');
+
+            try {
+                const response = await fetch(`index.php?controller=product&action=aiSuggestNames&id=${productId}&type=${productType}`);
+                const data = await response.json();
+                
+                if (data.success && data.names) {
+                    namesList.innerHTML = data.names.map(name => `
+                        <button onclick="applyProductName('${name.replace(/'/g, "\\'")}')" class="w-full text-left py-2 px-3 hover:bg-indigo-50 border border-gray-100 rounded-lg text-xs font-medium text-gray-700 transition-all flex justify-between items-center group cursor-pointer">
+                            <span>${name}</span>
+                            <i class="fas fa-chevron-right text-gray-300 group-hover:text-indigo-600 group-hover:translate-x-0.5 transition-all"></i>
+                        </button>
+                    `).join('');
+                    resultBox.classList.remove('hidden');
+                } else {
+                    alert('Error: ' + (data.error || 'Failed to generate names'));
+                }
+            } catch (err) {
+                console.error(err);
+                alert('A network error occurred.');
+            } finally {
+                btn.disabled = false;
+                loader.classList.add('hidden');
+            }
+        }
+
+        async function aiGenerateDescription() {
+            const btn = document.getElementById('aiDescBtn');
+            const loader = document.getElementById('aiLoading');
+            const resultBox = document.getElementById('aiDescResult');
+            const textarea = document.getElementById('aiDescTextarea');
+
+            btn.disabled = true;
+            loader.classList.remove('hidden');
+            resultBox.classList.add('hidden');
+
+            try {
+                const response = await fetch(`index.php?controller=product&action=aiSuggestDescription&id=${productId}&type=${productType}`);
+                const data = await response.json();
+                
+                if (data.success && data.description) {
+                    textarea.value = data.description;
+                    resultBox.classList.remove('hidden');
+                } else {
+                    alert('Error: ' + (data.error || 'Failed to generate description'));
+                }
+            } catch (err) {
+                console.error(err);
+                alert('A network error occurred.');
+            } finally {
+                btn.disabled = false;
+                loader.classList.add('hidden');
+            }
+        }
+
+        async function applyProductName(newName) {
+            if (!confirm(`Are you sure you want to change the product name to:\n"${newName}"?`)) {
+                return;
+            }
+
+            try {
+                const response = await fetch('index.php?controller=product&action=saveProductField', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        id: productId,
+                        type: productType,
+                        field: 'name',
+                        value: newName
+                    })
+                });
+                const data = await response.json();
+                if (data.success) {
+                    document.querySelector('h1.text-2xl').innerText = newName;
+                    alert('Product name updated successfully!');
+                    document.getElementById('aiNamesResult').classList.add('hidden');
+                } else {
+                    alert('Error: ' + data.error);
+                }
+            } catch (err) {
+                console.error(err);
+                alert('Failed to update name.');
+            }
+        }
+
+        async function applyAiDescription() {
+            const value = document.getElementById('aiDescTextarea').value.trim();
+            if (!value) {
+                alert('Description cannot be empty');
+                return;
+            }
+
+            try {
+                const response = await fetch('index.php?controller=product&action=saveProductField', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        id: productId,
+                        type: productType,
+                        field: 'description',
+                        value: value
+                    })
+                });
+                const data = await response.json();
+                if (data.success) {
+                    const descContainer = document.querySelector('.prose');
+                    if (descContainer) {
+                        descContainer.innerHTML = value.replace(/\n/g, '<br>');
+                    }
+                    alert('Product description updated successfully!');
+                    document.getElementById('aiDescResult').classList.add('hidden');
+                } else {
+                    alert('Error: ' + data.error);
+                }
+            } catch (err) {
+                console.error(err);
+                alert('Failed to update description.');
+            }
         }
     </script>
 </body>
