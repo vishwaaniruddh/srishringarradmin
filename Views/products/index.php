@@ -88,6 +88,8 @@
                                         <th class="px-6 py-4 text-xs font-semibold text-zinc-500 uppercase tracking-wider">Category</th>
                                         <th class="px-6 py-4 text-xs font-semibold text-zinc-500 uppercase tracking-wider">Inventory</th>
                                         <th class="px-6 py-4 text-xs font-semibold text-zinc-500 uppercase tracking-wider">Pricing</th>
+                                        <th class="px-6 py-4 text-xs font-semibold text-zinc-500 uppercase tracking-wider text-center">Source</th>
+                                        <th class="px-6 py-4 text-xs font-semibold text-zinc-500 uppercase tracking-wider text-center">Availability</th>
                                         <th class="px-6 py-4 text-xs font-semibold text-zinc-500 uppercase tracking-wider">Bookings</th>
                                         <th class="px-6 py-4 text-xs font-semibold text-zinc-500 uppercase tracking-wider text-center">Featured</th>
                                         <th class="px-6 py-4 text-xs font-semibold text-zinc-500 uppercase tracking-wider text-right">Actions</th>
@@ -95,7 +97,7 @@
                                 </thead>
                                 <tbody id="products-body" class="divide-y divide-zinc-800/40">
                                     <tr>
-                                        <td colspan="8" class="px-6 py-10 text-center text-gray-500">
+                                        <td colspan="11" class="px-6 py-10 text-center text-gray-500">
                                             <div class="flex flex-col items-center">
                                                 <i class="fas fa-spinner fa-spin text-3xl text-primary mb-4"></i>
                                                 <p>Loading products...</p>
@@ -135,7 +137,7 @@
 
         tbody.innerHTML = `
             <tr>
-                <td colspan="8" class="px-6 py-10 text-center text-gray-500">
+                <td colspan="11" class="px-6 py-10 text-center text-gray-500">
                     <div class="flex flex-col items-center">
                         <i class="fas fa-spinner fa-spin text-3xl text-primary mb-4"></i>
                         <p>Loading products...</p>
@@ -151,7 +153,7 @@
             if (!data.products || data.products.length === 0) {
                 tbody.innerHTML = `
                     <tr>
-                        <td colspan="8" class="px-6 py-10 text-center text-gray-500">
+                        <td colspan="11" class="px-6 py-10 text-center text-gray-500">
                             <div class="flex flex-col items-center">
                                 <i class="fas fa-box-open text-3xl mb-4 opacity-20"></i>
                                 <p>No products found matching your criteria.</p>
@@ -208,17 +210,24 @@
                         <td class="px-6 py-4 text-xs text-zinc-400 font-medium">${(p.details.category_name || 'N/A').toLowerCase().replace(/\b\w/g, l => l.toUpperCase())}</td>
                         <td class="px-6 py-4">${qtyText}</td>
                         <td class="px-6 py-4">
-                            <div class="flex items-center gap-2 mb-1.5">
-                                <label class="relative inline-flex items-center cursor-pointer">
-                                    <input type="checkbox" class="sr-only peer" ${p.details.price_source === 'manual' ? 'checked' : ''} onchange="togglePriceSourceRow(${p.id}, '${p.type}', this.checked ? 'manual' : 'pos')">
-                                    <div class="w-8 h-4 bg-zinc-800 rounded-full peer peer-focus:ring-0 peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-zinc-600 after:border after:rounded-full after:h-3 after:w-3 after:transition-all peer-checked:bg-amber-500"></div>
-                                </label>
-                                <span class="text-[9px] font-bold uppercase tracking-wider ${p.details.price_source === 'manual' ? 'text-amber-500' : 'text-zinc-500'}">
-                                    ${p.details.price_source === 'manual' ? 'Manual' : 'POS'}
-                                </span>
-                            </div>
                             <div class="text-xs font-bold text-white">Rent: ₹${rentPrice.toLocaleString('en-IN', {minimumFractionDigits: 0})}</div>
                             <div class="text-[10px] text-zinc-500 mt-0.5">Sale: ₹${salePrice.toLocaleString('en-IN', {minimumFractionDigits: 0})}</div>
+                        </td>
+                        <td class="px-6 py-4 text-center">
+                            <label class="relative inline-flex items-center cursor-pointer">
+                                <input type="checkbox" class="sr-only peer" ${p.details.price_source === 'manual' ? 'checked' : ''} onchange="togglePriceSourceRow(${p.id}, '${p.type}', this.checked ? 'manual' : 'pos')">
+                                <div class="w-8 h-4 bg-zinc-800 rounded-full peer peer-focus:ring-0 peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-zinc-600 after:border after:rounded-full after:h-3 after:w-3 after:transition-all peer-checked:bg-amber-500"></div>
+                            </label>
+                            <div class="text-[9px] font-bold uppercase tracking-wider ${p.details.price_source === 'manual' ? 'text-amber-500' : 'text-zinc-500'} mt-1">
+                                ${p.details.price_source === 'manual' ? 'Manual' : 'POS'}
+                            </div>
+                        </td>
+                        <td class="px-6 py-4 text-center">
+                            <select onchange="toggleAvailabilityRow(${p.id}, '${p.type}', this.value)" class="bg-zinc-900 border border-zinc-800 text-white text-xs rounded-lg block w-24 py-1.5 px-2 cursor-pointer focus:ring-1 focus:ring-primary focus:border-primary mx-auto">
+                                <option value="both" ${p.details.availability === 'both' ? 'selected' : ''}>Both</option>
+                                <option value="rent" ${p.details.availability === 'rent' ? 'selected' : ''}>Rent</option>
+                                <option value="sell" ${p.details.availability === 'sell' ? 'selected' : ''}>Sell</option>
+                            </select>
                         </td>
                         <td class="px-6 py-4">${bookingText}</td>
                         <td class="px-6 py-4 text-center">
@@ -360,6 +369,25 @@
             }
         } catch (error) {
             console.error('Error toggling price source:', error);
+            alert('Something went wrong. Please try again.');
+        }
+    }
+
+    async function toggleAvailabilityRow(id, type, availability) {
+        try {
+            const response = await fetch('index.php?controller=api&action=toggleAvailability', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ id, type, availability })
+            });
+            const data = await response.json();
+            if (data.success) {
+                loadProducts(currentPage);
+            } else {
+                alert(data.error || 'Failed to update availability status');
+            }
+        } catch (error) {
+            console.error('Error toggling availability:', error);
             alert('Something went wrong. Please try again.');
         }
     }

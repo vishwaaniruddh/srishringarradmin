@@ -59,7 +59,8 @@ class ProductModel extends Model {
                 sales_price as original_sales_price,
                 rent_price as db_rent_price,
                 deposit as db_deposit,
-                price_source
+                price_source,
+                availability
             FROM product 
             WHERE 1=1 $jewellery_search)
             UNION ALL
@@ -75,7 +76,8 @@ class ProductModel extends Model {
                 sales_price as original_sales_price,
                 rent_price as db_rent_price,
                 deposit as db_deposit,
-                price_source
+                price_source,
+                availability
             FROM garment_product 
             WHERE 1=1 $garments_search)
             ORDER BY id DESC 
@@ -293,7 +295,8 @@ class ProductModel extends Model {
                 'deposit' => $deposit,
                 'bookings' => $bookings,
                 'image_path' => $image_path,
-                'price_source' => 'manual'
+                'price_source' => 'manual',
+                'availability' => $product['availability'] ?? 'both'
             ];
         }
 
@@ -419,7 +422,8 @@ class ProductModel extends Model {
             'deposit' => ceil($deposit / 100) * 100,
             'bookings' => $bookings,
             'image_path' => $image_path,
-            'price_source' => 'pos'
+            'price_source' => 'pos',
+            'availability' => $product['availability'] ?? 'both'
         ];
     }
     public function validateSkuInPos($sku) {
@@ -477,26 +481,27 @@ class ProductModel extends Model {
             $dep = (float)($data['deposit'] ?? 0);
             $featured = (int)($data['featured'] ?? 0);
             $priceSource = ($data['price_source'] ?? 'pos') === 'manual' ? 'manual' : 'pos';
+            $availability = in_array($data['availability'] ?? 'both', ['rent', 'sell', 'both']) ? $data['availability'] : 'both';
             
             if ($type === 'jewellery') {
                 $sql = "INSERT INTO product (
                     product_code, product_name, product_desc, date_added, 
-                    categories_id, subcat_id, sales_price, rent_price, deposit, featured, price_source
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+                    categories_id, subcat_id, sales_price, rent_price, deposit, featured, price_source, availability
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
                 
                 $stmt = mysqli_prepare($this->db, $sql);
-                mysqli_stmt_bind_param($stmt, "ssssiidddis", $code, $name, $desc, $date_added, $cat, $sub, $price, $rent, $dep, $featured, $priceSource);
+                mysqli_stmt_bind_param($stmt, "ssssiidddiss", $code, $name, $desc, $date_added, $cat, $sub, $price, $rent, $dep, $featured, $priceSource, $availability);
                 mysqli_stmt_execute($stmt);
                 $product_id = mysqli_insert_id($this->db);
                 mysqli_stmt_close($stmt);
             } else {
                 $sql = "INSERT INTO garment_product (
                     gproduct_code, gproduct_name, gproduct_desc, date_added, 
-                    garment_id, product_for, sales_price, rent_price, deposit, featured, price_source
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+                    garment_id, product_for, sales_price, rent_price, deposit, featured, price_source, availability
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
                 
                 $stmt = mysqli_prepare($this->db, $sql);
-                mysqli_stmt_bind_param($stmt, "ssssiidddis", $code, $name, $desc, $date_added, $cat, $cat, $price, $rent, $dep, $featured, $priceSource);
+                mysqli_stmt_bind_param($stmt, "ssssiidddiss", $code, $name, $desc, $date_added, $cat, $cat, $price, $rent, $dep, $featured, $priceSource, $availability);
                 mysqli_stmt_execute($stmt);
                 $product_id = mysqli_insert_id($this->db);
                 mysqli_stmt_close($stmt);
@@ -558,7 +563,7 @@ class ProductModel extends Model {
         if ($type === 'jewellery') {
             $sql = "SELECT p.product_id as id, p.product_code as code, p.product_name as name, p.product_desc as description, 
                            p.categories_id as category, p.subcat_id as sub_category, p.sales_price as s_price, 
-                           p.rent_price as rental_price, p.deposit, p.discount, p.featured, p.price_source,
+                           p.rent_price as rental_price, p.deposit, p.discount, p.featured, p.price_source, p.availability,
                            c.categories_name as category_name, s.name as subcategory_name
                     FROM product p
                     LEFT JOIN jewel_subcat c ON p.categories_id = c.subcat_id
@@ -567,7 +572,7 @@ class ProductModel extends Model {
         } else {
             $sql = "SELECT p.gproduct_id as id, p.gproduct_code as code, p.gproduct_name as name, p.gproduct_desc as description, 
                            p.garment_id as category, p.product_for as sub_category, p.sales_price as s_price, 
-                           p.rent_price as rental_price, p.deposit, p.discount, p.featured, p.price_source,
+                           p.rent_price as rental_price, p.deposit, p.discount, p.featured, p.price_source, p.availability,
                            c.name as category_name, s.name as subcategory_name
                     FROM garment_product p
                     LEFT JOIN garments c ON p.garment_id = c.garment_id
@@ -592,6 +597,7 @@ class ProductModel extends Model {
             $id = (int)$id;
             $featured = (int)($data['featured'] ?? 0);
             $priceSource = ($data['price_source'] ?? 'pos') === 'manual' ? 'manual' : 'pos';
+            $availability = in_array($data['availability'] ?? 'both', ['rent', 'sell', 'both']) ? $data['availability'] : 'both';
             $name = $data['name'];
             $desc = $data['description'] ?? '';
             $cat = (int)($data['category'] ?? 0);
@@ -610,11 +616,12 @@ class ProductModel extends Model {
                     rent_price = ?, 
                     deposit = ?,
                     featured = ?,
-                    price_source = ?
+                    price_source = ?,
+                    availability = ?
                     WHERE product_id = ?";
                 $stmt = mysqli_prepare($this->db, $sql);
                 if (!$stmt) throw new \Exception(mysqli_error($this->db));
-                mysqli_stmt_bind_param($stmt, "ssiidddisi", $name, $desc, $cat, $sub, $price, $rent, $dep, $featured, $priceSource, $id);
+                mysqli_stmt_bind_param($stmt, "ssiidddissi", $name, $desc, $cat, $sub, $price, $rent, $dep, $featured, $priceSource, $availability, $id);
                 if (!mysqli_stmt_execute($stmt)) throw new \Exception(mysqli_error($this->db));
                 mysqli_stmt_close($stmt);
             } else {
@@ -627,11 +634,12 @@ class ProductModel extends Model {
                     rent_price = ?, 
                     deposit = ?,
                     featured = ?,
-                    price_source = ?
+                    price_source = ?,
+                    availability = ?
                     WHERE gproduct_id = ?";
                 $stmt = mysqli_prepare($this->db, $sql);
                 if (!$stmt) throw new \Exception(mysqli_error($this->db));
-                mysqli_stmt_bind_param($stmt, "ssiidddisi", $name, $desc, $cat, $cat, $price, $rent, $dep, $featured, $priceSource, $id);
+                mysqli_stmt_bind_param($stmt, "ssiidddissi", $name, $desc, $cat, $cat, $price, $rent, $dep, $featured, $priceSource, $availability, $id);
                 if (!mysqli_stmt_execute($stmt)) throw new \Exception(mysqli_error($this->db));
                 mysqli_stmt_close($stmt);
             }
@@ -796,6 +804,17 @@ class ProductModel extends Model {
             $sql = "UPDATE product SET price_source = '$priceSource' WHERE product_id = $id";
         } else {
             $sql = "UPDATE garment_product SET price_source = '$priceSource' WHERE gproduct_id = $id";
+        }
+        return $this->query($this->db, $sql);
+    }
+
+    public function toggleAvailability($id, $type, $availability) {
+        $id = (int)$id;
+        $availability = in_array($availability, ['rent', 'sell', 'both']) ? $availability : 'both';
+        if ($type === 'jewellery') {
+            $sql = "UPDATE product SET availability = '$availability' WHERE product_id = $id";
+        } else {
+            $sql = "UPDATE garment_product SET availability = '$availability' WHERE gproduct_id = $id";
         }
         return $this->query($this->db, $sql);
     }

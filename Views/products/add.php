@@ -153,6 +153,24 @@
                                         <span class="w-8 h-8 bg-primary/10 text-primary rounded-full flex items-center justify-center mr-3 text-sm">3</span>
                                         Pricing Information
                                     </h3>
+
+                                    <!-- Product Availability -->
+                                    <div class="bg-gray-50 rounded-xl p-4 border border-gray-200">
+                                        <div class="flex items-center justify-between">
+                                            <div>
+                                                <label class="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">Availability / Nature</label>
+                                                <p class="text-xs text-gray-400">Control if this product is available for Rent, Sell, or Both.</p>
+                                            </div>
+                                            <div class="w-48">
+                                                <select name="availability" class="w-full bg-white border border-gray-200 rounded-xl p-2.5 text-sm focus:ring-primary focus:border-primary">
+                                                    <option value="both">Rent & Sell (Both)</option>
+                                                    <option value="rent">Rent Only</option>
+                                                    <option value="sell">Sell Only</option>
+                                                </select>
+                                            </div>
+                                        </div>
+                                    </div>
+
                                     <div class="grid grid-cols-1 md:grid-cols-3 gap-6" id="pricing_fields">
                                         <div>
                                             <label class="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Sales Price</label>
