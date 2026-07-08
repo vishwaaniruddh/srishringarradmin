@@ -26,6 +26,9 @@
                         <button onclick="switchTab('properties')" id="tab-properties" class="flex-1 py-3 text-center font-bold text-sm rounded-xl text-primary bg-primary/5 transition-all cursor-pointer">
                             <i class="fas fa-edit mr-2"></i>Update Properties
                         </button>
+                        <button onclick="switchTab('prices')" id="tab-prices" class="flex-1 py-3 text-center font-bold text-sm rounded-xl text-gray-400 hover:text-gray-600 transition-all cursor-pointer">
+                            <i class="fas fa-tags mr-2"></i>Update Prices
+                        </button>
                         <button onclick="switchTab('images')" id="tab-images" class="flex-1 py-3 text-center font-bold text-sm rounded-xl text-gray-400 hover:text-gray-600 transition-all cursor-pointer">
                             <i class="fas fa-images mr-2"></i>Upload SKU Images Folder
                         </button>
@@ -142,7 +145,123 @@
                         </div>
                     </div>
 
-                    <!-- TAB 2: IMAGES FOLDER UPLOAD -->
+                    <!-- TAB 2: PRICES UPDATE -->
+                    <div id="prices-section" class="space-y-6 hidden">
+                        <!-- Instructions -->
+                        <div class="bg-blue-50 border-l-4 border-blue-500 p-6 rounded-r-2xl shadow-sm">
+                            <div class="flex">
+                                <div class="flex-shrink-0">
+                                    <i class="fas fa-info-circle text-blue-500 text-xl"></i>
+                                </div>
+                                <div class="ml-4">
+                                    <h3 class="text-sm font-bold text-blue-800">Update Prices Instructions</h3>
+                                    <div class="mt-2 text-sm text-blue-700 space-y-1">
+                                        <p>You can update product MRP, Rent, and Deposit prices in bulk using two methods:</p>
+                                        <p class="font-semibold mt-2">Method 1: Paste Excel Data</p>
+                                        <p>Copy rows directly from your Excel sheet (including columns: SKU, MRP, Rent, Deposit) and paste them in the text area.</p>
+                                        <p class="font-semibold mt-2">Method 2: Upload Excel/CSV File</p>
+                                        <p>Upload an Excel (.xlsx, .xls) or CSV file. The system will look for column headers like <b>wid/sku</b>, <b>mrp</b>, <b>rental+gst/rent</b>, and <b>sd/deposit</b>.</p>
+                                        <p class="text-xs text-blue-600 mt-2 font-bold"><i class="fas fa-exclamation-triangle mr-1"></i>Note: Performing this update will automatically switch the updated products to "Manual" pricing logic so these manual prices take effect on the website.</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Price Update Form -->
+                        <div class="bg-white rounded-3xl shadow-xl shadow-gray-200/50 border border-gray-100 overflow-hidden">
+                            <div class="p-8">
+                                <form id="bulkPriceUpdateForm" onsubmit="handleBulkPriceUpdate(event)" class="space-y-6" enctype="multipart/form-data">
+                                    <!-- Input Mode Selector -->
+                                    <div class="flex space-x-6 border-b border-gray-100 pb-4 mb-4">
+                                        <label class="flex items-center space-x-2 cursor-pointer font-semibold text-gray-700 text-sm">
+                                            <input type="radio" name="price_input_mode" value="paste" checked onchange="togglePriceInputMode('paste')" class="text-primary focus:ring-primary h-4 w-4">
+                                            <span>Paste Excel Data</span>
+                                        </label>
+                                        <label class="flex items-center space-x-2 cursor-pointer font-semibold text-gray-700 text-sm">
+                                            <input type="radio" name="price_input_mode" value="file" onchange="togglePriceInputMode('file')" class="text-primary focus:ring-primary h-4 w-4">
+                                            <span>Upload Excel/CSV File</span>
+                                        </label>
+                                    </div>
+
+                                    <!-- Text Area Input -->
+                                    <div id="pricePasteContainer" class="space-y-2">
+                                        <label class="block text-sm font-bold text-gray-700 ml-1">Paste Price Data (SKU, MRP, Rent, Deposit)</label>
+                                        <textarea name="price_data" id="priceDataInput" rows="8" 
+                                                  placeholder="Paste columns from Excel here...&#10;e.g.&#10;FM4136-1	75000	18880	12000&#10;FM4160-1	32000	8260	6000" 
+                                                  class="w-full bg-gray-50 border border-gray-200 rounded-2xl p-4 text-sm font-mono focus:ring-primary focus:border-primary focus:bg-white transition-all"></textarea>
+                                        <p class="text-xs text-gray-400 ml-1">Paste tabular data copied from Excel. It expects columns in the order: SKU, MRP, Rent, Deposit. Headers are ignored automatically.</p>
+                                    </div>
+
+                                    <!-- File Upload Input -->
+                                    <div id="priceFileContainer" class="space-y-2 hidden">
+                                        <label class="block text-sm font-bold text-gray-700 ml-1">Upload Spreadsheet File</label>
+                                        <div class="border-2 border-dashed border-gray-200 rounded-2xl p-8 text-center hover:border-primary hover:bg-primary/5 transition-all cursor-pointer relative group">
+                                            <input type="file" name="price_file" id="priceFileInput" accept=".xlsx,.xls,.csv" class="hidden" onchange="handlePriceFileSelect(event)">
+                                            <div onclick="document.getElementById('priceFileInput').click()">
+                                                <div class="w-12 h-12 bg-white rounded-xl shadow-sm flex items-center justify-center mx-auto mb-3 group-hover:scale-110 transition-transform">
+                                                    <i class="fas fa-file-excel text-xl text-gray-400 group-hover:text-primary"></i>
+                                                </div>
+                                                <p class="text-gray-600 font-bold mb-1" id="priceFileLabel">Click to select Excel/CSV file</p>
+                                                <p class="text-gray-400 text-xs">Supports .xlsx, .xls, and .csv formats</p>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div id="priceProgressArea" class="hidden space-y-4 pt-4">
+                                        <div class="h-2 w-full bg-gray-100 rounded-full overflow-hidden">
+                                            <div id="priceProgressBar" class="h-full bg-amber-500 w-0 transition-all duration-300"></div>
+                                        </div>
+                                        <p id="priceStatusMsg" class="text-center text-sm font-medium text-gray-600 italic">Processing updates...</p>
+                                    </div>
+
+                                    <button type="submit" id="priceSubmitBtn" class="w-full bg-gray-900 text-white rounded-2xl py-4 font-bold hover:bg-gray-800 transition-all shadow-xl shadow-gray-200 flex items-center justify-center space-x-2 cursor-pointer">
+                                        <i class="fas fa-tags"></i>
+                                        <span>Update Prices in Bulk</span>
+                                    </button>
+                                </form>
+                            </div>
+                        </div>
+
+                        <!-- Results Area -->
+                        <div id="priceResultsArea" class="mt-8 hidden space-y-6">
+                            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                <div class="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm text-center">
+                                    <p class="text-gray-400 text-xs font-bold uppercase tracking-wider mb-1">Updated successfully</p>
+                                    <p id="priceUpdatedCount" class="text-3xl font-black text-green-500">0</p>
+                                </div>
+                                <div class="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm text-center">
+                                    <p class="text-gray-400 text-xs font-bold uppercase tracking-wider mb-1">Not Found</p>
+                                    <p id="priceNotFoundCount" class="text-3xl font-black text-amber-500">0</p>
+                                </div>
+                                <div class="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm text-center">
+                                    <p class="text-gray-400 text-xs font-bold uppercase tracking-wider mb-1">Errors</p>
+                                    <p id="priceErrorCount" class="text-3xl font-black text-red-500">0</p>
+                                </div>
+                            </div>
+
+                            <!-- Missing SKUs -->
+                            <div id="priceMissingSkuContainer" class="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden hidden">
+                                <div class="px-6 py-4 bg-amber-50/50 border-b border-gray-100">
+                                    <h4 class="font-bold text-amber-800 text-sm"><i class="fas fa-exclamation-triangle mr-2"></i>SKUs Not Found</h4>
+                                </div>
+                                <div id="priceMissingSkuList" class="p-6 font-mono text-xs text-amber-700 grid grid-cols-2 md:grid-cols-4 gap-2">
+                                    <!-- list -->
+                                </div>
+                            </div>
+
+                            <!-- Errors Log -->
+                            <div id="priceErrorsContainer" class="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden hidden">
+                                <div class="px-6 py-4 bg-red-50 border-b border-gray-100">
+                                    <h4 class="font-bold text-red-800 text-sm"><i class="fas fa-times-circle mr-2"></i>Errors Log</h4>
+                                </div>
+                                <div id="priceErrorsList" class="p-6 font-mono text-xs text-red-700 space-y-1">
+                                    <!-- list -->
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- TAB 3: IMAGES FOLDER UPLOAD -->
                     <div id="images-section" class="space-y-6 hidden">
                         <!-- Instructions -->
                         <div class="bg-blue-50 border-l-4 border-blue-500 p-6 rounded-r-2xl shadow-sm">
@@ -220,24 +339,178 @@
     // TAB SWITCH LOGIC
     function switchTab(tab) {
         const propTab = document.getElementById('tab-properties');
+        const priceTab = document.getElementById('tab-prices');
         const imgTab = document.getElementById('tab-images');
+        
         const propSec = document.getElementById('properties-section');
+        const priceSec = document.getElementById('prices-section');
         const imgSec = document.getElementById('images-section');
 
+        // Reset tabs
+        [propTab, priceTab, imgTab].forEach(t => {
+            if (t) {
+                t.classList.remove('text-primary', 'bg-primary/5');
+                t.classList.add('text-gray-400', 'hover:text-gray-600');
+            }
+        });
+
+        // Reset sections
+        [propSec, priceSec, imgSec].forEach(s => {
+            if (s) s.classList.add('hidden');
+        });
+
+        // Activate selected
         if (tab === 'properties') {
             propTab.classList.add('text-primary', 'bg-primary/5');
             propTab.classList.remove('text-gray-400', 'hover:text-gray-600');
-            imgTab.classList.remove('text-primary', 'bg-primary/5');
-            imgTab.classList.add('text-gray-400', 'hover:text-gray-600');
             propSec.classList.remove('hidden');
-            imgSec.classList.add('hidden');
-        } else {
+        } else if (tab === 'prices') {
+            priceTab.classList.add('text-primary', 'bg-primary/5');
+            priceTab.classList.remove('text-gray-400', 'hover:text-gray-600');
+            priceSec.classList.remove('hidden');
+        } else if (tab === 'images') {
             imgTab.classList.add('text-primary', 'bg-primary/5');
             imgTab.classList.remove('text-gray-400', 'hover:text-gray-600');
-            propTab.classList.remove('text-primary', 'bg-primary/5');
-            propTab.classList.add('text-gray-400', 'hover:text-gray-600');
             imgSec.classList.remove('hidden');
-            propSec.classList.add('hidden');
+        }
+    }
+
+    // TOGGLE PRICE INPUT MODE
+    function togglePriceInputMode(mode) {
+        const pasteContainer = document.getElementById('pricePasteContainer');
+        const fileContainer = document.getElementById('priceFileContainer');
+        if (mode === 'paste') {
+            pasteContainer.classList.remove('hidden');
+            fileContainer.classList.add('hidden');
+            document.getElementById('priceDataInput').required = true;
+            document.getElementById('priceFileInput').required = false;
+        } else {
+            pasteContainer.classList.add('hidden');
+            fileContainer.classList.remove('hidden');
+            document.getElementById('priceDataInput').required = false;
+            document.getElementById('priceFileInput').required = true;
+        }
+    }
+
+    // FILE SELECTION LABEL UPDATE
+    function handlePriceFileSelect(e) {
+        const file = e.target.files[0];
+        if (file) {
+            document.getElementById('priceFileLabel').innerHTML = `<span class="text-primary font-bold">${file.name}</span> selected`;
+        }
+    }
+
+    // BULK PRICE UPDATE LOGIC
+    async function handleBulkPriceUpdate(e) {
+        e.preventDefault();
+
+        const mode = document.querySelector('input[name="price_input_mode"]:checked').value;
+        const submitBtn = document.getElementById('priceSubmitBtn');
+        const progressArea = document.getElementById('priceProgressArea');
+        const progressBar = document.getElementById('priceProgressBar');
+        const statusMsg = document.getElementById('priceStatusMsg');
+        const resultsArea = document.getElementById('priceResultsArea');
+
+        submitBtn.disabled = true;
+        submitBtn.classList.add('opacity-50', 'cursor-not-allowed');
+        progressArea.classList.remove('hidden');
+        resultsArea.classList.add('hidden');
+
+        progressBar.style.width = '30%';
+        progressBar.classList.remove('bg-red-500');
+        statusMsg.classList.remove('text-red-500');
+        statusMsg.innerText = 'Preparing update batch...';
+
+        try {
+            let response;
+            if (mode === 'paste') {
+                const priceData = document.getElementById('priceDataInput').value.trim();
+                if (!priceData) {
+                    alert('Please paste pricing data.');
+                    return;
+                }
+                
+                progressBar.style.width = '50%';
+                statusMsg.innerText = 'Uploading pricing text...';
+
+                response = await fetch('index.php?controller=product&action=processBulkPriceUpdate', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        price_input_mode: 'paste',
+                        price_data: priceData
+                    })
+                });
+            } else {
+                const fileInput = document.getElementById('priceFileInput');
+                if (!fileInput.files.length) {
+                    alert('Please select a file.');
+                    return;
+                }
+
+                progressBar.style.width = '50%';
+                statusMsg.innerText = 'Uploading spreadsheet file...';
+
+                const formData = new FormData();
+                formData.append('price_input_mode', 'file');
+                formData.append('price_file', fileInput.files[0]);
+
+                response = await fetch('index.php?controller=product&action=processBulkPriceUpdate', {
+                    method: 'POST',
+                    body: formData
+                });
+            }
+
+            const data = await response.json();
+            progressBar.style.width = '100%';
+
+            if (data.success) {
+                statusMsg.innerText = 'Batch completed!';
+                setTimeout(() => {
+                    progressArea.classList.add('hidden');
+                    resultsArea.classList.remove('hidden');
+
+                    document.getElementById('priceUpdatedCount').innerText = data.updatedCount;
+                    document.getElementById('priceNotFoundCount').innerText = data.notFoundCount;
+                    document.getElementById('priceErrorCount').innerText = data.errors ? data.errors.length : 0;
+
+                    // Display Missing SKUs
+                    const missingContainer = document.getElementById('priceMissingSkuContainer');
+                    if (data.notFoundCount > 0) {
+                        missingContainer.classList.remove('hidden');
+                        document.getElementById('priceMissingSkuList').innerHTML = data.notFoundSkus.map(sku => `
+                            <div class="bg-amber-50 px-2.5 py-1.5 rounded border border-amber-200 text-center font-bold">${sku}</div>
+                        `).join('');
+                    } else {
+                        missingContainer.classList.add('hidden');
+                    }
+
+                    // Display Errors Log
+                    const errorsContainer = document.getElementById('priceErrorsContainer');
+                    if (data.errors && data.errors.length > 0) {
+                        errorsContainer.classList.remove('hidden');
+                        document.getElementById('priceErrorsList').innerHTML = data.errors.map(err => `
+                            <div class="py-1 border-b border-red-50/50">${err}</div>
+                        `).join('');
+                    } else {
+                        errorsContainer.classList.add('hidden');
+                    }
+                }, 500);
+            } else {
+                statusMsg.innerText = 'Error: ' + (data.error || 'Failed to update prices.');
+                statusMsg.classList.add('text-red-500');
+                progressBar.classList.add('bg-red-500');
+            }
+        } catch (error) {
+            console.error('Error:', error);
+            statusMsg.innerText = 'A network error occurred. Please try again.';
+            statusMsg.classList.add('text-red-500');
+            progressBar.classList.add('bg-red-500');
+        } finally {
+            submitBtn.disabled = false;
+            submitBtn.classList.remove('opacity-50', 'cursor-not-allowed');
         }
     }
 

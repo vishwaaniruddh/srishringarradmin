@@ -8,17 +8,17 @@ mysqli_report(MYSQLI_REPORT_ERROR | MYSQLI_REPORT_STRICT);
 
 // Connection details for local and server DB
 try {
-    $localConn = new mysqli('localhost', 'root', '', 'u464193275_srishrinjewels');
+    $localConn = new mysqli('localhost', 'root', '', 'u464193275_srishringarr');
 } catch (Exception $e) {
     die("Failed to connect to local database: " . $e->getMessage() . " (Code: " . $e->getCode() . ")");
 }
 
 try {
-    $serverConn = new mysqli('193.203.184.203', 'u464193275_srishrinjuser', '9b@hMgk!=zI', 'u464193275_srishrinjewels');
+    $serverConn = new mysqli('193.203.184.203', 'u464193275_sarmicropos', 'Mypos1234', 'u464193275_srishringarr');
 } catch (Exception $e) {
     die("Failed to connect to server database: " . $e->getMessage() . " (Code: " . $e->getCode() . ")");
 }
-//    $con = mysqli_connect("localhost", "u464193275_srishrinjuser", "9b@hMgk!=zI", "u464193275_srishrinjewels");
+
 // Handle Sync Action
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['sync_table'])) {
     $tableToSync = $_POST['sync_table'];
@@ -492,7 +492,9 @@ function getRowCount($conn, $table)
         </tr>
         <?php foreach ($uniqueToLocal as $table): ?>
             <tr>
-                <td><?php echo $table; ?></td>
+                <td>
+                    <?php echo $table; ?>
+                </td>
                 <td style="text-align: right;">
                     <form method="POST"
                         onsubmit="return confirm('Are you sure you want to create table `<?php echo $table; ?>` on the server?');">
@@ -511,7 +513,9 @@ function getRowCount($conn, $table)
         </tr>
         <?php foreach ($uniqueToServer as $table): ?>
             <tr>
-                <td><?php echo $table; ?></td>
+                <td>
+                    <?php echo $table; ?>
+                </td>
             </tr>
         <?php endforeach; ?>
     </table>
@@ -533,7 +537,9 @@ function getRowCount($conn, $table)
             }
             ?>
             <tr class="highlight">
-                <td><?php echo $table; ?></td>
+                <td>
+                    <?php echo $table; ?>
+                </td>
                 <td class="cell-warning">
                     <?php if (!empty($colDiff['onlyLocal'])): ?>
                         <?php if (count($colDiff['onlyLocal']) > 1): ?>
@@ -543,14 +549,16 @@ function getRowCount($conn, $table)
                                 <input type="hidden" name="sync_all_columns" value="1">
                                 <input type="hidden" name="table" value="<?php echo $table; ?>">
                                 <button type="submit" class="btn-sync btn-blue btn-sm" style="margin:0; width:100%;">Sync All
-                                    <?php echo count($colDiff['onlyLocal']); ?> Columns</button>
+                                    <?php echo count($colDiff['onlyLocal']); ?> Columns
+                                </button>
                             </form>
                         <?php endif; ?>
 
                         <ul style="margin: 0; padding-left: 20px;">
                             <?php foreach ($colDiff['onlyLocal'] as $col => $details): ?>
                                 <li style="margin-bottom: 5px;">
-                                    <?php echo $col; ?> (<?php echo $details['Type']; ?>)
+                                    <?php echo $col; ?> (
+                                    <?php echo $details['Type']; ?>)
                                     <form method="POST" style="display:inline;"
                                         onsubmit="return confirm('Sync column `<?php echo $col; ?>` to server?');">
                                         <input type="hidden" name="sync_column" value="1">
@@ -611,7 +619,9 @@ function getRowCount($conn, $table)
             $anyIdxDiff = true;
             ?>
             <tr class="highlight">
-                <td><strong><?php echo $table; ?></strong></td>
+                <td><strong>
+                        <?php echo $table; ?>
+                    </strong></td>
                 <td class="cell-warning">
                     <?php if (!empty($idxDiff['onlyLocal'])): ?>
                         <?php if (count($idxDiff['onlyLocal']) > 1): ?>
@@ -621,14 +631,16 @@ function getRowCount($conn, $table)
                                 <input type="hidden" name="sync_all_indexes" value="1">
                                 <input type="hidden" name="table" value="<?php echo $table; ?>">
                                 <button type="submit" class="btn-sync btn-blue btn-sm" style="width:100%">Sync All
-                                    <?php echo count($idxDiff['onlyLocal']); ?> Indexes</button>
+                                    <?php echo count($idxDiff['onlyLocal']); ?> Indexes
+                                </button>
                             </form>
                         <?php endif; ?>
                         <ul style="margin:0;padding-left:18px">
                             <?php foreach ($idxDiff['onlyLocal'] as $idxKey => $info): ?>
                                 <li style="margin-bottom:4px">
                                     <code><?php echo $idxKey; ?></code>
-                                    (<?php echo $info['unique'] ? 'UNIQUE ' : ''; ?>on:
+                                    (
+                                    <?php echo $info['unique'] ? 'UNIQUE ' : ''; ?>on:
                                     <?php echo implode(', ', $info['columns']); ?>)
                                     <form method="POST" style="display:inline"
                                         onsubmit="return confirm('Add index `<?php echo $idxKey; ?>` to server?');">
@@ -640,25 +652,32 @@ function getRowCount($conn, $table)
                                 </li>
                             <?php endforeach; ?>
                         </ul>
-                    <?php else: ?>None<?php endif; ?>
+                    <?php else: ?>None
+                    <?php endif; ?>
                 </td>
                 <td class="cell-danger">
                     <?php if (!empty($idxDiff['onlyServer'])): ?>
                         <ul style="margin:0;padding-left:18px">
                             <?php foreach ($idxDiff['onlyServer'] as $idxKey => $info): ?>
-                                <li><code><?php echo $idxKey; ?></code> (<?php echo implode(', ', $info['columns']); ?>)</li>
+                                <li><code><?php echo $idxKey; ?></code> (
+                                    <?php echo implode(', ', $info['columns']); ?>)
+                                </li>
                             <?php endforeach; ?>
                         </ul>
-                    <?php else: ?>None<?php endif; ?>
+                    <?php else: ?>None
+                    <?php endif; ?>
                 </td>
                 <td class="cell-warning">
                     <?php if (!empty($idxDiff['mismatch'])): ?>
                         <?php foreach ($idxDiff['mismatch'] as $idxKey => $diff): ?>
                             <code><?php echo $idxKey; ?></code><br>
-                            &nbsp;Local: <?php echo $diff['local']; ?><br>
-                            &nbsp;Server: <?php echo $diff['server']; ?><br>
+                            &nbsp;Local:
+                            <?php echo $diff['local']; ?><br>
+                            &nbsp;Server:
+                            <?php echo $diff['server']; ?><br>
                         <?php endforeach; ?>
-                    <?php else: ?>None<?php endif; ?>
+                    <?php else: ?>None
+                    <?php endif; ?>
                 </td>
             </tr>
         <?php endforeach; ?>
@@ -697,9 +716,15 @@ function getRowCount($conn, $table)
             ?>
             <tr <?php if ($isDifferent)
                 echo 'class="highlight"'; ?>>
-                <td><strong><?php echo $table; ?></strong></td>
-                <td style="text-align: right; font-weight: bold; color: #111;"><?php echo number_format($prodRows); ?></td>
-                <td style="text-align: right; font-weight: bold; color: #555;"><?php echo number_format($localRows); ?></td>
+                <td><strong>
+                        <?php echo $table; ?>
+                    </strong></td>
+                <td style="text-align: right; font-weight: bold; color: #111;">
+                    <?php echo number_format($prodRows); ?>
+                </td>
+                <td style="text-align: right; font-weight: bold; color: #555;">
+                    <?php echo number_format($localRows); ?>
+                </td>
                 <td style="text-align: right;">
                     <form method="POST"
                         onsubmit="return confirm('Are you sure you want to overwrite local data for table `<?php echo $table; ?>` with production server data?');">

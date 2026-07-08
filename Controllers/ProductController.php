@@ -887,6 +887,189 @@ class ProductController extends Controller {
         ]);
     }
 
+    public function processBulkPriceUpdate() {
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') $this->json(['error' => 'Method not allowed'], 405);
+
+        $productModel = new ProductModel();
+        $updates = [];
+        $errors = [];
+        $notFoundSkus = [];
+        $updatedCount = 0;
+
+        $input = json_decode(file_get_contents('php://input'), true);
+        if ($input) {
+            $inputMode = $input['price_input_mode'] ?? 'paste';
+            $priceData = $input['price_data'] ?? '';
+        } else {
+            $inputMode = $_POST['price_input_mode'] ?? 'paste';
+            $priceData = $_POST['price_data'] ?? '';
+        }
+
+        if ($inputMode === 'paste') {
+            if (empty($priceData)) {
+                $this->json(['error' => 'Please paste some pricing data.'], 400);
+                return;
+            }
+
+            $rawRows = preg_split('/\r\n|\r|\n/', $priceData);
+            foreach ($rawRows as $row) {
+                $row = trim($row);
+                if (empty($row)) continue;
+
+                // Split by tab, comma, or multiple spaces
+                $cols = preg_split('/\t|,| {2,}/', $row);
+                $cols = array_filter(array_map('trim', $cols));
+
+                if (count($cols) < 4) {
+                    // Try split by single space if columns weren't separated by tabs or commas
+                    $cols = preg_split('/\s+/', $row);
+                    if (count($cols) < 4) {
+                        $errors[] = "Row invalid (must have 4 columns: SKU, MRP, Rent, Deposit): \"$row\"";
+                        continue;
+                    }
+                }
+
+                $sku = $cols[0];
+                // Skip header row if present
+                if (strtolower($sku) === 'sku' || strtolower($sku) === 'wid' || strtolower($sku) === 'code') {
+                    continue;
+                }
+
+                $mrp = floatval(preg_replace('/[^\d.]/', '', $cols[1]));
+                $rent = floatval(preg_replace('/[^\d.]/', '', $cols[2]));
+                $deposit = floatval(preg_replace('/[^\d.]/', '', $cols[3]));
+
+                $updates[] = [
+                    'sku' => $sku,
+                    'mrp' => $mrp,
+                    'rent' => $rent,
+                    'deposit' => $deposit
+                ];
+            }
+        } elseif ($inputMode === 'file' || isset($_FILES['price_file'])) {
+            if (!isset($_FILES['price_file']) || $_FILES['price_file']['error'] !== UPLOAD_ERR_OK) {
+                $this->json(['error' => 'No file uploaded or upload error.'], 400);
+                return;
+            }
+
+            $file = $_FILES['price_file']['tmp_name'];
+            try {
+                $spreadsheet = \PhpOffice\PhpSpreadsheet\IOFactory::load($file);
+                $sheet = $spreadsheet->getActiveSheet();
+                $highestRow = $sheet->getHighestRow();
+                $highestColumn = $sheet->getHighestColumn();
+
+                // Find column indices
+                $headerRow = $sheet->rangeToArray('A1:' . $highestColumn . '1', NULL, TRUE, FALSE)[0];
+
+                $skuIdx = -1;
+                $mrpIdx = -1;
+                $rentIdx = -1;
+                $depositIdx = -1;
+
+                foreach ($headerRow as $idx => $header) {
+                    if ($header === null) continue;
+                    $header = strtolower(trim($header));
+                    if (in_array($header, ['sku', 'wid', 'code', 'product_code', 'gproduct_code'])) {
+                        $skuIdx = $idx;
+                    } elseif (in_array($header, ['mrp', 'price', 'sales_price', 's_price', 'selling'])) {
+                        $mrpIdx = $idx;
+                    } elseif (in_array($header, ['rent', 'rental', 'rental+gst', 'rent_price', 'rental_price'])) {
+                        $rentIdx = $idx;
+                    } elseif (in_array($header, ['deposit', 'sd', 'security', 'security_deposit', 'deposite'])) {
+                        $depositIdx = $idx;
+                    }
+                }
+
+                if ($skuIdx === -1 || $mrpIdx === -1 || $rentIdx === -1 || $depositIdx === -1) {
+                    $this->json(['error' => 'Could not detect column headers. Make sure you have columns like SKU/wid, MRP, Rent/rental+gst, Deposit/sd.'], 400);
+                    return;
+                }
+
+                for ($row = 2; $row <= $highestRow; $row++) {
+                    $skuCol = \PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($skuIdx + 1);
+                    $mrpCol = \PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($mrpIdx + 1);
+                    $rentCol = \PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($rentIdx + 1);
+                    $depositCol = \PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($depositIdx + 1);
+
+                    $sku = trim($sheet->getCell($skuCol . $row)->getValue() ?? '');
+                    if (empty($sku)) continue;
+
+                    $mrpVal = $sheet->getCell($mrpCol . $row)->getValue();
+                    $rentVal = $sheet->getCell($rentCol . $row)->getValue();
+                    $depositVal = $sheet->getCell($depositCol . $row)->getValue();
+
+                    // Clean and extract numeric values, or fallback to null
+                    $mrp = ($mrpVal !== null && $mrpVal !== '') ? floatval(preg_replace('/[^\d.]/', '', $mrpVal)) : null;
+                    $rent = ($rentVal !== null && $rentVal !== '') ? floatval(preg_replace('/[^\d.]/', '', $rentVal)) : null;
+                    $deposit = ($depositVal !== null && $depositVal !== '') ? floatval(preg_replace('/[^\d.]/', '', $depositVal)) : null;
+
+                    $updates[] = [
+                        'sku' => $sku,
+                        'mrp' => $mrp,
+                        'rent' => $rent,
+                        'deposit' => $deposit
+                    ];
+                }
+            } catch (\Exception $e) {
+                $this->json(['error' => 'Failed to parse Excel file: ' . $e->getMessage()], 500);
+                return;
+            }
+        } else {
+            $this->json(['error' => 'Invalid request mode.'], 400);
+            return;
+        }
+
+        if (empty($updates)) {
+            $this->json(['error' => 'No valid pricing records found to update.'], 400);
+            return;
+        }
+
+        foreach ($updates as $update) {
+            $sku = $update['sku'];
+            $mrpVal = $update['mrp'];
+            $rentVal = $update['rent'];
+            $depositVal = $update['deposit'];
+
+            $existsJewel = $productModel->checkProductExists($sku, 'jewellery');
+            $existsGarment = $productModel->checkProductExists($sku, 'garments');
+
+            if (!$existsJewel && !$existsGarment) {
+                $notFoundSkus[] = $sku;
+                continue;
+            }
+
+            // Fetch current product to merge if values are missing (e.g. rent is null)
+            $type = $existsJewel ? 'jewellery' : 'garments';
+            $pid = $existsJewel ? $existsJewel['product_id'] : $existsGarment['gproduct_id'];
+            $currentProduct = $productModel->getProductById($pid, $type);
+
+            if (!$currentProduct) {
+                $errors[] = "SKU $sku: Failed to retrieve current product info.";
+                continue;
+            }
+
+            $finalMrp = ($mrpVal !== null) ? $mrpVal : (float)($currentProduct['s_price'] ?? 0);
+            $finalRent = ($rentVal !== null) ? $rentVal : (float)($currentProduct['rental_price'] ?? 0);
+            $finalDeposit = ($depositVal !== null) ? $depositVal : (float)($currentProduct['deposit'] ?? 0);
+
+            if ($productModel->updateProductPrices($sku, $finalMrp, $finalRent, $finalDeposit)) {
+                $updatedCount++;
+            } else {
+                $errors[] = "SKU $sku: Database update failed.";
+            }
+        }
+
+        $this->json([
+            'success' => true,
+            'message' => "Bulk price update completed.",
+            'updatedCount' => $updatedCount,
+            'notFoundCount' => count($notFoundSkus),
+            'notFoundSkus' => $notFoundSkus,
+            'errors' => $errors
+        ]);
+    }
+
     public function uploadSkuImages() {
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') $this->json(['error' => 'Method not allowed'], 405);
 

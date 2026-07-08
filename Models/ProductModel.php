@@ -913,4 +913,38 @@ class ProductModel extends Model {
     public function getDbConnection() {
         return $this->db;
     }
+
+    public function updateProductPrices($sku, $mrp, $rent, $deposit) {
+        $sku = trim($sku);
+        $existsJewel = $this->checkProductExists($sku, 'jewellery');
+        $existsGarment = $this->checkProductExists($sku, 'garments');
+
+        if (!$existsJewel && !$existsGarment) {
+            return false;
+        }
+
+        $success = false;
+        if ($existsJewel) {
+            $sql = "UPDATE product SET sales_price = ?, rent_price = ?, deposit = ?, price_source = 'manual' WHERE product_code = ?";
+            $stmt = mysqli_prepare($this->db, $sql);
+            mysqli_stmt_bind_param($stmt, "ddds", $mrp, $rent, $deposit, $sku);
+            if (mysqli_stmt_execute($stmt)) {
+                $success = true;
+            }
+            mysqli_stmt_close($stmt);
+        }
+
+        if ($existsGarment) {
+            $sql = "UPDATE garment_product SET sales_price = ?, rent_price = ?, deposit = ?, price_source = 'manual' WHERE gproduct_code = ?";
+            $stmt = mysqli_prepare($this->db, $sql);
+            mysqli_stmt_bind_param($stmt, "ddds", $mrp, $rent, $deposit, $sku);
+            if (mysqli_stmt_execute($stmt)) {
+                $success = true;
+            }
+            mysqli_stmt_close($stmt);
+        }
+
+        return $success;
+    }
 }
+
