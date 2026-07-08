@@ -563,21 +563,21 @@ class ProductModel extends Model {
         if ($type === 'jewellery') {
             $sql = "SELECT p.product_id as id, p.product_code as code, p.product_name as name, p.product_desc as description, 
                            p.categories_id as category, p.subcat_id as sub_category, p.sales_price as s_price, 
-                           p.rent_price as rental_price, p.deposit, p.discount, p.featured, p.price_source, p.availability,
+                           p.rent_price as rental_price, p.deposit, p.discount, p.featured, p.price_source, p.availability, p.brand_name,
                            c.categories_name as category_name, s.name as subcategory_name
-                    FROM product p
-                    LEFT JOIN jewel_subcat c ON p.categories_id = c.subcat_id
-                    LEFT JOIN subcat1 s ON p.subcat_id = s.subcat_id
-                    WHERE p.product_id = $id";
+                     FROM product p
+                     LEFT JOIN jewel_subcat c ON p.categories_id = c.subcat_id
+                     LEFT JOIN subcat1 s ON p.subcat_id = s.subcat_id
+                     WHERE p.product_id = $id";
         } else {
             $sql = "SELECT p.gproduct_id as id, p.gproduct_code as code, p.gproduct_name as name, p.gproduct_desc as description, 
                            p.garment_id as category, p.product_for as sub_category, p.sales_price as s_price, 
-                           p.rent_price as rental_price, p.deposit, p.discount, p.featured, p.price_source, p.availability,
+                           p.rent_price as rental_price, p.deposit, p.discount, p.featured, p.price_source, p.availability, p.brand_name,
                            c.name as category_name, s.name as subcategory_name
-                    FROM garment_product p
-                    LEFT JOIN garments c ON p.garment_id = c.garment_id
-                    LEFT JOIN garments s ON p.product_for = s.garment_id
-                    WHERE p.gproduct_id = $id";
+                     FROM garment_product p
+                     LEFT JOIN garments c ON p.garment_id = c.garment_id
+                     LEFT JOIN garments s ON p.product_for = s.garment_id
+                     WHERE p.gproduct_id = $id";
         }
         $result = $this->query($this->db, $sql);
         return $this->fetchOne($result);

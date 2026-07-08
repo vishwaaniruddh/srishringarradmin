@@ -762,7 +762,13 @@ class ProductController extends Controller {
     }
 
     public function bulkUpdate() {
-        $this->view('products/bulk_update');
+        $productModel = new ProductModel();
+        $jewelCategories = $productModel->getJewelCategories();
+        $garments = $productModel->getGarments();
+        $this->view('products/bulk_update', [
+            'jewelCategories' => $jewelCategories,
+            'garments' => $garments
+        ]);
     }
 
     public function processBulkUpdate() {
@@ -776,6 +782,14 @@ class ProductController extends Controller {
         $rawSkus = $input['skus'] ?? '';
         $priceSource = $input['price_source'] ?? 'no_change';
         $availability = $input['availability'] ?? 'no_change';
+        
+        $updateBrand = isset($input['update_brand']) && $input['update_brand'] === true;
+        $brandName = $input['brand_name'] ?? '';
+        
+        $updateCategory = isset($input['update_category']) && $input['update_category'] === true;
+        $categoryType = $input['category_type'] ?? ''; // 'jewellery' or 'garments'
+        $categoryId = (int)($input['category_id'] ?? 0);
+        $subCategoryId = (int)($input['subcategory_id'] ?? 0);
 
         // Parse SKUs (split by newline, comma, space)
         $skusList = preg_split('/[\n,\s]+/', $rawSkus);
@@ -786,49 +800,18 @@ class ProductController extends Controller {
             return;
         }
 
+        // Verify if at least one change is selected
+        if ($priceSource === 'no_change' && $availability === 'no_change' && !$updateBrand && !$updateCategory) {
+            $this->json(['error' => 'No update actions selected. Please choose at least one setting to update.'], 400);
+            return;
+        }
+
         $productModel = new ProductModel();
         $db = $productModel->getDbConnection();
 
         $updatedCount = 0;
         $notFoundSkus = [];
         $errors = [];
-
-        // Build sets based on selections
-        $sets = [];
-        $params = [];
-        $types = "";
-
-        if ($priceSource !== 'no_change') {
-            $sets[] = "price_source = ?";
-            $params[] = $priceSource;
-            $types .= "s";
-        }
-        if ($availability !== 'no_change') {
-            $sets[] = "availability = ?";
-            $params[] = $availability;
-            $types .= "s";
-        }
-
-        if (empty($sets)) {
-            $this->json(['error' => 'No update actions selected. Please choose at least one setting to update.'], 400);
-            return;
-        }
-
-        $setString = implode(', ', $sets);
-
-        // Prepare statements
-        $jewelSql = "UPDATE product SET $setString WHERE product_code = ?";
-        $garmentSql = "UPDATE garment_product SET $setString WHERE gproduct_code = ?";
-
-        $jewelStmt = mysqli_prepare($db, $jewelSql);
-        $garmentStmt = mysqli_prepare($db, $garmentSql);
-
-        if (!$jewelStmt || !$garmentStmt) {
-            $this->json(['error' => 'Failed to prepare database statements: ' . mysqli_error($db)], 500);
-            return;
-        }
-
-        $bindTypes = $types . "s";
 
         foreach ($skus as $sku) {
             $existsJewel = $productModel->checkProductExists($sku, 'jewellery');
@@ -842,30 +825,122 @@ class ProductController extends Controller {
             $success = false;
 
             if ($existsJewel) {
-                if (count($params) === 1) {
-                    mysqli_stmt_bind_param($jewelStmt, $bindTypes, $params[0], $sku);
-                } else {
-                    mysqli_stmt_bind_param($jewelStmt, $bindTypes, $params[0], $params[1], $sku);
+                $sets = [];
+                $params = [];
+                $types = "";
+
+                if ($priceSource !== 'no_change') {
+                    $sets[] = "price_source = ?";
+                    $params[] = $priceSource;
+                    $types .= "s";
                 }
-                
-                if (mysqli_stmt_execute($jewelStmt)) {
-                    $success = true;
+                if ($availability !== 'no_change') {
+                    $sets[] = "availability = ?";
+                    $params[] = $availability;
+                    $types .= "s";
+                }
+                if ($updateBrand) {
+                    $sets[] = "brand_name = ?";
+                    $params[] = $brandName;
+                    $types .= "s";
+                }
+                if ($updateCategory && $categoryType === 'jewellery') {
+                    $sets[] = "categories_id = ?";
+                    $params[] = $categoryId;
+                    $types .= "i";
+                    
+                    $sets[] = "subcat_id = ?";
+                    $params[] = $subCategoryId;
+                    $types .= "i";
+                }
+
+                if (!empty($sets)) {
+                    $setString = implode(', ', $sets);
+                    $sql = "UPDATE product SET $setString WHERE product_code = ?";
+                    $stmt = mysqli_prepare($db, $sql);
+                    
+                    if ($stmt) {
+                        $bindParams = [];
+                        $bindTypes = $types . "s";
+                        $bindParams[] = &$bindTypes;
+                        for ($j = 0; $j < count($params); $j++) {
+                            $bindParams[] = &$params[$j];
+                        }
+                        $bindParams[] = &$sku;
+                        
+                        call_user_func_array([$stmt, 'bind_param'], $bindParams);
+                        
+                        if (mysqli_stmt_execute($stmt)) {
+                            $success = true;
+                        } else {
+                            $errors[] = "SKU $sku (Jewellery): " . mysqli_stmt_error($stmt);
+                        }
+                        mysqli_stmt_close($stmt);
+                    } else {
+                        $errors[] = "SKU $sku (Jewellery): Failed to prepare query: " . mysqli_error($db);
+                    }
                 } else {
-                    $errors[] = "SKU $sku: " . mysqli_stmt_error($jewelStmt);
+                    $success = true; // Nothing to change for Jewellery
                 }
             }
 
             if ($existsGarment) {
-                if (count($params) === 1) {
-                    mysqli_stmt_bind_param($garmentStmt, $bindTypes, $params[0], $sku);
-                } else {
-                    mysqli_stmt_bind_param($garmentStmt, $bindTypes, $params[0], $params[1], $sku);
+                $sets = [];
+                $params = [];
+                $types = "";
+
+                if ($priceSource !== 'no_change') {
+                    $sets[] = "price_source = ?";
+                    $params[] = $priceSource;
+                    $types .= "s";
+                }
+                if ($availability !== 'no_change') {
+                    $sets[] = "availability = ?";
+                    $params[] = $availability;
+                    $types .= "s";
+                }
+                if ($updateBrand) {
+                    $sets[] = "brand_name = ?";
+                    $params[] = $brandName;
+                    $types .= "s";
+                }
+                if ($updateCategory && $categoryType === 'garments') {
+                    $sets[] = "garment_id = ?";
+                    $params[] = $categoryId;
+                    $types .= "i";
+                    
+                    $sets[] = "product_for = ?";
+                    $params[] = $subCategoryId;
+                    $types .= "i";
                 }
 
-                if (mysqli_stmt_execute($garmentStmt)) {
-                    $success = true;
+                if (!empty($sets)) {
+                    $setString = implode(', ', $sets);
+                    $sql = "UPDATE garment_product SET $setString WHERE gproduct_code = ?";
+                    $stmt = mysqli_prepare($db, $sql);
+                    
+                    if ($stmt) {
+                        $bindParams = [];
+                        $bindTypes = $types . "s";
+                        $bindParams[] = &$bindTypes;
+                        for ($j = 0; $j < count($params); $j++) {
+                            $bindParams[] = &$params[$j];
+                        }
+                        $bindParams[] = &$sku;
+                        
+                        call_user_func_array([$stmt, 'bind_param'], $bindParams);
+                        
+                        if (mysqli_stmt_execute($stmt)) {
+                            $success = true;
+                        } else {
+                            $errors[] = "SKU $sku (Garments): " . mysqli_stmt_error($stmt);
+                        }
+                        mysqli_stmt_close($stmt);
+                    } else {
+                        $errors[] = "SKU $sku (Garments): Failed to prepare query: " . mysqli_error($db);
+                    }
                 } else {
-                    $errors[] = "SKU $sku: " . mysqli_stmt_error($garmentStmt);
+                    $success = true; // Nothing to change for Garments
                 }
             }
 
@@ -873,9 +948,6 @@ class ProductController extends Controller {
                 $updatedCount++;
             }
         }
-
-        mysqli_stmt_close($jewelStmt);
-        mysqli_stmt_close($garmentStmt);
 
         $this->json([
             'success' => true,

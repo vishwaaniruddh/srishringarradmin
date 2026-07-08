@@ -89,6 +89,56 @@
                                                 <option value="sell">Sell Only</option>
                                             </select>
                                         </div>
+
+                                        <!-- Brand Name Option -->
+                                        <div class="space-y-2 bg-gray-50/50 border border-gray-100 rounded-2xl p-5 md:col-span-2">
+                                            <div class="flex items-center justify-between mb-2">
+                                                <label class="block text-sm font-bold text-gray-700">3. Update Brand Name</label>
+                                                <label class="relative inline-flex items-center cursor-pointer">
+                                                    <input type="checkbox" id="updateBrandCheckbox" class="sr-only peer" onchange="toggleBrandInput(this.checked)">
+                                                    <div class="w-9 h-5 bg-gray-200 rounded-full peer peer-focus:outline-none peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-primary"></div>
+                                                    <span class="ml-2 text-xs font-semibold text-gray-500">Enable</span>
+                                                </label>
+                                            </div>
+                                            <p class="text-xs text-gray-400 mb-2">Check the toggle above to enable and write the new brand name for these products.</p>
+                                            <input type="text" id="brandNameInput" placeholder="Enter Brand Name (e.g. Deepmala, HER CLOSET)" disabled class="w-full bg-gray-100 border border-gray-200 rounded-xl p-3 text-sm focus:ring-primary focus:border-primary transition-all">
+                                        </div>
+
+                                        <!-- Category Option -->
+                                        <div class="space-y-2 bg-gray-50/50 border border-gray-100 rounded-2xl p-5 md:col-span-2">
+                                            <div class="flex items-center justify-between mb-2">
+                                                <label class="block text-sm font-bold text-gray-700">4. Update Category</label>
+                                                <label class="relative inline-flex items-center cursor-pointer">
+                                                    <input type="checkbox" id="updateCategoryCheckbox" class="sr-only peer" onchange="toggleCategoryInput(this.checked)">
+                                                    <div class="w-9 h-5 bg-gray-200 rounded-full peer peer-focus:outline-none peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-primary"></div>
+                                                    <span class="ml-2 text-xs font-semibold text-gray-500">Enable</span>
+                                                </label>
+                                            </div>
+                                            <p class="text-xs text-gray-400 mb-4">Choose the product type first, then choose the category and subcategory to assign.</p>
+                                            
+                                            <div id="categoryFieldsContainer" class="hidden grid grid-cols-1 md:grid-cols-3 gap-4 pt-2">
+                                                <div>
+                                                    <label class="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Product Type</label>
+                                                    <select id="categoryTypeSelect" onchange="loadCategoryDropdowns(this.value)" class="w-full bg-white border border-gray-200 rounded-xl p-3 text-sm focus:ring-primary focus:border-primary">
+                                                        <option value="">Select Type</option>
+                                                        <option value="jewellery">Jewellery</option>
+                                                        <option value="garments">Garments</option>
+                                                    </select>
+                                                </div>
+                                                <div>
+                                                    <label class="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Category</label>
+                                                    <select id="categorySelect" onchange="loadSubcategories(this.value)" class="w-full bg-white border border-gray-200 rounded-xl p-3 text-sm focus:ring-primary focus:border-primary" disabled>
+                                                        <option value="">Select Category</option>
+                                                    </select>
+                                                </div>
+                                                <div>
+                                                    <label class="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Subcategory</label>
+                                                    <select id="subcategorySelect" class="w-full bg-white border border-gray-200 rounded-xl p-3 text-sm focus:ring-primary focus:border-primary" disabled>
+                                                        <option value="">Select Subcategory</option>
+                                                    </select>
+                                                </div>
+                                            </div>
+                                        </div>
                                     </div>
 
                                     <div id="progressArea" class="hidden space-y-4 pt-4">
@@ -336,6 +386,8 @@
     <?php include __DIR__ . '/../partials/scripts.php'; ?>
 
     <script>
+    const jewelCategories = <?php echo json_encode($jewelCategories ?? []); ?>;
+    const garmentsCategories = <?php echo json_encode($garments ?? []); ?>;
     // TAB SWITCH LOGIC
     function switchTab(tab) {
         const propTab = document.getElementById('tab-properties');
@@ -514,6 +566,93 @@
         }
     }
 
+    // BRAND INPUT CONTROL
+    function toggleBrandInput(checked) {
+        const input = document.getElementById('brandNameInput');
+        input.disabled = !checked;
+        if (checked) {
+            input.classList.remove('bg-gray-100');
+            input.classList.add('bg-white');
+            input.focus();
+        } else {
+            input.classList.remove('bg-white');
+            input.classList.add('bg-gray-100');
+            input.value = '';
+        }
+    }
+
+    // CATEGORY INPUT CONTROL
+    function toggleCategoryInput(checked) {
+        const container = document.getElementById('categoryFieldsContainer');
+        if (checked) {
+            container.classList.remove('hidden');
+        } else {
+            container.classList.add('hidden');
+            document.getElementById('categoryTypeSelect').value = '';
+            resetCategoryDropdowns();
+        }
+    }
+
+    function resetCategoryDropdowns() {
+        const catSelect = document.getElementById('categorySelect');
+        const subcatSelect = document.getElementById('subcategorySelect');
+        catSelect.innerHTML = '<option value="">Select Category</option>';
+        catSelect.disabled = true;
+        subcatSelect.innerHTML = '<option value="">Select Subcategory</option>';
+        subcatSelect.disabled = true;
+    }
+
+    function loadCategoryDropdowns(type) {
+        resetCategoryDropdowns();
+        const catSelect = document.getElementById('categorySelect');
+        
+        if (!type) return;
+
+        catSelect.disabled = false;
+        if (type === 'jewellery') {
+            jewelCategories.forEach(cat => {
+                const opt = document.createElement('option');
+                opt.value = cat.subcat_id;
+                opt.textContent = cat.categories_name;
+                catSelect.appendChild(opt);
+            });
+        } else {
+            garmentsCategories.forEach(cat => {
+                const opt = document.createElement('option');
+                opt.value = cat.garment_id;
+                opt.textContent = cat.name;
+                catSelect.appendChild(opt);
+            });
+        }
+    }
+
+    async function loadSubcategories(categoryId) {
+        const subcatSelect = document.getElementById('subcategorySelect');
+        subcatSelect.innerHTML = '<option value="">Select Subcategory</option>';
+        subcatSelect.disabled = true;
+
+        if (!categoryId) return;
+
+        const type = document.getElementById('categoryTypeSelect').value;
+        
+        try {
+            const response = await fetch(`index.php?controller=product&action=getSubcategories&type=${type}&parent_id=${categoryId}`);
+            const data = await response.json();
+            
+            if (data && data.length > 0) {
+                subcatSelect.disabled = false;
+                data.forEach(sub => {
+                    const opt = document.createElement('option');
+                    opt.value = sub.subcat_id;
+                    opt.textContent = sub.name;
+                    subcatSelect.appendChild(opt);
+                });
+            }
+        } catch (err) {
+            console.error("Error loading subcategories:", err);
+        }
+    }
+
     // PROPERTIES BATCH UPDATE LOGIC
     async function handleBulkUpdate(e) {
         e.preventDefault();
@@ -522,13 +661,31 @@
         const priceSource = document.getElementById('priceSourceSelect').value;
         const availability = document.getElementById('availabilitySelect').value;
 
+        const updateBrand = document.getElementById('updateBrandCheckbox').checked;
+        const brandName = document.getElementById('brandNameInput').value.trim();
+        
+        const updateCategory = document.getElementById('updateCategoryCheckbox').checked;
+        const categoryType = document.getElementById('categoryTypeSelect').value;
+        const categoryId = document.getElementById('categorySelect').value;
+        const subcategoryId = document.getElementById('subcategorySelect').value;
+
         if (!skus) {
             alert('Please enter at least one SKU');
             return;
         }
 
-        if (priceSource === 'no_change' && availability === 'no_change') {
-            alert('Please select at least one action to perform (Pricing Logic or Availability)');
+        if (priceSource === 'no_change' && availability === 'no_change' && !updateBrand && !updateCategory) {
+            alert('Please select at least one setting to update.');
+            return;
+        }
+
+        if (updateBrand && !brandName) {
+            alert('Please enter a Brand Name.');
+            return;
+        }
+
+        if (updateCategory && (!categoryType || !categoryId)) {
+            alert('Please select a Product Type and Category.');
             return;
         }
 
@@ -555,7 +712,13 @@
                 body: JSON.stringify({
                     skus,
                     price_source: priceSource,
-                    availability
+                    availability,
+                    update_brand: updateBrand,
+                    brand_name: brandName,
+                    update_category: updateCategory,
+                    category_type: categoryType,
+                    category_id: categoryId,
+                    subcategory_id: subcategoryId
                 })
             });
 
