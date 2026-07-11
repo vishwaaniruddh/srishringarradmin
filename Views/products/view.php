@@ -16,24 +16,24 @@
             include __DIR__ . '/../partials/topbar.php'; 
             ?>
 
-            <main class="flex-1 overflow-y-auto p-8">
-                <div class="max-w-5xl mx-auto">
+            <main class="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8">
+                <div class="max-w-7xl mx-auto">
                     <!-- Header Actions -->
-                    <div class="flex justify-between items-center mb-8">
+                    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8">
                         <div class="flex items-center space-x-4">
-                            <a href="index.php?controller=product&action=index" class="w-10 h-10 bg-white rounded-xl shadow-sm border border-gray-100 flex items-center justify-center text-gray-400 hover:text-primary transition-all">
+                            <a href="index.php?controller=product&action=index" class="w-10 h-10 bg-white rounded-xl shadow-sm border border-gray-100 flex items-center justify-center text-gray-400 hover:text-primary transition-all shrink-0">
                                 <i class="fas fa-arrow-left"></i>
                             </a>
                             <div>
-                                <h1 class="text-2xl font-bold text-gray-800"><?php echo htmlspecialchars($product['name']); ?></h1>
-                                <p class="text-sm text-gray-400">SKU: <span class="font-semibold text-gray-600"><?php echo $product['code']; ?></span> • <?php echo ucfirst($type); ?></p>
+                                <h1 class="text-xl sm:text-2xl font-bold text-gray-800 leading-tight"><?php echo htmlspecialchars($product['name']); ?></h1>
+                                <p class="text-xs sm:text-sm text-gray-400 mt-1">SKU: <span class="font-semibold text-gray-600"><?php echo $product['code']; ?></span> • <?php echo ucfirst($type); ?></p>
                             </div>
                         </div>
-                        <div class="flex space-x-3">
-                            <a href="../../../product.php?id=<?php echo $product['id']; ?>&type=<?php echo $type; ?>" target="_blank" class="px-6 py-3 bg-white text-gray-700 rounded-xl text-sm font-semibold border border-gray-200 hover:bg-gray-50 transition-all flex items-center">
+                        <div class="flex flex-wrap gap-3 w-full sm:w-auto">
+                            <a href="../../../product.php?id=<?php echo $product['id']; ?>&type=<?php echo $type; ?>" target="_blank" class="flex-1 sm:flex-initial justify-center px-4 py-2.5 sm:px-6 sm:py-3 bg-white text-gray-700 rounded-xl text-xs sm:text-sm font-semibold border border-gray-200 hover:bg-gray-50 transition-all flex items-center">
                                 <i class="fas fa-external-link-alt mr-2"></i> Preview on Website
                             </a>
-                            <a href="index.php?controller=product&action=edit&id=<?php echo $product['id']; ?>&type=<?php echo $type; ?>" class="px-6 py-3 bg-primary text-white rounded-xl text-sm font-semibold shadow-lg shadow-primary/20 hover:opacity-90 transition-all flex items-center">
+                            <a href="index.php?controller=product&action=edit&id=<?php echo $product['id']; ?>&type=<?php echo $type; ?>" class="flex-1 sm:flex-initial justify-center px-4 py-2.5 sm:px-6 sm:py-3 bg-primary text-white rounded-xl text-xs sm:text-sm font-semibold shadow-lg shadow-primary/20 hover:opacity-90 transition-all flex items-center">
                                 <i class="fas fa-edit mr-2"></i> Edit Product
                             </a>
                         </div>
@@ -90,7 +90,7 @@
                         <!-- Right Column: Details -->
                         <div class="lg:col-span-2 space-y-8">
                             <!-- Pricing Card -->
-                            <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-8">
+                            <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 sm:p-8">
                                 <h3 class="text-sm font-bold text-gray-800 uppercase tracking-wider mb-6">Pricing Information</h3>
                                 <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
                                     <div class="p-6 bg-green-50 rounded-2xl border border-green-100">
@@ -109,7 +109,7 @@
                             </div>
 
                             <!-- Description -->
-                            <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-8">
+                            <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 sm:p-8">
                                 <h3 class="text-sm font-bold text-gray-800 uppercase tracking-wider mb-4">Product Description</h3>
                                 <div class="prose prose-sm max-w-none text-gray-600 leading-relaxed">
                                     <?php echo !empty($product['description']) ? nl2br(htmlspecialchars($product['description'])) : '<span class="italic text-gray-400">No description provided.</span>'; ?>
@@ -117,7 +117,7 @@
                             </div>
 
                             <!-- Details Grid -->
-                            <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-8">
+                            <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 sm:p-8">
                                 <h3 class="text-sm font-bold text-gray-800 uppercase tracking-wider mb-6">Specifications</h3>
                                 <div class="grid grid-cols-1 md:grid-cols-2 gap-y-6 gap-x-12">
                                     <div class="flex justify-between items-center py-3 border-b border-gray-50">
@@ -133,6 +133,14 @@
                                         <span class="text-sm font-semibold text-gray-700 capitalize"><?php echo $type; ?></span>
                                     </div>
                                     <div class="flex justify-between items-center py-3 border-b border-gray-50">
+                                        <span class="text-sm text-gray-400">Brand</span>
+                                        <span class="text-sm font-semibold text-gray-700"><?php echo htmlspecialchars($product['brand_name'] ?? 'N/A'); ?></span>
+                                    </div>
+                                    <div class="flex justify-between items-center py-3 border-b border-gray-50">
+                                        <span class="text-sm text-gray-400">Available Sizes</span>
+                                        <span class="text-sm font-semibold text-gray-700"><?php echo htmlspecialchars($product['size_avail'] ?? 'N/A'); ?></span>
+                                    </div>
+                                    <div class="flex justify-between items-center py-3 border-b border-gray-50">
                                         <span class="text-sm text-gray-400">Status</span>
                                         <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
                                             Active
@@ -144,14 +152,14 @@
                     </div>
 
                     <!-- AI Assistant Card (Full Width) -->
-                    <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-8 mt-8">
+                    <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 sm:p-8 mt-8">
                         <h3 class="text-sm font-bold text-zinc-800 uppercase tracking-wider mb-4 flex items-center">
                             <i class="fas fa-magic text-indigo-600 mr-2 animate-pulse"></i> AI Copywriter (Gemini)
                         </h3>
                         <p class="text-xs text-gray-400 mb-6">Analyze this product's photo using Google Gemini AI to generate names or descriptions.</p>
 
                         <div class="space-y-6">
-                            <div class="flex gap-4">
+                            <div class="flex flex-col sm:flex-row gap-4">
                                 <button onclick="aiGenerateNames()" id="aiNamesBtn" class="flex-1 flex items-center justify-center space-x-2 py-3.5 px-4 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 rounded-xl text-xs font-bold transition-all border border-indigo-100/50 cursor-pointer">
                                     <i class="fas fa-heading"></i>
                                     <span>Suggest Names</span>
