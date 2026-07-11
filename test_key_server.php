@@ -22,6 +22,15 @@ $server_ip = trim(curl_exec($ip_ch));
 curl_close($ip_ch);
 echo "Server Outgoing IP: " . $server_ip . "\n\n";
 
+// Get request headers sent to httpbin
+echo "--- Outgoing Headers (httpbin) ---\n";
+$hb_ch = curl_init('https://httpbin.org/headers');
+curl_setopt($hb_ch, CURLOPT_RETURNTRANSFER, true);
+curl_setopt($hb_ch, CURLOPT_SSL_VERIFYPEER, false);
+$hb_res = curl_exec($hb_ch);
+curl_close($hb_ch);
+echo $hb_res . "\n\n";
+
 $model = 'gemini-flash-latest';
 $endpoint = 'https://generativelanguage.googleapis.com/v1beta/models/' . $model . ':generateContent?key=' . $key;
 
