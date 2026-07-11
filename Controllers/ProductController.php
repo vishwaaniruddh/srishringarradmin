@@ -262,10 +262,10 @@ class ProductController extends Controller {
         $db = $productModel->getDbConnection();
 
         if ($type === 'jewellery') {
-            $column = ($field === 'name') ? 'product_name' : 'description';
+            $column = ($field === 'name') ? 'product_name' : 'product_desc';
             $sql = "UPDATE product SET $column = ? WHERE product_id = ?";
         } else {
-            $column = ($field === 'name') ? 'gproduct_name' : 'description';
+            $column = ($field === 'name') ? 'gproduct_name' : 'gproduct_desc';
             $sql = "UPDATE garment_product SET $column = ? WHERE gproduct_id = ?";
         }
 
