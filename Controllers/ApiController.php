@@ -30,13 +30,19 @@ class ApiController extends Controller {
         $category = isset($_GET['category']) ? $_GET['category'] : '';
         $featured = isset($_GET['featured']) ? $_GET['featured'] : '';
         $limit = isset($_GET['limit']) ? (int)$_GET['limit'] : 20;
+        $sortBy = isset($_GET['sort_by']) ? $_GET['sort_by'] : 'id';
+        $sortOrder = isset($_GET['sort_order']) ? $_GET['sort_order'] : 'desc';
+        $availableOnly = isset($_GET['available_only']) && ($_GET['available_only'] == 1 || $_GET['available_only'] == 'true');
         
         $params = [
             'page' => $page,
             'limit' => $limit,
             'search' => $search,
             'category' => $category,
-            'featured' => $featured
+            'featured' => $featured,
+            'sort_by' => $sortBy,
+            'sort_order' => $sortOrder,
+            'available_only' => $availableOnly
         ];
         
         $products = $productModel->getProducts($params);

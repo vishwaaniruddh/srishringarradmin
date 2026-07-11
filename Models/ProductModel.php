@@ -28,6 +28,25 @@ class ProductModel extends Model {
             $garments_search .= " AND featured = $featured";
         }
 
+        $available_only = $params['available_only'] ?? false;
+        if ($available_only) {
+            $available_skus = [];
+            $res = $this->query($this->db3, "SELECT name FROM phppos_items WHERE quantity > 0");
+            while ($row = $this->fetchOne($res)) {
+                if (!empty($row['name'])) {
+                    $available_skus[] = mysqli_real_escape_string($this->db, $row['name']);
+                }
+            }
+            if (!empty($available_skus)) {
+                $sku_list = "'" . implode("','", $available_skus) . "'";
+                $jewellery_search .= " AND product_code IN ($sku_list)";
+                $garments_search .= " AND gproduct_code IN ($sku_list)";
+            } else {
+                $jewellery_search .= " AND 1=0";
+                $garments_search .= " AND 1=0";
+            }
+        }
+
         if (!empty($category_param)) {
             if (strpos($category_param, ':') !== false) {
                 list($type, $id) = explode(':', $category_param);
@@ -44,6 +63,26 @@ class ProductModel extends Model {
                     $garments_search .= " AND 1=0";
                 }
             }
+        }
+
+        $allowed_sort_by = [
+            'id' => 'id',
+            'name' => 'name',
+            'code' => 'code',
+            'rent_price' => 'db_rent_price',
+            'sales_price' => 'original_sales_price',
+            'featured' => 'featured'
+        ];
+        $sort_by = $params['sort_by'] ?? 'id';
+        $sort_order = strtoupper($params['sort_order'] ?? 'DESC');
+        
+        $order_clause = "id DESC";
+        if (array_key_exists($sort_by, $allowed_sort_by)) {
+            $column = $allowed_sort_by[$sort_by];
+            if ($sort_order !== 'ASC' && $sort_order !== 'DESC') {
+                $sort_order = 'DESC';
+            }
+            $order_clause = "$column $sort_order";
         }
 
         $query = "
@@ -80,7 +119,7 @@ class ProductModel extends Model {
                 availability
             FROM garment_product 
             WHERE 1=1 $garments_search)
-            ORDER BY id DESC 
+            ORDER BY $order_clause 
             LIMIT $offset, $records_per_page";
 
         $result = $this->query($this->db, $query);
@@ -114,6 +153,25 @@ class ProductModel extends Model {
             $featured = (int)$featured;
             $jewellery_search .= " AND featured = $featured";
             $garments_search .= " AND featured = $featured";
+        }
+
+        $available_only = $params['available_only'] ?? false;
+        if ($available_only) {
+            $available_skus = [];
+            $res = $this->query($this->db3, "SELECT name FROM phppos_items WHERE quantity > 0");
+            while ($row = $this->fetchOne($res)) {
+                if (!empty($row['name'])) {
+                    $available_skus[] = mysqli_real_escape_string($this->db, $row['name']);
+                }
+            }
+            if (!empty($available_skus)) {
+                $sku_list = "'" . implode("','", $available_skus) . "'";
+                $jewellery_search .= " AND product_code IN ($sku_list)";
+                $garments_search .= " AND gproduct_code IN ($sku_list)";
+            } else {
+                $jewellery_search .= " AND 1=0";
+                $garments_search .= " AND 1=0";
+            }
         }
 
         if (!empty($category_param)) {
@@ -563,7 +621,7 @@ class ProductModel extends Model {
         if ($type === 'jewellery') {
             $sql = "SELECT p.product_id as id, p.product_code as code, p.product_name as name, p.product_desc as description, 
                            p.categories_id as category, p.subcat_id as sub_category, p.sales_price as s_price, 
-                           p.rent_price as rental_price, p.deposit, p.discount, p.featured, p.price_source, p.availability, p.brand_name,
+                           p.rent_price as rental_price, p.deposit, p.discount, p.featured, p.price_source, p.availability, p.brand_name, p.size_avail,
                            c.categories_name as category_name, s.name as subcategory_name
                      FROM product p
                      LEFT JOIN jewel_subcat c ON p.categories_id = c.subcat_id
@@ -572,7 +630,7 @@ class ProductModel extends Model {
         } else {
             $sql = "SELECT p.gproduct_id as id, p.gproduct_code as code, p.gproduct_name as name, p.gproduct_desc as description, 
                            p.garment_id as category, p.product_for as sub_category, p.sales_price as s_price, 
-                           p.rent_price as rental_price, p.deposit, p.discount, p.featured, p.price_source, p.availability, p.brand_name,
+                           p.rent_price as rental_price, p.deposit, p.discount, p.featured, p.price_source, p.availability, p.brand_name, p.size_avail,
                            c.name as category_name, s.name as subcategory_name
                      FROM garment_product p
                      LEFT JOIN garments c ON p.garment_id = c.garment_id
@@ -620,6 +678,8 @@ class ProductModel extends Model {
             $price = (float)($data['s_price'] ?? 0);
             $rent = (float)($data['rental_price'] ?? 0);
             $dep = (float)($data['deposit'] ?? 0);
+            $size_avail = $data['size_avail'] ?? '';
+            $brand_name = $data['brand_name'] ?? '';
 
             if ($type === 'jewellery') {
                 $sql = "UPDATE product SET 
@@ -632,11 +692,13 @@ class ProductModel extends Model {
                     deposit = ?,
                     featured = ?,
                     price_source = ?,
-                    availability = ?
+                    availability = ?,
+                    size_avail = ?,
+                    brand_name = ?
                     WHERE product_id = ?";
                 $stmt = mysqli_prepare($this->db, $sql);
                 if (!$stmt) throw new \Exception(mysqli_error($this->db));
-                mysqli_stmt_bind_param($stmt, "ssiidddissi", $name, $desc, $cat, $sub, $price, $rent, $dep, $featured, $priceSource, $availability, $id);
+                mysqli_stmt_bind_param($stmt, "ssiidddissssi", $name, $desc, $cat, $sub, $price, $rent, $dep, $featured, $priceSource, $availability, $size_avail, $brand_name, $id);
                 if (!mysqli_stmt_execute($stmt)) throw new \Exception(mysqli_error($this->db));
                 mysqli_stmt_close($stmt);
             } else {
@@ -650,11 +712,13 @@ class ProductModel extends Model {
                     deposit = ?,
                     featured = ?,
                     price_source = ?,
-                    availability = ?
+                    availability = ?,
+                    size_avail = ?,
+                    brand_name = ?
                     WHERE gproduct_id = ?";
                 $stmt = mysqli_prepare($this->db, $sql);
                 if (!$stmt) throw new \Exception(mysqli_error($this->db));
-                mysqli_stmt_bind_param($stmt, "ssiidddissi", $name, $desc, $cat, $cat, $price, $rent, $dep, $featured, $priceSource, $availability, $id);
+                mysqli_stmt_bind_param($stmt, "ssiidddissssi", $name, $desc, $cat, $cat, $price, $rent, $dep, $featured, $priceSource, $availability, $size_avail, $brand_name, $id);
                 if (!mysqli_stmt_execute($stmt)) throw new \Exception(mysqli_error($this->db));
                 mysqli_stmt_close($stmt);
             }

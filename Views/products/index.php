@@ -27,7 +27,7 @@
                             <input type="hidden" name="controller" value="product">
                             <input type="hidden" name="action" value="index">
                             
-                            <div class="lg:col-span-3">
+                            <div class="lg:col-span-2">
                                 <select name="category" id="categoryFilter" class="w-full bg-black border border-zinc-800 text-white text-xs rounded-lg focus:ring-1 focus:ring-zinc-700 focus:border-zinc-700 block py-2 px-3">
                                     <option value="">All Categories</option>
                                     <?php foreach ($categories as $parent => $data): ?>
@@ -49,6 +49,21 @@
                                     <option value="0">Non-Featured</option>
                                 </select>
                             </div>
+
+                            <div class="lg:col-span-2">
+                                <select name="sort" id="sortFilter" class="w-full bg-black border border-zinc-800 text-white text-xs rounded-lg focus:ring-1 focus:ring-zinc-700 focus:border-zinc-700 block py-2 px-3">
+                                    <option value="id_desc">Newest First</option>
+                                    <option value="id_asc">Oldest First</option>
+                                    <option value="name_asc">Name (A-Z)</option>
+                                    <option value="name_desc">Name (Z-A)</option>
+                                    <option value="code_asc">Code (A-Z)</option>
+                                    <option value="code_desc">Code (Z-A)</option>
+                                    <option value="rent_price_asc">Rent Price (Low to High)</option>
+                                    <option value="rent_price_desc">Rent Price (High to Low)</option>
+                                    <option value="sales_price_asc">Sale Price (Low to High)</option>
+                                    <option value="sales_price_desc">Sale Price (High to Low)</option>
+                                </select>
+                            </div>
                             
                             <div class="lg:col-span-2">
                                 <div class="relative">
@@ -59,7 +74,7 @@
                                 </div>
                             </div>
                             
-                            <div class="lg:col-span-5 flex flex-wrap gap-2 justify-start lg:justify-end">
+                            <div class="lg:col-span-4 flex flex-wrap gap-2 justify-start lg:justify-end">
                                 <button type="button" onclick="loadProducts(1)" class="bg-zinc-900 border border-zinc-800 text-white hover:bg-zinc-800 rounded-lg px-4 py-2 text-xs font-semibold transition-all flex items-center justify-center cursor-pointer">
                                     <i class="fas fa-search mr-1.5 text-zinc-400"></i> Find
                                 </button>
@@ -69,6 +84,9 @@
                                 <a href="javascript:void(0)" onclick="exportProducts()" class="bg-zinc-900 border border-zinc-800 text-white hover:bg-zinc-800 rounded-lg px-4 py-2 text-xs font-semibold transition-all flex items-center justify-center cursor-pointer">
                                     <i class="fas fa-file-export mr-1.5 text-zinc-400"></i> Export
                                 </a>
+                                <button type="button" id="availableToggle" onclick="toggleAvailableOnly()" class="bg-zinc-900 border border-zinc-800 text-zinc-400 hover:text-white hover:bg-zinc-800 rounded-lg px-4 py-2 text-xs font-semibold transition-all flex items-center justify-center cursor-pointer">
+                                    <i class="fas fa-check-circle mr-1.5 text-zinc-500" id="availableIcon"></i> Available Only
+                                </button>
                                 <a href="index.php?controller=product&action=add" class="bg-white border border-white text-black hover:bg-black hover:text-white hover:border-zinc-800 rounded-lg px-4 py-2 text-xs font-semibold transition-all flex items-center justify-center cursor-pointer">
                                     <i class="fas fa-plus mr-1.5"></i> Add Product
                                 </a>
@@ -120,11 +138,40 @@
 
     <script>
     let currentPage = 1;
+    let availableOnly = false;
+
+    function toggleAvailableOnly() {
+        availableOnly = !availableOnly;
+        const btn = document.getElementById('availableToggle');
+        const icon = document.getElementById('availableIcon');
+        
+        if (availableOnly) {
+            btn.classList.remove('bg-zinc-900', 'border-zinc-800', 'text-zinc-400', 'hover:bg-zinc-800');
+            btn.classList.add('bg-emerald-600', 'border-emerald-600', 'text-white', 'hover:bg-emerald-500');
+            icon.classList.remove('text-zinc-500');
+            icon.classList.add('text-white');
+        } else {
+            btn.classList.remove('bg-emerald-600', 'border-emerald-600', 'text-white', 'hover:bg-emerald-500');
+            btn.classList.add('bg-zinc-900', 'border-zinc-800', 'text-zinc-400', 'hover:bg-zinc-800');
+            icon.classList.remove('text-white');
+            icon.classList.add('text-zinc-500');
+        }
+        
+        loadProducts(1);
+    }
 
     function exportProducts() {
         const search = document.getElementById('searchInput').value;
         const category = document.getElementById('categoryFilter').value;
-        window.location.href = `index.php?controller=product&action=export&search=${encodeURIComponent(search)}&category=${encodeURIComponent(category)}`;
+        const sortVal = document.getElementById('sortFilter').value;
+        let sortBy = 'id';
+        let sortOrder = 'desc';
+        if (sortVal) {
+            const parts = sortVal.split('_');
+            sortOrder = parts.pop();
+            sortBy = parts.join('_');
+        }
+        window.location.href = `index.php?controller=product&action=export&search=${encodeURIComponent(search)}&category=${encodeURIComponent(category)}&sort_by=${sortBy}&sort_order=${sortOrder}&available_only=${availableOnly ? 1 : 0}`;
     }
 
     async function loadProducts(page = 1) {
@@ -132,6 +179,16 @@
         const search = document.getElementById('searchInput').value;
         const category = document.getElementById('categoryFilter').value;
         const featured = document.getElementById('featuredFilter').value;
+        const sortVal = document.getElementById('sortFilter').value;
+        
+        let sortBy = 'id';
+        let sortOrder = 'desc';
+        if (sortVal) {
+            const parts = sortVal.split('_');
+            sortOrder = parts.pop();
+            sortBy = parts.join('_');
+        }
+        
         const tbody = document.getElementById('products-body');
         const pagination = document.getElementById('pagination-container');
 
@@ -147,7 +204,7 @@
         `;
 
         try {
-            const response = await fetch(`index.php?controller=api&action=products&page=${page}&search=${encodeURIComponent(search)}&category=${encodeURIComponent(category)}&featured=${featured}`);
+            const response = await fetch(`index.php?controller=api&action=products&page=${page}&search=${encodeURIComponent(search)}&category=${encodeURIComponent(category)}&featured=${featured}&sort_by=${sortBy}&sort_order=${sortOrder}&available_only=${availableOnly ? 1 : 0}`);
             const data = await response.json();
 
             if (!data.products || data.products.length === 0) {
@@ -327,6 +384,8 @@
         
         // Add event listeners for filters
         document.getElementById('categoryFilter').addEventListener('change', () => loadProducts(1));
+        document.getElementById('featuredFilter').addEventListener('change', () => loadProducts(1));
+        document.getElementById('sortFilter').addEventListener('change', () => loadProducts(1));
         
         let searchTimeout;
         document.getElementById('searchInput').addEventListener('input', () => {

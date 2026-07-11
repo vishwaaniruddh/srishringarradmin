@@ -261,4 +261,52 @@ class ReportController extends Controller {
         }
         exit;
     }
+
+    public function activityLogs() {
+        $con = Database::getConnection('con');
+        if (!$con) {
+            die("Database connection failed");
+        }
+
+        $page = isset($_GET['page']) ? (int)$_GET['page'] : 1;
+        if ($page < 1) $page = 1;
+        $limit = 20;
+        $offset = ($page - 1) * $limit;
+
+        $search = isset($_GET['search']) ? trim($_GET['search']) : '';
+        $where_clauses = [];
+
+        if (!empty($search)) {
+            $search_safe = mysqli_real_escape_string($con, $search);
+            $where_clauses[] = "(admin_username LIKE '%$search_safe%' 
+                OR controller LIKE '%$search_safe%' 
+                OR action LIKE '%$search_safe%' 
+                OR ip_address LIKE '%$search_safe%' 
+                OR request_method LIKE '%$search_safe%' 
+                OR get_params LIKE '%$search_safe%' 
+                OR post_params LIKE '%$search_safe%')";
+        }
+
+        $where = !empty($where_clauses) ? 'WHERE ' . implode(' AND ', $where_clauses) : '';
+
+        // Fetch Total
+        $count_res = mysqli_query($con, "SELECT COUNT(*) as cnt FROM admin_activity_logs $where");
+        $total = mysqli_fetch_assoc($count_res)['cnt'] ?? 0;
+
+        // Fetch Logs
+        $query = "SELECT * FROM admin_activity_logs $where ORDER BY id DESC LIMIT $offset, $limit";
+        $res = mysqli_query($con, $query);
+        $logs = [];
+        while ($row = mysqli_fetch_assoc($res)) {
+            $logs[] = $row;
+        }
+
+        $this->view('reports/activity_logs', [
+            'logs' => $logs,
+            'total' => $total,
+            'page' => $page,
+            'totalPages' => ceil($total / $limit),
+            'search' => $search
+        ]);
+    }
 }

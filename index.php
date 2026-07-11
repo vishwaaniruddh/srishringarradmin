@@ -35,6 +35,9 @@ if (!in_array($controllerName, $publicControllers)) {
     }
 }
 
+// Track administrative activity
+\Core\ActivityTracker::log();
+
 $controllerClass = "Controllers\\" . $controllerName . "Controller";
 
 if (class_exists($controllerClass)) {

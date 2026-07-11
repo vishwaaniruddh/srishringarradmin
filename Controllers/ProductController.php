@@ -510,6 +510,27 @@ class ProductController extends Controller {
         // Get filters from URL
         $search = $_GET['search'] ?? '';
         $category_param = $_GET['category'] ?? '';
+        $sortBy = $_GET['sort_by'] ?? 'id';
+        $sortOrder = strtoupper($_GET['sort_order'] ?? 'DESC');
+        $availableOnly = isset($_GET['available_only']) && ($_GET['available_only'] == 1 || $_GET['available_only'] == 'true');
+
+        $allowed_sort_by = [
+            'id' => 'id',
+            'name' => 'name',
+            'code' => 'code',
+            'rent_price' => 'db_rent_price',
+            'sales_price' => 'original_sales_price',
+            'featured' => 'featured'
+        ];
+        
+        $order_clause = "id DESC";
+        if (array_key_exists($sortBy, $allowed_sort_by)) {
+            $column = $allowed_sort_by[$sortBy];
+            if ($sortOrder !== 'ASC' && $sortOrder !== 'DESC') {
+                $sortOrder = 'DESC';
+            }
+            $order_clause = "$column $sortOrder";
+        }
 
         $jewellery_search = '';
         $garments_search = '';
@@ -537,11 +558,30 @@ class ProductController extends Controller {
                 }
             }
         }
-
-        $query = "(SELECT product_id as id, product_code as code, 'jewellery' as type FROM product WHERE 1=1 $jewellery_search)
+        if ($availableOnly) {
+            $available_skus = [];
+            $db3 = \Core\Database::getConnection('con3');
+            if ($db3) {
+                $res = mysqli_query($db3, "SELECT name FROM phppos_items WHERE quantity > 0");
+                while ($row = mysqli_fetch_assoc($res)) {
+                    if (!empty($row['name'])) {
+                        $available_skus[] = mysqli_real_escape_string($db, $row['name']);
+                    }
+                }
+            }
+            if (!empty($available_skus)) {
+                $sku_list = "'" . implode("','", $available_skus) . "'";
+                $jewellery_search .= " AND product_code IN ($sku_list)";
+                $garments_search .= " AND gproduct_code IN ($sku_list)";
+            } else {
+                $jewellery_search .= " AND 1=0";
+                $garments_search .= " AND 1=0";
+            }
+        }
+        $query = "(SELECT product_id as id, product_code as code, 'jewellery' as type, product_name as name, rent_price as db_rent_price, sales_price as original_sales_price, featured FROM product WHERE 1=1 $jewellery_search)
                   UNION ALL
-                  (SELECT gproduct_id as id, gproduct_code as code, 'garments' as type FROM garment_product WHERE 1=1 $garments_search)
-                  ORDER BY id DESC";
+                  (SELECT gproduct_id as id, gproduct_code as code, 'garments' as type, gproduct_name as name, rent_price as db_rent_price, sales_price as original_sales_price, featured FROM garment_product WHERE 1=1 $garments_search)
+                  ORDER BY $order_clause";
                   
         $result = $productModel->query($db, $query);
         

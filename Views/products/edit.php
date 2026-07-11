@@ -97,6 +97,14 @@
                                                     <!-- Will be populated by JS on load if needed, but let's pre-populate for edit -->
                                                 </select>
                                             </div>
+                                            <div>
+                                                <label class="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Size</label>
+                                                <input type="text" name="size_avail" value="<?php echo htmlspecialchars($product['size_avail'] ?? ''); ?>" class="w-full bg-gray-50 border border-gray-200 rounded-xl p-3 text-sm focus:ring-primary focus:border-primary" placeholder="e.g. 5, 6, 7, 8 (or custom size)">
+                                            </div>
+                                            <div>
+                                                <label class="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Brand</label>
+                                                <input type="text" name="brand_name" value="<?php echo htmlspecialchars($product['brand_name'] ?? ''); ?>" class="w-full bg-gray-50 border border-gray-200 rounded-xl p-3 text-sm focus:ring-primary focus:border-primary" placeholder="e.g. Brand Name">
+                                            </div>
                                         </div>
                                         <?php else: ?>
                                         <div id="garment_cats" class="md:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -116,6 +124,14 @@
                                                 <select name="sub_category" id="garment_subcat" class="w-full bg-gray-50 border border-gray-200 rounded-xl p-3 text-sm focus:ring-primary focus:border-primary">
                                                     <option value="">Select Subcategory</option>
                                                 </select>
+                                            </div>
+                                            <div>
+                                                <label class="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Size</label>
+                                                <input type="text" name="size_avail" value="<?php echo htmlspecialchars($product['size_avail'] ?? ''); ?>" class="w-full bg-gray-50 border border-gray-200 rounded-xl p-3 text-sm focus:ring-primary focus:border-primary" placeholder="e.g. S, M, L, XL, 38, 40, 42">
+                                            </div>
+                                            <div>
+                                                <label class="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Brand</label>
+                                                <input type="text" name="brand_name" value="<?php echo htmlspecialchars($product['brand_name'] ?? ''); ?>" class="w-full bg-gray-50 border border-gray-200 rounded-xl p-3 text-sm focus:ring-primary focus:border-primary" placeholder="e.g. Brand Name">
                                             </div>
                                         </div>
                                         <?php endif; ?>

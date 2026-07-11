@@ -126,6 +126,10 @@ function isActive($controller, $action = null) {
                 <span class="material-symbols-outlined w-5 mr-2 text-[18px]">smart_toy</span>
                 <span>AI Chatbot</span>
             </a>
+            <a href="index.php?controller=report&action=activityLogs" class="flex items-center px-3 py-2 text-xs font-semibold rounded-lg transition-all <?php echo isActive('report', 'activityLogs') ? 'text-white bg-zinc-900' : 'text-zinc-400 hover:text-white hover:bg-zinc-900/50'; ?>">
+                <i class="fas fa-history w-5 mr-2 text-zinc-400"></i>
+                <span>Activity Logs</span>
+            </a>
             
             <div class="pt-2 mt-2 border-t border-zinc-800/50">
                 <a href="index.php?controller=auth&action=logout" class="flex items-center px-3 py-2 text-xs font-semibold rounded-lg transition-all text-zinc-500 hover:text-red-500 hover:bg-red-500/10">
