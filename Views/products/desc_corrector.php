@@ -26,7 +26,7 @@
                         </div>
                         <?php if (!empty($products)): ?>
                             <button onclick="bulkCorrectAll()" id="bulkBtn" style="background-color: #ffffff !important; color: #000000 !important; border: 1px solid #ffffff !important;" class="px-5 py-2.5 rounded-lg text-xs font-semibold hover:opacity-90 transition-all flex items-center shadow-md">
-                                <i class="fas fa-magic mr-1.5"></i> Bulk Correct All (<span id="total-count"><?php echo count($products); ?></span>)
+                                <i class="fas fa-magic mr-1.5"></i> Bulk Correct (Max 50)
                             </button>
                         <?php endif; ?>
                     </div>
@@ -163,7 +163,7 @@
             bulkBtn.disabled = true;
             bulkBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-1.5"></i> Correcting...';
 
-            const rows = document.querySelectorAll('[id^="row-"]');
+            const rows = Array.from(document.querySelectorAll('[id^="row-"]')).slice(0, 50);
             for (let row of rows) {
                 const idParts = row.id.split('-');
                 const type = idParts[1];

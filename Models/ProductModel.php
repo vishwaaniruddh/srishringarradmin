@@ -1071,7 +1071,7 @@ class ProductModel extends Model
             $products[] = $row;
         }
         
-        return $products;
+        return array_slice($products, 0, 50);
     }
 }
 
