@@ -337,7 +337,7 @@ class ProductModel extends Model
             // Image
             $img_field = ($type == 'jewellery') ? "product_id" : "gproduct_id";
             $pid = $product['id'];
-            $img_query = "SELECT img_name FROM product_images_new WHERE $img_field = '$pid' ORDER BY rank LIMIT 1";
+            $img_query = "SELECT img_name FROM product_images_new WHERE pro_code = '$sku' AND $img_field = '$pid' ORDER BY rank LIMIT 1";
             $img_result = $this->query($this->db, $img_query);
             $img_row = $this->fetchOne($img_result);
 
@@ -463,7 +463,7 @@ class ProductModel extends Model
         // Image
         $img_field = ($type == 'jewellery') ? "product_id" : "gproduct_id";
         $pid = $product['id'];
-        $img_query = "SELECT img_name FROM product_images_new WHERE $img_field = '$pid' ORDER BY rank LIMIT 1";
+        $img_query = "SELECT img_name FROM product_images_new WHERE pro_code = '$sku' AND $img_field = '$pid' ORDER BY rank LIMIT 1";
         $img_result = $this->query($this->db, $img_query);
         $img_row = $this->fetchOne($img_result);
 
