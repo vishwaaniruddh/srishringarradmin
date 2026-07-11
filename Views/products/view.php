@@ -17,132 +17,115 @@
             ?>
 
             <main class="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8">
-                <div class="max-w-7xl mx-auto">
-                    <!-- Header Actions -->
-                    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8">
-                        <div class="flex items-center space-x-4">
-                            <a href="index.php?controller=product&action=index" class="w-10 h-10 bg-white rounded-xl shadow-sm border border-gray-100 flex items-center justify-center text-gray-400 hover:text-primary transition-all shrink-0">
-                                <i class="fas fa-arrow-left"></i>
+                <div class="max-w-5xl mx-auto">
+                    <!-- Top Minimal Header -->
+                    <div class="flex items-center justify-between mb-8 pb-4 border-b border-zinc-900">
+                        <div class="flex items-center space-x-3">
+                            <a href="index.php?controller=product&action=index" class="w-8 h-8 bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 rounded-lg flex items-center justify-center text-zinc-400 hover:text-white transition-all">
+                                <i class="fas fa-arrow-left text-xs"></i>
                             </a>
-                            <div>
-                                <h1 class="text-xl sm:text-2xl font-bold text-gray-800 leading-tight"><?php echo htmlspecialchars($product['name']); ?></h1>
-                                <p class="text-xs sm:text-sm text-gray-400 mt-1">SKU: <span class="font-semibold text-gray-600"><?php echo $product['code']; ?></span> • <?php echo ucfirst($type); ?></p>
-                            </div>
+                            <span class="text-xs text-zinc-500 hidden sm:inline">Back to Products</span>
                         </div>
-                        <div class="flex flex-wrap gap-3 w-full sm:w-auto">
-                            <a href="../../../product.php?id=<?php echo $product['id']; ?>&type=<?php echo $type; ?>" target="_blank" class="flex-1 sm:flex-initial justify-center px-4 py-2.5 sm:px-6 sm:py-3 bg-white text-gray-700 rounded-xl text-xs sm:text-sm font-semibold border border-gray-200 hover:bg-gray-50 transition-all flex items-center">
-                                <i class="fas fa-external-link-alt mr-2"></i> Preview on Website
+                        <div class="flex space-x-2">
+                            <a href="../../../product.php?id=<?php echo $product['id']; ?>&type=<?php echo $type; ?>" target="_blank" style="background-color: #18181b !important; color: #d4d4d8 !important; border: 1px solid #27272a !important;" class="px-4 py-1.5 rounded-lg text-xs font-medium hover:bg-zinc-800 transition-all flex items-center">
+                                <i class="fas fa-external-link-alt mr-1.5 text-[10px]"></i> Preview
                             </a>
-                            <a href="index.php?controller=product&action=edit&id=<?php echo $product['id']; ?>&type=<?php echo $type; ?>" class="flex-1 sm:flex-initial justify-center px-4 py-2.5 sm:px-6 sm:py-3 bg-primary text-white rounded-xl text-xs sm:text-sm font-semibold shadow-lg shadow-primary/20 hover:opacity-90 transition-all flex items-center">
-                                <i class="fas fa-edit mr-2"></i> Edit Product
+                            <a href="index.php?controller=product&action=edit&id=<?php echo $product['id']; ?>&type=<?php echo $type; ?>" style="background-color: #ffffff !important; color: #000000 !important; border: 1px solid #ffffff !important;" class="px-4 py-1.5 rounded-lg text-xs font-semibold hover:opacity-90 transition-all flex items-center">
+                                <i class="fas fa-edit mr-1.5 text-[10px]"></i> Edit
                             </a>
                         </div>
                     </div>
 
-                    <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                        <!-- Left Column: Images -->
-                        <div class="lg:col-span-1 space-y-6">
-                            <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-                                <div class="p-2">
-                                     <div class="aspect-[2/3] rounded-xl overflow-hidden bg-gray-100 relative group">
-                                         <!-- Blurred Background -->
-                                         <img src="<?php echo !empty($images) ? 'https://srishringarr.com/yn/uploads' . $images[0]['img_name'] : 'assets/default-product.jpg'; ?>" 
-                                              class="absolute inset-0 w-full h-full object-cover filter blur-md opacity-30 scale-105 pointer-events-none" alt="">
-                                         <!-- Main Contain Image -->
-                                         <img id="main-image" src="<?php echo !empty($images) ? 'https://srishringarr.com/yn/uploads' . $images[0]['img_name'] : 'assets/default-product.jpg'; ?>" 
-                                              class="relative w-full h-full object-contain z-10 transition-transform duration-500" alt="Product Image">
-                                        <?php if($product['featured']): ?>
-                                            <div class="absolute top-4 right-4 bg-yellow-400 text-white px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider shadow-md">
-                                                <i class="fas fa-star mr-1"></i> Featured
-                                            </div>
-                                        <?php endif; ?>
-                                    </div>
+                    <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
+                        <!-- Left Column: Product Image -->
+                        <div class="lg:col-span-5 space-y-4">
+                            <div class="bg-zinc-950 border border-zinc-900 rounded-xl p-3 flex flex-col items-center">
+                                <div class="w-full aspect-square bg-zinc-900/20 rounded-lg overflow-hidden flex items-center justify-center relative p-4 border border-zinc-900/60">
+                                    <img id="main-image" src="<?php echo !empty($images) ? 'https://srishringarr.com/yn/uploads' . $images[0]['img_name'] : 'assets/default-product.jpg'; ?>" 
+                                         class="max-h-[280px] w-auto object-contain transition-all duration-300" alt="Product Image">
+                                    <?php if($product['featured']): ?>
+                                        <div class="absolute top-3 right-3 bg-yellow-500/10 text-yellow-500 border border-yellow-500/20 px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider">
+                                            <i class="fas fa-star mr-0.5"></i> Featured
+                                        </div>
+                                    <?php endif; ?>
                                 </div>
                                 <?php if(count($images) > 1): ?>
-                                    <div class="p-4 grid grid-cols-4 gap-2 border-t border-gray-50">
+                                    <div class="w-full grid grid-cols-4 gap-2 mt-3 pt-3 border-t border-zinc-900">
                                         <?php foreach($images as $img): ?>
-                                            <button onclick="changeMainImage('https://srishringarr.com/yn/uploads<?php echo $img['img_name']; ?>')" class="aspect-square rounded-lg overflow-hidden border-2 border-transparent hover:border-primary transition-all">
-                                                <img src="https://srishringarr.com/yn/uploads<?php echo $img['img_name']; ?>" class="w-full h-full object-cover" alt="Thumbnail">
+                                            <button onclick="changeMainImage('https://srishringarr.com/yn/uploads<?php echo $img['img_name']; ?>')" class="aspect-square rounded-lg overflow-hidden border border-zinc-900 hover:border-zinc-700 transition-all bg-zinc-900/40 p-1">
+                                                <img src="https://srishringarr.com/yn/uploads<?php echo $img['img_name']; ?>" class="w-full h-full object-contain rounded-md" alt="Thumbnail">
                                             </button>
                                         <?php endforeach; ?>
                                     </div>
                                 <?php endif; ?>
                             </div>
+                        </div>
 
-                            <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
-                                <h3 class="text-sm font-bold text-gray-800 uppercase tracking-wider mb-4">Inventory Status</h3>
-                                <div class="flex items-center justify-between p-4 bg-gray-50 rounded-xl">
-                                    <div class="flex items-center">
-                                        <div class="w-10 h-10 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center mr-3">
-                                            <i class="fas fa-boxes"></i>
-                                        </div>
-                                        <span class="text-sm font-medium text-gray-600">Stock Quantity</span>
-                                    </div>
-                                    <span class="text-lg font-bold <?php echo ($product['quantity'] ?? 0) > 0 ? 'text-gray-800' : 'text-red-500'; ?>">
-                                        <?php echo $product['quantity'] ?? 0; ?> Units
-                                    </span>
+                        <!-- Right Column: Product Info -->
+                        <div class="lg:col-span-7 space-y-6">
+                            <!-- Product Title & SKU -->
+                            <div>
+                                <h1 id="product-title" class="text-xl sm:text-2xl font-bold text-white tracking-tight leading-snug"><?php echo htmlspecialchars($product['name']); ?></h1>
+                                <div class="flex items-center space-x-2 mt-2">
+                                    <span class="text-xs text-zinc-500 font-mono">SKU: <?php echo $product['code']; ?></span>
+                                    <span class="text-zinc-700">•</span>
+                                    <span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-semibold bg-zinc-900 text-zinc-400 border border-zinc-850 capitalize"><?php echo $type; ?></span>
                                 </div>
                             </div>
 
-
-                        </div>
-
-                        <!-- Right Column: Details -->
-                        <div class="lg:col-span-2 space-y-8">
-                            <!-- Pricing Card -->
-                            <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 sm:p-8">
-                                <h3 class="text-sm font-bold text-gray-800 uppercase tracking-wider mb-6">Pricing Information</h3>
-                                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-                                    <div class="p-6 bg-green-50 rounded-2xl border border-green-100">
-                                        <p class="text-[10px] font-bold text-green-600 uppercase tracking-widest mb-1">Sales Price</p>
-                                        <p class="text-2xl font-bold text-green-700">₹<?php echo number_format($product['s_price'], 2); ?></p>
-                                    </div>
-                                    <div class="p-6 bg-primary/5 rounded-2xl border border-primary/10">
-                                        <p class="text-[10px] font-bold text-primary uppercase tracking-widest mb-1">Rental Price</p>
-                                        <p class="text-2xl font-bold text-primary">₹<?php echo number_format($product['rental_price'], 2); ?></p>
-                                    </div>
-                                    <div class="p-6 bg-blue-50 rounded-2xl border border-blue-100">
-                                        <p class="text-[10px] font-bold text-blue-600 uppercase tracking-widest mb-1">Refundable Deposit</p>
-                                        <p class="text-2xl font-bold text-blue-700">₹<?php echo number_format($product['deposit'], 2); ?></p>
-                                    </div>
+                            <!-- Pricing Matrix (Sleek Row) -->
+                            <div class="grid grid-cols-3 gap-3 p-4 bg-zinc-950 border border-zinc-900 rounded-xl">
+                                <div class="text-center">
+                                    <span class="text-[10px] font-semibold text-zinc-500 uppercase tracking-wider block mb-1">Sales Price</span>
+                                    <span class="text-sm sm:text-base font-bold text-emerald-400">₹<?php echo number_format($product['s_price'], 2); ?></span>
+                                </div>
+                                <div class="text-center border-l border-zinc-900">
+                                    <span class="text-[10px] font-semibold text-zinc-500 uppercase tracking-wider block mb-1">Rental Price</span>
+                                    <span class="text-sm sm:text-base font-bold text-indigo-400">₹<?php echo number_format($product['rental_price'], 2); ?></span>
+                                </div>
+                                <div class="text-center border-l border-zinc-900">
+                                    <span class="text-[10px] font-semibold text-zinc-500 uppercase tracking-wider block mb-1">Deposit</span>
+                                    <span class="text-sm sm:text-base font-bold text-blue-400">₹<?php echo number_format($product['deposit'], 2); ?></span>
                                 </div>
                             </div>
 
                             <!-- Description -->
-                            <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 sm:p-8">
-                                <h3 class="text-sm font-bold text-gray-800 uppercase tracking-wider mb-4">Product Description</h3>
-                                <div class="prose prose-sm max-w-none text-gray-600 leading-relaxed">
-                                    <?php echo !empty($product['description']) ? nl2br(htmlspecialchars($product['description'])) : '<span class="italic text-gray-400">No description provided.</span>'; ?>
+                            <div class="bg-zinc-950 border border-zinc-900 rounded-xl p-5">
+                                <h3 class="text-xs font-bold text-zinc-400 uppercase tracking-wider mb-2.5">Product Description</h3>
+                                <div id="product-description-content" class="text-sm text-zinc-300 leading-relaxed font-light">
+                                    <?php echo !empty($product['description']) ? nl2br(htmlspecialchars($product['description'])) : '<span class="italic text-zinc-600">No description provided.</span>'; ?>
                                 </div>
                             </div>
 
-                            <!-- Details Grid -->
-                            <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 sm:p-8">
-                                <h3 class="text-sm font-bold text-gray-800 uppercase tracking-wider mb-6">Specifications</h3>
-                                <div class="grid grid-cols-1 md:grid-cols-2 gap-y-6 gap-x-12">
-                                    <div class="flex justify-between items-center py-3 border-b border-gray-50">
-                                        <span class="text-sm text-gray-400">Category</span>
-                                        <span class="text-sm font-semibold text-gray-700"><?php echo htmlspecialchars($product['category_name'] ?? 'N/A'); ?></span>
+                            <!-- Specifications -->
+                            <div class="bg-zinc-950 border border-zinc-900 rounded-xl p-5">
+                                <h3 class="text-xs font-bold text-zinc-400 uppercase tracking-wider mb-3">Specifications</h3>
+                                <div class="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-3">
+                                    <div class="flex justify-between items-center py-2 border-b border-zinc-900/60">
+                                        <span class="text-xs text-zinc-500">Category</span>
+                                        <span class="text-xs font-medium text-zinc-300"><?php echo htmlspecialchars($product['category_name'] ?? 'N/A'); ?></span>
                                     </div>
-                                    <div class="flex justify-between items-center py-3 border-b border-gray-50">
-                                        <span class="text-sm text-gray-400">Subcategory</span>
-                                        <span class="text-sm font-semibold text-gray-700"><?php echo htmlspecialchars($product['subcategory_name'] ?? 'N/A'); ?></span>
+                                    <div class="flex justify-between items-center py-2 border-b border-zinc-900/60">
+                                        <span class="text-xs text-zinc-500">Subcategory</span>
+                                        <span class="text-xs font-medium text-zinc-300"><?php echo htmlspecialchars($product['subcategory_name'] ?? 'N/A'); ?></span>
                                     </div>
-                                    <div class="flex justify-between items-center py-3 border-b border-gray-50">
-                                        <span class="text-sm text-gray-400">Product Type</span>
-                                        <span class="text-sm font-semibold text-gray-700 capitalize"><?php echo $type; ?></span>
+                                    <div class="flex justify-between items-center py-2 border-b border-zinc-900/60">
+                                        <span class="text-xs text-zinc-500">Brand</span>
+                                        <span class="text-xs font-medium text-zinc-300"><?php echo htmlspecialchars($product['brand_name'] ?? 'N/A'); ?></span>
                                     </div>
-                                    <div class="flex justify-between items-center py-3 border-b border-gray-50">
-                                        <span class="text-sm text-gray-400">Brand</span>
-                                        <span class="text-sm font-semibold text-gray-700"><?php echo htmlspecialchars($product['brand_name'] ?? 'N/A'); ?></span>
+                                    <div class="flex justify-between items-center py-2 border-b border-zinc-900/60">
+                                        <span class="text-xs text-zinc-500">Sizes</span>
+                                        <span class="text-xs font-medium text-zinc-300"><?php echo htmlspecialchars($product['size_avail'] ?? 'N/A'); ?></span>
                                     </div>
-                                    <div class="flex justify-between items-center py-3 border-b border-gray-50">
-                                        <span class="text-sm text-gray-400">Available Sizes</span>
-                                        <span class="text-sm font-semibold text-gray-700"><?php echo htmlspecialchars($product['size_avail'] ?? 'N/A'); ?></span>
+                                    <div class="flex justify-between items-center py-2 border-b border-zinc-900/60">
+                                        <span class="text-xs text-zinc-500">Stock Status</span>
+                                        <span class="text-xs font-bold <?php echo ($product['quantity'] ?? 0) > 0 ? 'text-zinc-300' : 'text-rose-500'; ?>">
+                                            <?php echo ($product['quantity'] ?? 0) > 0 ? ($product['quantity'] . ' Units') : 'Out of Stock'; ?>
+                                        </span>
                                     </div>
-                                    <div class="flex justify-between items-center py-3 border-b border-gray-50">
-                                        <span class="text-sm text-gray-400">Status</span>
-                                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                                    <div class="flex justify-between items-center py-2 border-b border-zinc-900/60">
+                                        <span class="text-xs text-zinc-500">Status</span>
+                                        <span class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-emerald-950/30 text-emerald-400 border border-emerald-900/30">
                                             Active
                                         </span>
                                     </div>
@@ -152,41 +135,42 @@
                     </div>
 
                     <!-- AI Assistant Card (Full Width) -->
-                    <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 sm:p-8 mt-8">
-                        <h3 class="text-sm font-bold text-zinc-800 uppercase tracking-wider mb-4 flex items-center">
-                            <i class="fas fa-magic text-indigo-600 mr-2 animate-pulse"></i> AI Copywriter (Gemini)
-                        </h3>
-                        <p class="text-xs text-gray-400 mb-6">Analyze this product's photo using Google Gemini AI to generate names or descriptions.</p>
+                    <div class="bg-zinc-950 border border-zinc-900 rounded-xl p-5 sm:p-6 mt-8">
+                        <div class="flex items-center space-x-2 mb-1.5">
+                            <i class="fas fa-magic text-indigo-400 text-xs animate-pulse"></i>
+                            <h3 class="text-xs font-bold text-zinc-300 uppercase tracking-wider">AI Copywriter (Gemini)</h3>
+                        </div>
+                        <p class="text-[11px] text-zinc-500 mb-5">Analyze this product's photo using Google Gemini AI to generate descriptive names or a new description.</p>
 
                         <div class="space-y-6">
-                            <div class="flex flex-col sm:flex-row gap-4">
-                                <button onclick="aiGenerateNames()" id="aiNamesBtn" class="flex-1 flex items-center justify-center space-x-2 py-3.5 px-4 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 rounded-xl text-xs font-bold transition-all border border-indigo-100/50 cursor-pointer">
-                                    <i class="fas fa-heading"></i>
+                            <div class="flex flex-col sm:flex-row gap-3">
+                                <button onclick="aiGenerateNames()" id="aiNamesBtn" class="flex-1 flex items-center justify-center space-x-2 py-2.5 px-4 bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 rounded-lg text-xs font-medium text-zinc-300 transition-all cursor-pointer">
+                                    <i class="fas fa-heading text-[10px]"></i>
                                     <span>Suggest Names</span>
                                 </button>
-                                <button onclick="aiGenerateDescription()" id="aiDescBtn" class="flex-1 flex items-center justify-center space-x-2 py-3.5 px-4 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 rounded-xl text-xs font-bold transition-all border border-indigo-100/50 cursor-pointer">
-                                    <i class="fas fa-align-left"></i>
+                                <button onclick="aiGenerateDescription()" id="aiDescBtn" class="flex-1 flex items-center justify-center space-x-2 py-2.5 px-4 bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 rounded-lg text-xs font-medium text-zinc-300 transition-all cursor-pointer">
+                                    <i class="fas fa-align-left text-[10px]"></i>
                                     <span>Gen Description</span>
                                 </button>
                             </div>
 
                             <!-- Loading indicator -->
-                            <div id="aiLoading" class="hidden flex items-center justify-center space-x-2 py-3.5 bg-gray-50 rounded-xl text-xs font-semibold text-gray-600">
-                                <div class="w-4 h-4 rounded-full border-2 border-indigo-600 border-t-transparent animate-spin"></div>
+                            <div id="aiLoading" class="hidden flex items-center justify-center space-x-2 py-3 bg-zinc-900/40 rounded-lg text-xs font-semibold text-zinc-400 border border-zinc-900">
+                                <div class="w-3.5 h-3.5 rounded-full border-2 border-indigo-400 border-t-transparent animate-spin"></div>
                                 <span>AI is analyzing image...</span>
                             </div>
 
                             <!-- Results: Name Suggestions -->
-                            <div id="aiNamesResult" class="hidden space-y-3 pt-4 border-t border-gray-100">
-                                <h4 class="text-xs font-bold text-gray-700 uppercase tracking-wider">Suggested Names (Click to Apply)</h4>
+                            <div id="aiNamesResult" class="hidden space-y-2 pt-4 border-t border-zinc-900">
+                                <h4 class="text-[11px] font-bold text-zinc-400 uppercase tracking-wider">Suggested Names (Click to Apply)</h4>
                                 <div id="aiNamesList" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-3"></div>
                             </div>
 
                             <!-- Results: Description Generator -->
-                            <div id="aiDescResult" class="hidden space-y-3 pt-4 border-t border-gray-100">
-                                <h4 class="text-xs font-bold text-gray-700 uppercase tracking-wider">Suggested Description</h4>
-                                <textarea id="aiDescTextarea" rows="12" class="w-full bg-gray-50 border border-gray-200 rounded-xl p-4 text-xs focus:ring-indigo-600 focus:border-indigo-600 focus:bg-white transition-all leading-relaxed"></textarea>
-                                <button onclick="applyAiDescription()" id="applyDescBtn" class="w-full py-3 bg-indigo-600 text-white rounded-xl text-xs font-bold hover:bg-indigo-700 transition-all shadow-md cursor-pointer">
+                            <div id="aiDescResult" class="hidden space-y-3 pt-4 border-t border-zinc-900">
+                                <h4 class="text-[11px] font-bold text-zinc-400 uppercase tracking-wider">Suggested Description</h4>
+                                <textarea id="aiDescTextarea" rows="12" class="w-full bg-zinc-900/40 border border-zinc-800 rounded-lg p-3 text-xs text-zinc-300 focus:border-zinc-750 transition-all leading-relaxed font-light"></textarea>
+                                <button onclick="applyAiDescription()" id="applyDescBtn" class="w-full py-2.5 bg-white hover:bg-zinc-200 text-black rounded-lg text-xs font-semibold transition-all cursor-pointer">
                                     Apply & Save Description
                                 </button>
                             </div>
@@ -227,9 +211,9 @@
                 
                 if (data.success && data.names) {
                     namesList.innerHTML = data.names.map(name => `
-                        <button onclick="applyProductName('${name.replace(/'/g, "\\'")}')" class="w-full text-left py-2 px-3 hover:bg-indigo-50 border border-gray-100 rounded-lg text-xs font-medium text-gray-700 transition-all flex justify-between items-center group cursor-pointer">
+                        <button onclick="applyProductName('${name.replace(/'/g, "\\'")}')" class="w-full text-left py-2 px-3 hover:bg-zinc-800 border border-zinc-900 hover:border-zinc-700 rounded-lg text-xs font-medium text-zinc-300 hover:text-white bg-zinc-950/40 transition-all flex justify-between items-center group cursor-pointer">
                             <span>${name}</span>
-                            <i class="fas fa-chevron-right text-gray-300 group-hover:text-indigo-600 group-hover:translate-x-0.5 transition-all"></i>
+                            <i class="fas fa-chevron-right text-zinc-600 group-hover:text-white group-hover:translate-x-0.5 transition-all"></i>
                         </button>
                     `).join('');
                     resultBox.classList.remove('hidden');
@@ -292,7 +276,7 @@
                 });
                 const data = await response.json();
                 if (data.success) {
-                    document.querySelector('h1.text-2xl').innerText = newName;
+                    document.getElementById('product-title').innerText = newName;
                     alert('Product name updated successfully!');
                     document.getElementById('aiNamesResult').classList.add('hidden');
                 } else {
@@ -324,7 +308,7 @@
                 });
                 const data = await response.json();
                 if (data.success) {
-                    const descContainer = document.querySelector('.prose');
+                    const descContainer = document.getElementById('product-description-content');
                     if (descContainer) {
                         descContainer.innerHTML = value.replace(/\n/g, '<br>');
                     }

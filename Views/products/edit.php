@@ -74,8 +74,52 @@
                                         </div>
                                         <div class="md:col-span-2">
                                             <label class="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Description</label>
-                                            <textarea name="description" rows="3" class="w-full bg-gray-50 border border-gray-200 rounded-xl p-3 text-sm focus:ring-primary focus:border-primary"><?php echo htmlspecialchars($product['description']); ?></textarea>
+                                            <textarea name="description" id="product_desc_textarea" rows="4" class="w-full bg-gray-50 border border-gray-200 rounded-xl p-3 text-sm focus:ring-primary focus:border-primary"><?php echo htmlspecialchars($product['description']); ?></textarea>
                                         </div>
+
+                                        <!-- AI Copywriter Helper Card (In-Place Form Updates) -->
+                                        <div class="md:col-span-2 bg-zinc-950/20 border border-zinc-800 rounded-xl p-5 mt-2">
+                                            <div class="flex items-center space-x-2 mb-1.5">
+                                                <i class="fas fa-magic text-indigo-400 text-xs animate-pulse"></i>
+                                                <h4 class="text-xs font-bold text-zinc-300 uppercase tracking-wider">AI Copywriter (Gemini)</h4>
+                                            </div>
+                                            <p class="text-[11px] text-zinc-550 mb-4">Analyze the product's image using Gemini to draft names or descriptions.</p>
+
+                                            <div class="space-y-4">
+                                                <div class="flex flex-col sm:flex-row gap-3">
+                                                    <button type="button" onclick="aiGenerateNames()" id="aiNamesBtn" class="flex-1 flex items-center justify-center space-x-2 py-2.5 px-4 bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 rounded-lg text-xs font-medium text-zinc-300 transition-all cursor-pointer">
+                                                        <i class="fas fa-heading text-[10px]"></i>
+                                                        <span>Suggest Names</span>
+                                                    </button>
+                                                    <button type="button" onclick="aiGenerateDescription()" id="aiDescBtn" class="flex-1 flex items-center justify-center space-x-2 py-2.5 px-4 bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 rounded-lg text-xs font-medium text-zinc-300 transition-all cursor-pointer">
+                                                        <i class="fas fa-align-left text-[10px]"></i>
+                                                        <span>Gen Description</span>
+                                                    </button>
+                                                </div>
+
+                                                <!-- Loading indicator -->
+                                                <div id="aiLoading" class="hidden flex items-center justify-center space-x-2 py-3 bg-zinc-900/40 rounded-lg text-xs font-semibold text-zinc-400 border border-zinc-900">
+                                                    <div class="w-3.5 h-3.5 rounded-full border-2 border-indigo-400 border-t-transparent animate-spin"></div>
+                                                    <span>AI is analyzing image...</span>
+                                                </div>
+
+                                                <!-- Results: Name Suggestions -->
+                                                <div id="aiNamesResult" class="hidden space-y-2 pt-3 border-t border-zinc-900">
+                                                    <h5 class="text-[10px] font-bold text-zinc-400 uppercase tracking-wider">Suggested Names (Click to Apply)</h5>
+                                                    <div id="aiNamesList" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2"></div>
+                                                </div>
+
+                                                <!-- Results: Description Generator -->
+                                                <div id="aiDescResult" class="hidden space-y-3 pt-3 border-t border-zinc-900">
+                                                    <h5 class="text-[10px] font-bold text-zinc-400 uppercase tracking-wider">Suggested Description</h5>
+                                                    <textarea id="aiDescTextarea" rows="8" class="w-full bg-zinc-900/40 border border-zinc-800 rounded-lg p-3 text-xs text-zinc-300 focus:border-zinc-750 transition-all leading-relaxed font-light"></textarea>
+                                                    <button type="button" onclick="applyAiDescription()" id="applyDescBtn" style="background-color: #ffffff !important; color: #000000 !important; border: 1px solid #ffffff !important;" class="w-full py-2 rounded-lg text-xs font-semibold hover:opacity-90 transition-all cursor-pointer">
+                                                        Apply to Description Field
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        </div>
+
                                         
                                         <?php if ($type === 'jewellery'): ?>
                                         <div id="jewellery_cats" class="md:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -239,7 +283,7 @@
                                     <div class="grid grid-cols-4 md:grid-cols-6 gap-4 mb-6">
                                         <?php foreach ($images as $index => $img): ?>
                                             <div class="aspect-square relative group">
-                                                <img src="../../yn/uploads<?php echo $img['img_name']; ?>" class="w-full h-full object-contain rounded-xl shadow-sm border border-gray-100">
+                                                <img src="../yn/uploads<?php echo $img['img_name']; ?>" class="w-full h-full object-contain rounded-xl shadow-sm border border-gray-100">
                                                 <div class="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity rounded-xl flex items-center justify-center">
                                                     <span class="text-white text-xs font-semibold">
                                                         <?php echo ($index === 0) ? 'Main Image' : 'Existing'; ?>
@@ -274,7 +318,7 @@
                                 </div>
 
                                 <div class="pt-8 flex justify-end space-x-4">
-                                    <a href="index.php?controller=product&action=index" class="px-8 py-3 rounded-xl text-sm font-semibold text-gray-500 hover:bg-gray-100 transition-all">Cancel</a>
+                                    <a href="index.php?controller=product&action=index" class="px-8 py-3 border border-zinc-800 rounded-xl text-sm font-semibold text-zinc-400 hover:text-white hover:bg-zinc-900 transition-all flex items-center justify-center">Cancel</a>
                                     <button type="submit" class="px-8 py-3 bg-gradient-to-r from-primary to-secondary text-white rounded-xl text-sm font-semibold shadow-lg hover:opacity-90 transition-all">
                                         Update Product
                                     </button>
@@ -539,6 +583,99 @@ Product Description: [Your suggested description]`;
             } catch (err) {
                 console.error(err);
                 alert('Network request failed');
+            }
+        }
+
+        const productId = <?php echo $product['id']; ?>;
+        const productType = '<?php echo $type; ?>';
+
+        async function aiGenerateNames() {
+            const btn = document.getElementById('aiNamesBtn');
+            const loader = document.getElementById('aiLoading');
+            const resultBox = document.getElementById('aiNamesResult');
+            const namesList = document.getElementById('aiNamesList');
+
+            btn.disabled = true;
+            loader.classList.remove('hidden');
+            resultBox.classList.add('hidden');
+
+            try {
+                const response = await fetch(`index.php?controller=product&action=aiSuggestNames&id=${productId}&type=${productType}`);
+                const data = await response.json();
+                
+                if (data.success && data.names) {
+                    namesList.innerHTML = data.names.map(name => `
+                        <button type="button" onclick="applyProductName('${name.replace(/'/g, "\\'")}')" class="w-full text-left py-2 px-3 hover:bg-zinc-800 border border-zinc-900 hover:border-zinc-700 rounded-lg text-xs font-medium text-zinc-300 hover:text-white bg-zinc-950/40 transition-all flex justify-between items-center group cursor-pointer">
+                            <span>${name}</span>
+                            <i class="fas fa-chevron-right text-zinc-600 group-hover:text-white group-hover:translate-x-0.5 transition-all"></i>
+                        </button>
+                    `).join('');
+                    resultBox.classList.remove('hidden');
+                } else {
+                    alert('Error: ' + (data.error || 'Failed to generate names'));
+                }
+            } catch (err) {
+                console.error(err);
+                alert('A network error occurred.');
+            } finally {
+                btn.disabled = false;
+                loader.classList.add('hidden');
+            }
+        }
+
+        async function aiGenerateDescription() {
+            const btn = document.getElementById('aiDescBtn');
+            const loader = document.getElementById('aiLoading');
+            const resultBox = document.getElementById('aiDescResult');
+            const textarea = document.getElementById('aiDescTextarea');
+
+            btn.disabled = true;
+            loader.classList.remove('hidden');
+            resultBox.classList.add('hidden');
+
+            try {
+                const response = await fetch(`index.php?controller=product&action=aiSuggestDescription&id=${productId}&type=${productType}`);
+                const data = await response.json();
+                
+                if (data.success && data.description) {
+                    textarea.value = data.description;
+                    resultBox.classList.remove('hidden');
+                } else {
+                    alert('Error: ' + (data.error || 'Failed to generate description'));
+                }
+            } catch (err) {
+                console.error(err);
+                alert('A network error occurred.');
+            } finally {
+                btn.disabled = false;
+                loader.classList.add('hidden');
+            }
+        }
+
+        function applyProductName(newName) {
+            const nameInput = document.querySelector('input[name="name"]');
+            if (nameInput) {
+                nameInput.value = newName;
+                nameInput.focus();
+                nameInput.style.transition = 'all 0.3s ease';
+                nameInput.style.boxShadow = '0 0 0 3px rgba(16, 185, 129, 0.4)';
+                setTimeout(() => {
+                    nameInput.style.boxShadow = '';
+                }, 1000);
+            }
+        }
+
+        function applyAiDescription() {
+            const val = document.getElementById('aiDescTextarea').value.trim();
+            const descInput = document.getElementById('product_desc_textarea');
+            if (descInput && val) {
+                descInput.value = val;
+                descInput.focus();
+                descInput.style.transition = 'all 0.3s ease';
+                descInput.style.boxShadow = '0 0 0 3px rgba(16, 185, 129, 0.4)';
+                setTimeout(() => {
+                    descInput.style.boxShadow = '';
+                }, 1000);
             }
         }
     </script>
