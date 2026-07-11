@@ -87,6 +87,9 @@
                                 <button type="button" id="availableToggle" onclick="toggleAvailableOnly()" class="bg-zinc-900 border border-zinc-800 text-zinc-400 hover:text-white hover:bg-zinc-800 rounded-lg px-4 py-2 text-xs font-semibold transition-all flex items-center justify-center cursor-pointer">
                                     <i class="fas fa-check-circle mr-1.5 text-zinc-500" id="availableIcon"></i> Available Only
                                 </button>
+                                <a href="index.php?controller=product&action=descriptionCorrector" class="bg-zinc-900 border border-zinc-800 text-white hover:bg-zinc-800 rounded-lg px-4 py-2 text-xs font-semibold transition-all flex items-center justify-center cursor-pointer">
+                                    <i class="fas fa-magic mr-1.5 text-zinc-400"></i> Format Descriptions
+                                </a>
                                 <a href="index.php?controller=product&action=add" class="bg-white border border-white text-black hover:bg-black hover:text-white hover:border-zinc-800 rounded-lg px-4 py-2 text-xs font-semibold transition-all flex items-center justify-center cursor-pointer">
                                     <i class="fas fa-plus mr-1.5"></i> Add Product
                                 </a>

@@ -1049,5 +1049,29 @@ class ProductModel extends Model
 
         return $success;
     }
+
+    public function getPoorlyFormattedProducts() {
+        $products = [];
+        
+        // 1. Fetch jewellery products
+        $sql = "SELECT product_id as id, product_code as code, product_name as name, product_desc as description, 'jewellery' as type
+                FROM product
+                WHERE product_desc LIKE '•%' OR product_desc LIKE '%??%'";
+        $result = $this->query($this->db, $sql);
+        while ($row = $this->fetchOne($result)) {
+            $products[] = $row;
+        }
+        
+        // 2. Fetch garment products
+        $sql = "SELECT gproduct_id as id, gproduct_code as code, gproduct_name as name, gproduct_desc as description, 'garments' as type
+                FROM garment_product
+                WHERE gproduct_desc LIKE '•%' OR gproduct_desc LIKE '%??%'";
+        $result = $this->query($this->db, $sql);
+        while ($row = $this->fetchOne($result)) {
+            $products[] = $row;
+        }
+        
+        return $products;
+    }
 }
 

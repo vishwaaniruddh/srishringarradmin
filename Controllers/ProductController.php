@@ -1279,4 +1279,37 @@ class ProductController extends Controller {
             $this->json(['error' => $e->getMessage()], 500);
         }
     }
+
+    public function descriptionCorrector() {
+        $productModel = new ProductModel();
+        $products = $productModel->getPoorlyFormattedProducts();
+        
+        $cleanedProducts = [];
+        foreach ($products as $p) {
+            $desc = $p['description'] ?? '';
+            // Cleaning algorithm
+            $cleaned = preg_replace('/^\s*•\s*/u', '', $desc);
+            $cleaned = trim($cleaned);
+            if (str_starts_with($cleaned, '"') && str_ends_with($cleaned, '"')) {
+                $cleaned = substr($cleaned, 1, -1);
+            }
+            $cleaned = trim($cleaned);
+            
+            if (str_contains($cleaned, '??')) {
+                $parts = explode('??', $cleaned);
+                $new_text = trim($parts[0]);
+                for ($i = 1; $i < count($parts); $i++) {
+                    $new_text .= "\n" . $i . ") " . trim($parts[$i]);
+                }
+                $cleaned = $new_text;
+            }
+            
+            $p['corrected_description'] = $cleaned;
+            $cleanedProducts[] = $p;
+        }
+        
+        $this->view('products/desc_corrector', [
+            'products' => $cleanedProducts
+        ]);
+    }
 }
