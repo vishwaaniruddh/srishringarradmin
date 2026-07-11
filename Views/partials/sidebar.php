@@ -117,6 +117,10 @@ function isActive($controller, $action = null) {
                 <i class="fas fa-chart-bar w-5 mr-2 text-zinc-400"></i>
                 <span>SKU Master Audit</span>
             </a>
+            <a href="index.php?controller=analytics&action=index" class="flex items-center px-3 py-2 text-xs font-semibold rounded-lg transition-all <?php echo isActive('analytics') ? 'text-white bg-zinc-900' : 'text-zinc-400 hover:text-white hover:bg-zinc-900/50'; ?>">
+                <i class="fas fa-chart-line w-5 mr-2 text-zinc-400"></i>
+                <span>User Activity</span>
+            </a>
         </div>
 
         <!-- System -->
