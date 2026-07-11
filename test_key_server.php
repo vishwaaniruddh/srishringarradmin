@@ -31,8 +31,8 @@ $hb_res = curl_exec($hb_ch);
 curl_close($hb_ch);
 echo $hb_res . "\n\n";
 
-$model = 'gemini-1.5-flash';
-$endpoint = 'https://generativelanguage.googleapis.com/v1beta/models/' . $model . ':generateContent';
+$model = 'gemini-flash-latest';
+$endpoint = 'https://generativelanguage.googleapis.com/v1beta/models/' . $model . ':generateContent?key=' . $key;
 
 $payload = [
     'contents' => [
@@ -40,16 +40,13 @@ $payload = [
     ]
 ];
 
-// Test 1: cURL request with header key
-echo "--- Test 1: cURL (x-goog-api-key header) ---\n";
+// Test 1: cURL request
+echo "--- Test 1: cURL ---\n";
 $ch = curl_init($endpoint);
 curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
 curl_setopt($ch, CURLOPT_POST, true);
 curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($payload));
-curl_setopt($ch, CURLOPT_HTTPHEADER, [
-    'Content-Type: application/json',
-    'x-goog-api-key: ' . $key
-]);
+curl_setopt($ch, CURLOPT_HTTPHEADER, ['Content-Type: application/json']);
 curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
 
 $response = curl_exec($ch);
@@ -61,13 +58,12 @@ echo "HTTP Code: " . $info['http_code'] . "\n";
 echo "cURL Error: " . ($err ?: 'None') . "\n";
 echo "Response: " . $response . "\n\n";
 
-// Test 2: file_get_contents request with header key
-echo "--- Test 2: file_get_contents (x-goog-api-key header) ---\n";
+// Test 2: file_get_contents request
+echo "--- Test 2: file_get_contents ---\n";
 $context = stream_context_create([
     'http' => [
         'method' => 'POST',
-        'header' => "Content-Type: application/json\r\n" .
-                    "x-goog-api-key: " . $key . "\r\n",
+        'header' => "Content-Type: application/json\r\n",
         'content' => json_encode($payload),
         'ignore_errors' => true
     ],
@@ -78,5 +74,4 @@ $context = stream_context_create([
 ]);
 $fgc_response = @file_get_contents($endpoint, false, $context);
 echo "Response: " . $fgc_response . "\n";
-
 
