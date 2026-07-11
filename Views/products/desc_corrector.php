@@ -31,6 +31,12 @@
                         <?php endif; ?>
                     </div>
 
+                    <!-- Helpful Clue Card for Future Reference -->
+                    <div class="mb-6 p-4 bg-zinc-950/40 border border-zinc-900 rounded-xl text-xs text-zinc-400 leading-relaxed">
+                        <span class="font-bold text-white block mb-1">💡 Formatting Information:</span>
+                        This utility handles double question marks (<code class="bg-zinc-950/80 px-1 py-0.5 rounded text-indigo-400">??</code>) and leading bullets (<code class="bg-zinc-950/80 px-1 py-0.5 rounded text-indigo-400">•</code>) often caused by historical database imports or encoding errors. It splits the text at each mark and converts them into standardized numbered lines (<code class="bg-zinc-950/80 px-1.5 py-0.5 rounded text-zinc-200">1)</code>, <code class="bg-zinc-950/80 px-1.5 py-0.5 rounded text-zinc-200">2)</code>, etc.) separated by newlines.
+                    </div>
+
                     <?php if (empty($products)): ?>
                         <div class="bg-zinc-950 border border-zinc-900 rounded-xl p-12 text-center">
                             <div class="w-12 h-12 bg-zinc-900 border border-zinc-800 rounded-full flex items-center justify-center mx-auto mb-4 text-emerald-400">

@@ -75,6 +75,10 @@
                                         <div class="md:col-span-2">
                                             <label class="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Description</label>
                                             <textarea name="description" id="product_desc_textarea" rows="4" class="w-full bg-gray-50 border border-gray-200 rounded-xl p-3 text-sm focus:ring-primary focus:border-primary"><?php echo htmlspecialchars($product['description']); ?></textarea>
+                                            <p class="text-[10px] text-zinc-500 mt-1 flex items-center space-x-1">
+                                                <i class="fas fa-info-circle text-[9px] text-indigo-400"></i>
+                                                <span>Having formatting issues (bullets or double question marks)? Clean them using the <a href="index.php?controller=product&action=descriptionCorrector" class="text-indigo-400 hover:underline hover:text-indigo-300 font-semibold transition-all">Description Corrector Tool</a>.</span>
+                                            </p>
                                         </div>
 
                                         <!-- AI Copywriter Helper Card (In-Place Form Updates) -->
