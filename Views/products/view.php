@@ -84,47 +84,7 @@
                                 </div>
                             </div>
 
-                            <!-- AI Assistant Card -->
-                            <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 mt-6">
-                                <h3 class="text-sm font-bold text-zinc-800 uppercase tracking-wider mb-4 flex items-center">
-                                    <i class="fas fa-magic text-indigo-600 mr-2 animate-pulse"></i> AI Copywriter (Gemini)
-                                </h3>
-                                <p class="text-xs text-gray-400 mb-6">Analyze this product's photo using Google Gemini AI to generate names or descriptions.</p>
 
-                                <div class="space-y-4">
-                                    <div class="grid grid-cols-2 gap-3">
-                                        <button onclick="aiGenerateNames()" id="aiNamesBtn" class="flex items-center justify-center space-x-2 py-3 px-4 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 rounded-xl text-xs font-bold transition-all border border-indigo-100/50 cursor-pointer">
-                                            <i class="fas fa-heading"></i>
-                                            <span>Suggest Names</span>
-                                        </button>
-                                        <button onclick="aiGenerateDescription()" id="aiDescBtn" class="flex items-center justify-center space-x-2 py-3 px-4 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 rounded-xl text-xs font-bold transition-all border border-indigo-100/50 cursor-pointer">
-                                            <i class="fas fa-align-left"></i>
-                                            <span>Gen Description</span>
-                                        </button>
-                                    </div>
-
-                                    <!-- Loading indicator -->
-                                    <div id="aiLoading" class="hidden flex items-center justify-center space-x-2 py-3 bg-gray-50 rounded-xl text-xs font-semibold text-gray-600">
-                                        <div class="w-4 h-4 rounded-full border-2 border-indigo-600 border-t-transparent animate-spin"></div>
-                                        <span>AI is analyzing image...</span>
-                                    </div>
-
-                                    <!-- Results: Name Suggestions -->
-                                    <div id="aiNamesResult" class="hidden space-y-3 pt-3 border-t border-gray-100">
-                                        <h4 class="text-xs font-bold text-gray-700 uppercase tracking-wider">Suggested Names (Click to Apply)</h4>
-                                        <div id="aiNamesList" class="space-y-2"></div>
-                                    </div>
-
-                                    <!-- Results: Description Generator -->
-                                    <div id="aiDescResult" class="hidden space-y-3 pt-3 border-t border-gray-100">
-                                        <h4 class="text-xs font-bold text-gray-700 uppercase tracking-wider">Suggested Description</h4>
-                                        <textarea id="aiDescTextarea" rows="4" class="w-full bg-gray-50 border border-gray-200 rounded-xl p-3 text-xs focus:ring-indigo-600 focus:border-indigo-600 focus:bg-white transition-all"></textarea>
-                                        <button onclick="applyAiDescription()" id="applyDescBtn" class="w-full py-2.5 bg-indigo-600 text-white rounded-xl text-xs font-bold hover:bg-indigo-700 transition-all shadow-md cursor-pointer">
-                                            Apply & Save Description
-                                        </button>
-                                    </div>
-                                </div>
-                            </div>
                         </div>
 
                         <!-- Right Column: Details -->
@@ -179,6 +139,48 @@
                                         </span>
                                     </div>
                                 </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- AI Assistant Card (Full Width) -->
+                    <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-8 mt-8">
+                        <h3 class="text-sm font-bold text-zinc-800 uppercase tracking-wider mb-4 flex items-center">
+                            <i class="fas fa-magic text-indigo-600 mr-2 animate-pulse"></i> AI Copywriter (Gemini)
+                        </h3>
+                        <p class="text-xs text-gray-400 mb-6">Analyze this product's photo using Google Gemini AI to generate names or descriptions.</p>
+
+                        <div class="space-y-6">
+                            <div class="flex gap-4">
+                                <button onclick="aiGenerateNames()" id="aiNamesBtn" class="flex-1 flex items-center justify-center space-x-2 py-3.5 px-4 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 rounded-xl text-xs font-bold transition-all border border-indigo-100/50 cursor-pointer">
+                                    <i class="fas fa-heading"></i>
+                                    <span>Suggest Names</span>
+                                </button>
+                                <button onclick="aiGenerateDescription()" id="aiDescBtn" class="flex-1 flex items-center justify-center space-x-2 py-3.5 px-4 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 rounded-xl text-xs font-bold transition-all border border-indigo-100/50 cursor-pointer">
+                                    <i class="fas fa-align-left"></i>
+                                    <span>Gen Description</span>
+                                </button>
+                            </div>
+
+                            <!-- Loading indicator -->
+                            <div id="aiLoading" class="hidden flex items-center justify-center space-x-2 py-3.5 bg-gray-50 rounded-xl text-xs font-semibold text-gray-600">
+                                <div class="w-4 h-4 rounded-full border-2 border-indigo-600 border-t-transparent animate-spin"></div>
+                                <span>AI is analyzing image...</span>
+                            </div>
+
+                            <!-- Results: Name Suggestions -->
+                            <div id="aiNamesResult" class="hidden space-y-3 pt-4 border-t border-gray-100">
+                                <h4 class="text-xs font-bold text-gray-700 uppercase tracking-wider">Suggested Names (Click to Apply)</h4>
+                                <div id="aiNamesList" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-3"></div>
+                            </div>
+
+                            <!-- Results: Description Generator -->
+                            <div id="aiDescResult" class="hidden space-y-3 pt-4 border-t border-gray-100">
+                                <h4 class="text-xs font-bold text-gray-700 uppercase tracking-wider">Suggested Description</h4>
+                                <textarea id="aiDescTextarea" rows="12" class="w-full bg-gray-50 border border-gray-200 rounded-xl p-4 text-xs focus:ring-indigo-600 focus:border-indigo-600 focus:bg-white transition-all leading-relaxed"></textarea>
+                                <button onclick="applyAiDescription()" id="applyDescBtn" class="w-full py-3 bg-indigo-600 text-white rounded-xl text-xs font-bold hover:bg-indigo-700 transition-all shadow-md cursor-pointer">
+                                    Apply & Save Description
+                                </button>
                             </div>
                         </div>
                     </div>

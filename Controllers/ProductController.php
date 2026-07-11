@@ -89,10 +89,11 @@ class ProductController extends Controller {
 
         $base64Image = base64_encode($imgContent);
         $prompt = "You are a professional luxury fashion brand manager and copywriter for Srishringarr. " .
-                  "Analyze the product in the image. Suggest exactly 5 beautiful, premium, elegant names suitable for a high-end $type item. " .
+                  "Analyze the product in the image. Suggest exactly 5 descriptive, detailed, and premium product names (4 to 7 words each) suitable for a high-end $type item. " .
+                  "Incorporate specific descriptive keywords such as color, materials, craftsmanship, silhouettes, or embellishments (e.g. 'Ethereal Dusty Rose Sequined Lehenga Choli' or 'Antique Gold Plated Kundan Choker Necklace Set'). " .
                   "Return ONLY a raw JSON array of strings containing the 5 suggested names. Do not include markdown code block formatting (no ```json, no ```).";
 
-        $url = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=' . $apiKey;
+        $url = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key=' . $apiKey;
         $payload = json_encode([
             'contents' => [
                 [
@@ -190,12 +191,18 @@ class ProductController extends Controller {
         }
 
         $base64Image = base64_encode($imgContent);
-        $prompt = "You are a professional luxury fashion copywriter for Srishringarr. " .
-                  "Analyze the product in the image. Write a premium, compelling product description (2 to 3 sentences maximum) for this $type item. " .
-                  "Emphasize the design detail, visual elegance, craftsmanship, and suitability for weddings, parties, or special occasions. " .
-                  "Do not include any placeholders, conversational text, or greetings. Return ONLY the description text.";
+        $prompt = "You are a professional luxury fashion brand copywriter for Srishringarr. " .
+                  "Analyze the product in the image. Write a detailed, premium, and compelling product description for this $type item. " .
+                  "Structure the response to have:\n" .
+                  "1. A compelling description paragraph (3-4 sentences) introducing the item, emphasizing its visual elegance, style, and suitability for weddings, receptions, sangeets, or special occasions.\n" .
+                  "2. A section titled 'Key Features:' followed by bullet points detailing specific design details, craftsmanship, embroidery/sequins/beading, fabric/metal materials, and accessories as visible or appropriate for this item.\n" .
+                  "CRITICAL FORMATTING RULES FOR PLAIN TEXT:\n" .
+                  "- Do not use any markdown tags (no '**', no '*', no '__', no '#').\n" .
+                  "- For bullet points, start each bullet item with a literal bullet character '•' followed by a space (e.g., '• Feature Name: Feature description.').\n" .
+                  "- Simply write headings as plain text (e.g., 'Key Features:').\n" .
+                  "Do not include any placeholders, conversational text, or greetings. Return ONLY the clean plain text of description and key features.";
 
-        $url = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=' . $apiKey;
+        $url = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key=' . $apiKey;
         $payload = json_encode([
             'contents' => [
                 [
