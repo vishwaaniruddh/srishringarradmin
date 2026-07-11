@@ -121,7 +121,7 @@ class ProductController extends Controller {
 
         $response = curl_exec($ch);
         $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-        curl_close($ch);
+        @curl_close($ch);
 
         if ($httpCode !== 200) {
             $this->json(['error' => 'Gemini API request failed: ' . $response], 500);
@@ -224,7 +224,7 @@ class ProductController extends Controller {
 
         $response = curl_exec($ch);
         $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-        curl_close($ch);
+        @curl_close($ch);
 
         if ($httpCode !== 200) {
             $this->json(['error' => 'Gemini API request failed: ' . $response], 500);
