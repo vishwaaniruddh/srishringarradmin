@@ -1,0 +1,46 @@
+DB NAME: u464193275_srishrinjewels
+TOP PRODUCTS COUNT: 5
+ROWS: Array
+(
+    [0] => Array
+        (
+            [product_id] => 7492
+            [product_name] => Kada Shaped Triple Layered Bangles
+            [product_type] => jewellery
+            [view_count] => 15
+        )
+
+    [1] => Array
+        (
+            [product_id] => 9823
+            [product_name] => Bangle Design For Wedding
+            [product_type] => jewellery
+            [view_count] => 14
+        )
+
+    [2] => Array
+        (
+            [product_id] => 10016
+            [product_name] => Indian Traditional American Diamond Earrings
+            [product_type] => jewellery
+            [view_count] => 12
+        )
+
+    [3] => Array
+        (
+            [product_id] => 8776
+            [product_name] => Traditional Micro Gold Polished Semi Precious Kundan & Pearl Earrings for Women. EAR783ON
+            [product_type] => jewellery
+            [view_count] => 11
+        )
+
+    [4] => Array
+        (
+            [product_id] => 9618
+            [product_name] => Bangle Design For Wedding
+            [product_type] => jewellery
+            [view_count] => 11
+        )
+
+)
+

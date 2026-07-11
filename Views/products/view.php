@@ -77,15 +77,15 @@
                             <div class="grid grid-cols-3 gap-3 p-4 bg-zinc-950 border border-zinc-900 rounded-xl">
                                 <div class="text-center">
                                     <span class="text-[10px] font-semibold text-zinc-500 uppercase tracking-wider block mb-1">Sales Price</span>
-                                    <span class="text-sm sm:text-base font-bold text-emerald-400">₹<?php echo number_format($product['s_price'], 2); ?></span>
+                                    <span class="text-sm sm:text-base font-bold text-emerald-400">₹<?php echo number_format((float)($product['s_price'] ?? 0), 2); ?></span>
                                 </div>
                                 <div class="text-center border-l border-zinc-900">
                                     <span class="text-[10px] font-semibold text-zinc-500 uppercase tracking-wider block mb-1">Rental Price</span>
-                                    <span class="text-sm sm:text-base font-bold text-indigo-400">₹<?php echo number_format($product['rental_price'], 2); ?></span>
+                                    <span class="text-sm sm:text-base font-bold text-indigo-400">₹<?php echo number_format((float)($product['rental_price'] ?? 0), 2); ?></span>
                                 </div>
                                 <div class="text-center border-l border-zinc-900">
                                     <span class="text-[10px] font-semibold text-zinc-500 uppercase tracking-wider block mb-1">Deposit</span>
-                                    <span class="text-sm sm:text-base font-bold text-blue-400">₹<?php echo number_format($product['deposit'], 2); ?></span>
+                                    <span class="text-sm sm:text-base font-bold text-blue-400">₹<?php echo number_format((float)($product['deposit'] ?? 0), 2); ?></span>
                                 </div>
                             </div>
 
