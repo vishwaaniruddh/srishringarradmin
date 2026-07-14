@@ -4,21 +4,24 @@ namespace Controllers;
 use Core\Controller;
 use Models\WooProductModel;
 
-class WooproductController extends Controller {
-    
+class WooproductController extends Controller
+{
+
     private $wooModel;
-    
-    public function __construct() {
+
+    public function __construct()
+    {
         $this->wooModel = new WooProductModel();
     }
-    
-    public function index() {
+
+    public function index()
+    {
         if (!$this->wooModel->isConnected()) {
             return $this->view('woo_products/connection_error');
         }
 
         $search = $_GET['search'] ?? '';
-        $page = (int)($_GET['page'] ?? 1);
+        $page = (int) ($_GET['page'] ?? 1);
         $limit = 20;
 
         $products = $this->wooModel->getProducts([
@@ -39,13 +42,14 @@ class WooproductController extends Controller {
         ]);
     }
 
-    public function export() {
+    public function export()
+    {
         if (!$this->wooModel->isConnected()) {
             die("Database not connected");
         }
 
         $params = ['limit' => 5000];
-        
+
         // Handle SKU file upload if present (Supports CSV and Excel)
         if (isset($_FILES['sku_file']) && $_FILES['sku_file']['error'] === UPLOAD_ERR_OK) {
             $skus = [];
@@ -57,23 +61,27 @@ class WooproductController extends Controller {
                 $worksheet = $spreadsheet->getActiveSheet();
                 $rows = $worksheet->toArray();
                 foreach ($rows as $row) {
-                    if (!empty($row[0])) $skus[] = trim($row[0]);
+                    if (!empty($row[0]))
+                        $skus[] = trim($row[0]);
                 }
             } else {
                 // Read from CSV
                 $handle = fopen($_FILES['sku_file']['tmp_name'], "r");
                 while (($row = fgetcsv($handle, 0, ",", "\"", "\\")) !== FALSE) {
-                    if (!empty($row[0])) $skus[] = trim($row[0]);
+                    if (!empty($row[0]))
+                        $skus[] = trim($row[0]);
                 }
                 fclose($handle);
             }
-            
-            if (!empty($skus)) $params['skus'] = $skus;
+
+            if (!empty($skus))
+                $params['skus'] = $skus;
         }
 
-        $products = $this->wooModel->getProducts($params); 
+        $products = $this->wooModel->getProducts($params);
 
-        if (ob_get_level()) ob_end_clean();
+        if (ob_get_level())
+            ob_end_clean();
 
         $spreadsheet = new \PhpOffice\PhpSpreadsheet\Spreadsheet();
         $sheet = $spreadsheet->getActiveSheet();
@@ -107,7 +115,7 @@ class WooproductController extends Controller {
         }
 
         header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
-        header('Content-Disposition: attachment;filename="yn_woo_export_'.date('YmdHis').'.xlsx"');
+        header('Content-Disposition: attachment;filename="yn_woo_export_' . date('YmdHis') . '.xlsx"');
         header('Cache-Control: max-age=0');
 
         $writer = new \PhpOffice\PhpSpreadsheet\Writer\Xlsx($spreadsheet);

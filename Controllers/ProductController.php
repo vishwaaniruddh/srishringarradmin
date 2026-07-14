@@ -88,9 +88,14 @@ class ProductController extends Controller {
         }
 
         $base64Image = base64_encode($imgContent);
-        $prompt = "You are a professional luxury fashion brand manager and copywriter for Srishringarr. " .
-                  "Analyze the product in the image. Suggest exactly 5 descriptive, detailed, and premium product names (4 to 7 words each) suitable for a high-end $type item. " .
-                  "Incorporate specific descriptive keywords such as color, materials, craftsmanship, silhouettes, or embellishments (e.g. 'Ethereal Dusty Rose Sequined Lehenga Choli' or 'Antique Gold Plated Kundan Choker Necklace Set'). " .
+        $prompt = "You are a professional fashion copywriter for Srishringarr. " .
+                  "Analyze the product in the image. Suggest exactly 5 descriptive product names (each name MUST be at least 10 words long) suitable for a $type item. " .
+                  "Use very simple, clear, and easy-to-understand English. Do NOT use complex, rare, fancy, flowery, or poetic words (such as 'ethereal', 'wisteria', 'intricately', 'enchanted', 'resplendent', 'mystique', 'regal', etc.). " .
+                  "Instead, use common, everyday words to describe the product's colors, materials, design, embroidery, and style. " .
+                  "Each name MUST have at least 10 words. " .
+                  "Example of expected output format and style: " .
+                  "\"Beautiful red lehenga choli for wedding functions with heavy gold embroidery and a matching net dupatta\" or " .
+                  "\"Traditional gold plated necklace set with green beads and matching earrings for party wear\". " .
                   "Return ONLY a raw JSON array of strings containing the 5 suggested names. Do not include markdown code block formatting (no ```json, no ```).";
 
         $url = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key=' . $apiKey;
