@@ -355,6 +355,82 @@ class ProductController extends Controller {
         }
     }
 
+    public function saveAiImage() {
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            $this->json(['error' => 'Method not allowed'], 405);
+            return;
+        }
+
+        $id = (int)($_GET['id'] ?? 0);
+        $type = $_GET['type'] ?? 'jewellery';
+        
+        $input = json_decode(file_get_contents('php://input'), true);
+        $b64 = $input['image_base64'] ?? '';
+
+        if (!$id || empty($b64)) {
+            $this->json(['error' => 'Product ID and image data are required'], 400);
+            return;
+        }
+
+        $productModel = new \Models\ProductModel();
+        $product = $productModel->getProductById($id, $type);
+        if (!$product) {
+            $this->json(['error' => 'Product not found'], 404);
+            return;
+        }
+
+        $code = $product['code'];
+        $name = $product['name'] ?? '';
+        $sub = $product['sub_category'] ?? 0;
+        
+        $imgData = base64_decode($b64);
+        if (!$imgData) {
+            $this->json(['error' => 'Invalid image data'], 400);
+            return;
+        }
+
+        $current_year = date('Y');
+        $current_month = date('m');
+        $upload_base = __DIR__ . "/../../yn/uploads/";
+        $upload_path = $upload_base . $current_year . '/' . $current_month . '/';
+
+        if (!file_exists($upload_path)) {
+            mkdir($upload_path, 0777, true);
+        }
+
+        $new_filename = $code . '_ai_' . time() . '.jpg';
+        $full_local_path = $upload_path . $new_filename;
+        
+        if (file_put_contents($full_local_path, $imgData) === false) {
+            $this->json(['error' => 'Failed to save image file'], 500);
+            return;
+        }
+
+        $relative_path = '/' . $current_year . '/' . $current_month . '/' . $new_filename;
+        
+        $db = $productModel->getDbConnection();
+        $date_added = date('Y-m-d H:i:s');
+        
+        $img_field = ($type === 'jewellery') ? 'product_id' : 'gproduct_id';
+        $subcat_val = ($type === 'jewellery') ? $sub : 0;
+        
+        $img_sql = "INSERT INTO product_images_new (
+            prod_name, prod_image, pro_code, img_name, 
+            subcat_id, $img_field, date_added
+        ) VALUES (?, ?, ?, ?, ?, ?, ?)";
+
+        $stmt = mysqli_prepare($db, $img_sql);
+        mysqli_stmt_bind_param($stmt, "ssssiis", $name, $relative_path, $code, $relative_path, $subcat_val, $id, $date_added);
+        $success = mysqli_stmt_execute($stmt);
+        mysqli_stmt_close($stmt);
+
+        if ($success) {
+            $this->json(['success' => true, 'path' => $relative_path]);
+        } else {
+            $this->json(['error' => 'Failed to insert image record in database'], 500);
+        }
+    }
+
     public function saveProductField() {
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') $this->json(['error' => 'Method not allowed'], 405);
 

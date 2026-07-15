@@ -137,7 +137,7 @@
                                             <div class="space-y-4">
                                                 <div class="flex flex-col sm:flex-row gap-3">
                                                     <div class="flex-1">
-                                                        <input type="text" id="aiImagePrompt" value="A photorealistic beautiful Indian fashion model wearing this exact necklace. Do not change the necklace details." class="w-full bg-zinc-900/40 border border-zinc-800 rounded-lg p-2.5 text-xs text-zinc-300 focus:border-pink-500 transition-all" placeholder="Enter prompt...">
+                                                        <input type="text" id="aiImagePrompt" value="A photorealistic beautiful Indian fashion model wearing this exact necklace. Clean, elegant studio background that compliments the jewelry perfectly, no other people or distractions in the background. Do not change the necklace details." class="w-full bg-zinc-900/40 border border-zinc-800 rounded-lg p-2.5 text-xs text-zinc-300 focus:border-pink-500 transition-all" placeholder="Enter prompt...">
                                                     </div>
                                                     <button type="button" onclick="aiGenerateModelImage()" id="aiImageBtn" class="sm:w-auto flex items-center justify-center space-x-2 py-2.5 px-6 bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 rounded-lg text-xs font-medium text-zinc-300 transition-all cursor-pointer">
                                                         <i class="fas fa-image text-[10px]"></i>
@@ -157,9 +157,14 @@
                                                     <div class="flex justify-center bg-black/20 rounded-lg p-4 border border-zinc-800">
                                                         <img id="aiGeneratedImg" src="" alt="Generated Model" class="max-w-full h-auto max-h-96 rounded shadow-lg">
                                                     </div>
-                                                    <a id="aiDownloadImgBtn" href="#" download="generated_model.jpg" style="background-color: #ffffff !important; color: #000000 !important; border: 1px solid #ffffff !important;" class="block text-center w-full py-2 rounded-lg text-xs font-semibold hover:opacity-90 transition-all cursor-pointer">
-                                                        Download Image
-                                                    </a>
+                                                    <div class="flex flex-col sm:flex-row gap-3 mt-3">
+                                                        <button type="button" onclick="saveAiGeneratedImage()" id="aiSaveImgBtn" style="background-color: #ffffff !important; color: #000000 !important; border: 1px solid #ffffff !important;" class="flex-1 py-2 rounded-lg text-xs font-semibold hover:opacity-90 transition-all cursor-pointer">
+                                                            <i class="fas fa-save mr-1"></i> Use This Image
+                                                        </button>
+                                                        <button type="button" onclick="resetAiImage()" id="aiResetImgBtn" class="flex-1 py-2 bg-zinc-900 border border-zinc-700 rounded-lg text-xs font-semibold hover:bg-zinc-800 transition-all cursor-pointer text-white">
+                                                            <i class="fas fa-redo mr-1"></i> Try Something Else
+                                                        </button>
+                                                    </div>
                                                 </div>
                                             </div>
                                         </div>
@@ -728,7 +733,6 @@ Product Description: [Your suggested description]`;
             const loader = document.getElementById('aiImageLoading');
             const resultBox = document.getElementById('aiImageResult');
             const imgEl = document.getElementById('aiGeneratedImg');
-            const downloadBtn = document.getElementById('aiDownloadImgBtn');
             const prompt = document.getElementById('aiImagePrompt').value.trim();
 
             btn.disabled = true;
@@ -746,7 +750,7 @@ Product Description: [Your suggested description]`;
                 if (data.success && data.image_base64) {
                     const imgSrc = `data:image/jpeg;base64,${data.image_base64}`;
                     imgEl.src = imgSrc;
-                    downloadBtn.href = imgSrc;
+                    window.currentGeneratedAiImage = data.image_base64;
                     resultBox.classList.remove('hidden');
                 } else {
                     alert('Error: ' + (data.error || 'Failed to generate image'));
@@ -757,6 +761,46 @@ Product Description: [Your suggested description]`;
             } finally {
                 btn.disabled = false;
                 loader.classList.add('hidden');
+            }
+        }
+
+        function resetAiImage() {
+            document.getElementById('aiImageResult').classList.add('hidden');
+            window.currentGeneratedAiImage = null;
+            document.getElementById('aiImagePrompt').focus();
+        }
+
+        async function saveAiGeneratedImage() {
+            if (!window.currentGeneratedAiImage) return;
+
+            const btn = document.getElementById('aiSaveImgBtn');
+            const originalText = btn.innerHTML;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-1"></i> Saving...';
+            btn.disabled = true;
+
+            try {
+                const response = await fetch(`index.php?controller=product&action=saveAiImage&id=${productId}&type=${productType}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ image_base64: window.currentGeneratedAiImage })
+                });
+                const data = await response.json();
+                
+                if (data.success) {
+                    btn.innerHTML = '<i class="fas fa-check mr-1 text-green-600"></i> Saved!';
+                    setTimeout(() => {
+                        window.location.reload();
+                    }, 1000);
+                } else {
+                    alert('Error: ' + (data.error || 'Failed to save image'));
+                    btn.innerHTML = originalText;
+                    btn.disabled = false;
+                }
+            } catch (err) {
+                console.error(err);
+                alert('A network error occurred while saving.');
+                btn.innerHTML = originalText;
+                btn.disabled = false;
             }
         }
     </script>
