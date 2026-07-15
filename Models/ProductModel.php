@@ -653,7 +653,11 @@ class ProductModel extends Model
                      WHERE p.gproduct_id = $id";
         }
         $result = $this->query($this->db, $sql);
-        return $this->fetchOne($result);
+        $product = $this->fetchOne($result);
+        if ($product) {
+            $product['quantity'] = $this->getPosQuantity($product['code'] ?? '');
+        }
+        return $product;
     }
 
     public function getProductImages($id, $type)
