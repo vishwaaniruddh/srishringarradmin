@@ -259,7 +259,7 @@ class ProductController extends Controller {
         $type = $_GET['type'] ?? 'jewellery';
         
         $input = json_decode(file_get_contents('php://input'), true);
-        $prompt = $input['prompt'] ?? 'A photorealistic beautiful Indian fashion model wearing this exact necklace. Do not change the necklace details.';
+        $prompt = $input['prompt'] ?? 'A photorealistic beautiful Indian fashion model wearing this exact product. The model should have open flowing hair. The background should have elegant props like a palace or traditional setting that compliments the jewelry perfectly. Do not change the product details. Show the full upper body.';
 
         if (!$id) {
             $this->json(['error' => 'Product ID is required'], 400);

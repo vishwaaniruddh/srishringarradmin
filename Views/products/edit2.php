@@ -137,7 +137,11 @@
                                             <div class="space-y-4">
                                                 <div class="flex flex-col sm:flex-row gap-3">
                                                     <div class="flex-1">
-                                                        <input type="text" id="aiImagePrompt" value="A photorealistic beautiful Indian fashion model wearing this exact necklace. Clean, elegant studio background that compliments the jewelry perfectly, no other people or distractions in the background. Do not change the necklace details." class="w-full bg-zinc-900/40 border border-zinc-800 rounded-lg p-2.5 text-xs text-zinc-300 focus:border-pink-500 transition-all" placeholder="Enter prompt...">
+                                                        <?php
+                                                        $catName = htmlspecialchars($product['category_name'] ?? ($product['subcategory_name'] ?? 'product'));
+                                                        $defaultPrompt = "A photorealistic beautiful Indian fashion model wearing this exact $catName. The model should have open flowing hair (khule baal). The background should have elegant props (piche props) like a palace or traditional setting that compliments the jewelry perfectly. Do not change the $catName details. Show the full upper body.";
+                                                        ?>
+                                                        <input type="text" id="aiImagePrompt" value="<?= $defaultPrompt ?>" class="w-full bg-zinc-900/40 border border-zinc-800 rounded-lg p-2.5 text-xs text-zinc-300 focus:border-pink-500 transition-all" placeholder="Enter prompt...">
                                                     </div>
                                                     <button type="button" onclick="aiGenerateModelImage()" id="aiImageBtn" class="sm:w-auto flex items-center justify-center space-x-2 py-2.5 px-6 bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 rounded-lg text-xs font-medium text-zinc-300 transition-all cursor-pointer">
                                                         <i class="fas fa-image text-[10px]"></i>
