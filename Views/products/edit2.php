@@ -139,7 +139,7 @@
                                                     <div class="flex-1">
                                                         <?php
                                                         $catName = htmlspecialchars($product['category_name'] ?? ($product['subcategory_name'] ?? 'product'));
-                                                        $defaultPrompt = "A photorealistic beautiful Indian fashion model wearing this exact $catName. The model should have open flowing hair (khule baal). The background should have elegant props (piche props) like a palace or traditional setting that compliments the jewelry perfectly. Do not change the $catName details. Show the full upper body.";
+                                                        $defaultPrompt = "A photorealistic beautiful Indian fashion model wearing this exact $catName. The model should have open flowing hair (khule baal). The background should have elegant props (piche props) like a palace or traditional setting that compliments the jewelry perfectly. Do not change the $catName details. Show a close-up portrait shot focusing on the $catName.";
                                                         ?>
                                                         <input type="text" id="aiImagePrompt" value="<?= $defaultPrompt ?>" class="w-full bg-zinc-900/40 border border-zinc-800 rounded-lg p-2.5 text-xs text-zinc-300 focus:border-pink-500 transition-all" placeholder="Enter prompt...">
                                                     </div>
