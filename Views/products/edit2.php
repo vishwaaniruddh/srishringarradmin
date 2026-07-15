@@ -126,6 +126,43 @@
                                                 </div>
                                             </div>
                                         </div>
+                                        <!-- AI Image Studio Helper Card -->
+                                        <div class="md:col-span-2 bg-zinc-950/20 border border-zinc-800 rounded-xl p-5 mt-4">
+                                            <div class="flex items-center space-x-2 mb-1.5">
+                                                <i class="fas fa-camera text-pink-400 text-xs animate-pulse"></i>
+                                                <h4 class="text-xs font-bold text-zinc-300 uppercase tracking-wider">AI Image Studio (Gemini)</h4>
+                                            </div>
+                                            <p class="text-[11px] text-zinc-550 mb-4">Generate an AI fashion model wearing this exact product.</p>
+
+                                            <div class="space-y-4">
+                                                <div class="flex flex-col sm:flex-row gap-3">
+                                                    <div class="flex-1">
+                                                        <input type="text" id="aiImagePrompt" value="A photorealistic beautiful Indian fashion model wearing this exact necklace. Do not change the necklace details." class="w-full bg-zinc-900/40 border border-zinc-800 rounded-lg p-2.5 text-xs text-zinc-300 focus:border-pink-500 transition-all" placeholder="Enter prompt...">
+                                                    </div>
+                                                    <button type="button" onclick="aiGenerateModelImage()" id="aiImageBtn" class="sm:w-auto flex items-center justify-center space-x-2 py-2.5 px-6 bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 rounded-lg text-xs font-medium text-zinc-300 transition-all cursor-pointer">
+                                                        <i class="fas fa-image text-[10px]"></i>
+                                                        <span>Generate Model Image</span>
+                                                    </button>
+                                                </div>
+
+                                                <!-- Loading indicator -->
+                                                <div id="aiImageLoading" class="hidden flex flex-col items-center justify-center space-y-3 py-6 bg-zinc-900/40 rounded-lg text-xs font-semibold text-zinc-400 border border-zinc-900">
+                                                    <div class="w-5 h-5 rounded-full border-2 border-pink-400 border-t-transparent animate-spin"></div>
+                                                    <span>AI is generating image. This may take 10-15 seconds...</span>
+                                                </div>
+
+                                                <!-- Results: Image Generator -->
+                                                <div id="aiImageResult" class="hidden space-y-3 pt-3 border-t border-zinc-900">
+                                                    <h5 class="text-[10px] font-bold text-zinc-400 uppercase tracking-wider">Generated Image</h5>
+                                                    <div class="flex justify-center bg-black/20 rounded-lg p-4 border border-zinc-800">
+                                                        <img id="aiGeneratedImg" src="" alt="Generated Model" class="max-w-full h-auto max-h-96 rounded shadow-lg">
+                                                    </div>
+                                                    <a id="aiDownloadImgBtn" href="#" download="generated_model.jpg" style="background-color: #ffffff !important; color: #000000 !important; border: 1px solid #ffffff !important;" class="block text-center w-full py-2 rounded-lg text-xs font-semibold hover:opacity-90 transition-all cursor-pointer">
+                                                        Download Image
+                                                    </a>
+                                                </div>
+                                            </div>
+                                        </div>
 
                                         
                                         <?php if ($type === 'jewellery'): ?>
@@ -683,6 +720,43 @@ Product Description: [Your suggested description]`;
                 setTimeout(() => {
                     descInput.style.boxShadow = '';
                 }, 1000);
+            }
+        }
+
+        async function aiGenerateModelImage() {
+            const btn = document.getElementById('aiImageBtn');
+            const loader = document.getElementById('aiImageLoading');
+            const resultBox = document.getElementById('aiImageResult');
+            const imgEl = document.getElementById('aiGeneratedImg');
+            const downloadBtn = document.getElementById('aiDownloadImgBtn');
+            const prompt = document.getElementById('aiImagePrompt').value.trim();
+
+            btn.disabled = true;
+            loader.classList.remove('hidden');
+            resultBox.classList.add('hidden');
+
+            try {
+                const response = await fetch(`index.php?controller=product&action=aiGenerateModelImage&id=${productId}&type=${productType}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ prompt: prompt })
+                });
+                const data = await response.json();
+                
+                if (data.success && data.image_base64) {
+                    const imgSrc = `data:image/jpeg;base64,${data.image_base64}`;
+                    imgEl.src = imgSrc;
+                    downloadBtn.href = imgSrc;
+                    resultBox.classList.remove('hidden');
+                } else {
+                    alert('Error: ' + (data.error || 'Failed to generate image'));
+                }
+            } catch (err) {
+                console.error(err);
+                alert('A network error occurred.');
+            } finally {
+                btn.disabled = false;
+                loader.classList.add('hidden');
             }
         }
     </script>

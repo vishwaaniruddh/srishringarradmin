@@ -151,6 +151,10 @@ class ProductController extends Controller {
     public function aiSuggestDescription() {
         $id = (int)($_GET['id'] ?? 0);
         $type = $_GET['type'] ?? 'jewellery';
+        $maxWords = (int)($_GET['max_words'] ?? 100);
+        
+        if ($maxWords < 10) $maxWords = 10;
+        if ($maxWords > 1000) $maxWords = 1000;
 
         if (!$id) {
             $this->json(['error' => 'Product ID is required'], 400);
@@ -198,8 +202,9 @@ class ProductController extends Controller {
         $base64Image = base64_encode($imgContent);
         $prompt = "You are a professional luxury fashion brand copywriter for Srishringarr. " .
                   "Analyze the product in the image. Write a detailed, premium, and compelling product description for this $type item. " .
+                  "The total description MUST NOT exceed $maxWords words. Be extremely concise if the word count limit is small. " .
                   "Structure the response to have:\n" .
-                  "1. A compelling description paragraph (3-4 sentences) introducing the item, emphasizing its visual elegance, style, and suitability for weddings, receptions, sangeets, or special occasions.\n" .
+                  "1. A compelling description paragraph introducing the item, emphasizing its visual elegance, style, and suitability for weddings, receptions, sangeets, or special occasions.\n" .
                   "2. A section titled 'Key Features:' followed by bullet points detailing specific design details, craftsmanship, embroidery/sequins/beading, fabric/metal materials, and accessories as visible or appropriate for this item.\n" .
                   "CRITICAL FORMATTING RULES FOR PLAIN TEXT:\n" .
                   "- Do not use any markdown tags (no '**', no '*', no '__', no '#').\n" .
@@ -247,6 +252,107 @@ class ProductController extends Controller {
         $description = $decoded['candidates'][0]['content']['parts'][0]['text'] ?? '';
         
         $this->json(['success' => true, 'description' => trim($description)]);
+    }
+
+    public function aiGenerateModelImage() {
+        $id = (int)($_GET['id'] ?? 0);
+        $type = $_GET['type'] ?? 'jewellery';
+        
+        $input = json_decode(file_get_contents('php://input'), true);
+        $prompt = $input['prompt'] ?? 'A photorealistic beautiful Indian fashion model wearing this exact necklace. Do not change the necklace details.';
+
+        if (!$id) {
+            $this->json(['error' => 'Product ID is required'], 400);
+            return;
+        }
+
+        $secrets = include(__DIR__ . '/../Config/secrets.php');
+        $apiKey = $secrets['GEMINI_API_KEY'] ?? '';
+
+        if (empty($apiKey)) {
+            $this->json(['error' => 'Gemini API Key is not configured in secrets.php'], 400);
+            return;
+        }
+
+        $productModel = new \Models\ProductModel();
+        $images = $productModel->getProductImages($id, $type);
+
+        if (empty($images)) {
+            $this->json(['error' => 'Product has no images to analyze.'], 400);
+            return;
+        }
+
+        $imgRelativePath = $images[0]['img_name'];
+        $localPath = __DIR__ . '/../../yn/uploads' . $imgRelativePath;
+        $imgContent = null;
+        $mimeType = 'image/jpeg';
+
+        if (file_exists($localPath)) {
+            $imgContent = file_get_contents($localPath);
+            $mime = mime_content_type($localPath);
+            if ($mime) $mimeType = $mime;
+        } else {
+            $remoteUrl = 'https://srishringarr.com/yn/uploads' . $imgRelativePath;
+            $imgContent = @file_get_contents($remoteUrl);
+            $ext = strtolower(pathinfo($imgRelativePath, PATHINFO_EXTENSION));
+            if ($ext === 'png') $mimeType = 'image/png';
+            elseif ($ext === 'webp') $mimeType = 'image/webp';
+        }
+
+        if (empty($imgContent)) {
+            $this->json(['error' => 'Failed to load product image for generation.'], 400);
+            return;
+        }
+
+        $imgData = base64_encode($imgContent);
+        $url = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-image:generateContent?key=' . $apiKey;
+        $payload = json_encode([
+            'contents' => [
+                [
+                    'parts' => [
+                        [
+                            'text' => $prompt
+                        ],
+                        [
+                            'inlineData' => [
+                                'mimeType' => $mimeType,
+                                'data' => $imgData
+                            ]
+                        ]
+                    ]
+                ]
+            ]
+        ]);
+
+        $ch = curl_init($url);
+        curl_setopt_array($ch, [
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_POST => true,
+            CURLOPT_HTTPHEADER => ['Content-Type: application/json'],
+            CURLOPT_POSTFIELDS => $payload,
+            CURLOPT_TIMEOUT => 30, // Image generation might take a bit longer
+            CURLOPT_SSL_VERIFYPEER => false,
+        ]);
+
+        $response = curl_exec($ch);
+        $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        @curl_close($ch);
+
+        if ($httpCode !== 200) {
+            $errObj = json_decode($response, true);
+            $errMsg = $errObj['error']['message'] ?? 'API request failed';
+            $this->json(['error' => 'Gemini API Error: ' . $errMsg], 500);
+            return;
+        }
+
+        $decoded = json_decode($response, true);
+        $b64 = $decoded['candidates'][0]['content']['parts'][0]['inlineData']['data'] ?? null;
+        
+        if ($b64) {
+            $this->json(['success' => true, 'image_base64' => $b64]);
+        } else {
+            $this->json(['error' => 'No image data returned from API'], 500);
+        }
     }
 
     public function saveProductField() {
@@ -401,6 +507,28 @@ class ProductController extends Controller {
         $garments = $productModel->getGarments();
         
         $this->view('products/edit', [
+            'product' => $product,
+            'images' => $images,
+            'type' => $type,
+            'jewelCategories' => $jewelCategories,
+            'garments' => $garments
+        ]);
+    }
+
+    public function edit2() {
+        $id = (int)($_GET['id'] ?? 0);
+        $type = $_GET['type'] ?? 'jewellery';
+        
+        if (!$id) $this->redirect('index.php?controller=product&action=index');
+
+        $productModel = new ProductModel();
+        $product = $productModel->getProductById($id, $type);
+        $images = $productModel->getProductImages($id, $type);
+        
+        $jewelCategories = $productModel->getJewelCategories();
+        $garments = $productModel->getGarments();
+        
+        $this->view('products/edit2', [
             'product' => $product,
             'images' => $images,
             'type' => $type,

@@ -16,7 +16,7 @@
             include __DIR__ . '/../partials/topbar.php'; 
             ?>
 
-            <main class="flex-1 overflow-y-auto p-8">
+            <main class="flex-1 overflow-y-auto p-4 sm:p-8 pb-24 sm:pb-8 relative">
                 <div class="max-w-4xl mx-auto">
                     <?php if (isset($_GET['error'])): ?>
                         <div class="mb-6 p-4 bg-red-50 border-l-4 border-red-500 text-red-700 rounded-r-xl shadow-sm">
@@ -35,7 +35,7 @@
                             </button>
                         </div>
 
-                        <form action="index.php?controller=product&action=store" method="POST" enctype="multipart/form-data" class="p-8 space-y-8">
+                        <form action="index.php?controller=product&action=store" method="POST" enctype="multipart/form-data" class="p-4 sm:p-8 space-y-6 sm:space-y-8">
                             <input type="hidden" name="type" id="product_type" value="jewellery">
 
                             <!-- SKU Section -->
@@ -97,7 +97,7 @@
                                         </div>
                                         <div class="md:col-span-2">
                                             <label class="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Description</label>
-                                            <textarea name="description" rows="3" class="w-full bg-gray-50 border border-gray-200 rounded-xl p-3 text-sm focus:ring-primary focus:border-primary"></textarea>
+                                            <textarea name="description" rows="8" class="w-full bg-gray-50 border border-gray-200 rounded-xl p-3 text-sm focus:ring-primary focus:border-primary"></textarea>
                                         </div>
                                         
                                         <div id="jewellery_cats" class="md:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -156,12 +156,12 @@
 
                                     <!-- Product Availability -->
                                     <div class="bg-gray-50 rounded-xl p-4 border border-gray-200">
-                                        <div class="flex items-center justify-between">
+                                        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                                             <div>
                                                 <label class="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">Availability / Nature</label>
                                                 <p class="text-xs text-gray-400">Control if this product is available for Rent, Sell, or Both.</p>
                                             </div>
-                                            <div class="w-48">
+                                            <div class="w-full sm:w-48">
                                                 <select name="availability" class="w-full bg-white border border-gray-200 rounded-xl p-2.5 text-sm focus:ring-primary focus:border-primary">
                                                     <option value="both">Rent & Sell (Both)</option>
                                                     <option value="rent">Rent Only</option>
@@ -206,9 +206,6 @@
                                             <span class="w-8 h-8 bg-primary/10 text-primary rounded-full flex items-center justify-center mr-3 text-sm">4</span>
                                             Product Images
                                         </h3>
-                                        <button type="button" id="btn_ai_suggest" onclick="suggestProductDetails()" class="px-4 py-2 bg-gradient-to-r from-primary/10 to-secondary/10 hover:from-primary/20 hover:to-secondary/20 text-primary rounded-xl text-xs font-semibold transition-all flex items-center border border-primary/25 cursor-pointer shadow-sm">
-                                            <i class="fas fa-robot mr-1.5 text-sm animate-pulse"></i> Suggest Name & Description via AI
-                                        </button>
                                     </div>
                                     <div class="border-2 border-dashed border-gray-200 rounded-2xl p-8 text-center hover:border-primary transition-all group">
                                         <input type="file" name="images[]" id="img_upload" multiple accept="image/*" class="hidden">
@@ -220,10 +217,12 @@
                                     </div>
                                 </div>
 
-                                <div class="pt-8 flex justify-end space-x-4">
-                                    <a href="index.php?controller=product&action=index" class="px-8 py-3 rounded-xl text-sm font-semibold text-gray-500 hover:bg-gray-100 transition-all">Cancel</a>
-                                    <button type="submit" class="px-8 py-3 bg-gradient-to-r from-primary to-secondary text-white rounded-xl text-sm font-semibold shadow-lg hover:opacity-90 transition-all">
-                                        Save Product
+                                <div class="sticky bottom-0 sm:static pt-4 pb-4 sm:pt-8 sm:pb-0 flex flex-col-reverse sm:flex-row justify-end sm:space-x-4 bg-white sm:bg-transparent border-t border-gray-100 sm:border-none px-4 sm:px-0 -mx-4 sm:mx-0 z-40 gap-3 sm:gap-0 mt-8 sm:mt-0 shadow-[0_-15px_15px_-10px_rgba(0,0,0,0.05)] sm:shadow-none">
+                                    <a href="index.php?controller=product&action=index" class="w-full sm:w-auto px-8 py-3.5 sm:py-3 border border-gray-300 sm:border-zinc-800 rounded-xl text-sm font-semibold text-gray-700 sm:text-zinc-400 hover:text-gray-900 sm:hover:text-white hover:bg-gray-50 sm:hover:bg-zinc-900 transition-all flex items-center justify-center">
+                                        <i class="fas fa-times mr-2 text-lg sm:text-base"></i> Cancel
+                                    </a>
+                                    <button type="submit" class="w-full sm:w-auto px-8 py-3.5 sm:py-3 bg-gradient-to-r from-primary to-secondary text-white rounded-xl text-sm font-semibold shadow-lg hover:opacity-90 transition-all flex items-center justify-center">
+                                        <i class="fas fa-save mr-2 text-lg sm:text-base"></i> Save Product
                                     </button>
                                 </div>
                             </div>
