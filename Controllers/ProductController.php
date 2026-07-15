@@ -351,7 +351,7 @@ class ProductController extends Controller {
         if ($b64) {
             $this->json(['success' => true, 'image_base64' => $b64]);
         } else {
-            $this->json(['error' => 'No image data returned from API'], 500);
+            $this->json(['error' => 'No image data returned. API Response: ' . $response], 500);
         }
     }
 
