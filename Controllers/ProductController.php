@@ -591,27 +591,6 @@ class ProductController extends Controller {
         ]);
     }
 
-    public function edit2() {
-        $id = (int)($_GET['id'] ?? 0);
-        $type = $_GET['type'] ?? 'jewellery';
-        
-        if (!$id) $this->redirect('index.php?controller=product&action=index');
-
-        $productModel = new ProductModel();
-        $product = $productModel->getProductById($id, $type);
-        $images = $productModel->getProductImages($id, $type);
-        
-        $jewelCategories = $productModel->getJewelCategories();
-        $garments = $productModel->getGarments();
-        
-        $this->view('products/edit2', [
-            'product' => $product,
-            'images' => $images,
-            'type' => $type,
-            'jewelCategories' => $jewelCategories,
-            'garments' => $garments
-        ]);
-    }
 
     public function update() {
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') $this->redirect('index.php?controller=product&action=index');
