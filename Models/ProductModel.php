@@ -1077,5 +1077,59 @@ class ProductModel extends Model
         
         return array_slice($products, 0, 50);
     }
+
+    public function getProductStats()
+    {
+        // Total products
+        $totalQuery = "
+            SELECT SUM(cnt) as total FROM (
+                SELECT COUNT(*) as cnt FROM product
+                UNION ALL
+                SELECT COUNT(*) as cnt FROM garment_product
+            ) t";
+        $totalResult = $this->query($this->db, $totalQuery);
+        $total = (int)($this->fetchOne($totalResult)['total'] ?? 0);
+
+        // Featured count
+        $featuredQuery = "
+            SELECT SUM(cnt) as total FROM (
+                SELECT COUNT(*) as cnt FROM product WHERE featured = 1
+                UNION ALL
+                SELECT COUNT(*) as cnt FROM garment_product WHERE featured = 1
+            ) t";
+        $featuredResult = $this->query($this->db, $featuredQuery);
+        $featured = (int)($this->fetchOne($featuredResult)['total'] ?? 0);
+
+        // In-stock: get available SKUs from POS
+        $availableSkus = [];
+        $posRes = $this->query($this->db3, "SELECT name FROM phppos_items WHERE quantity > 0");
+        while ($row = $this->fetchOne($posRes)) {
+            if (!empty($row['name'])) {
+                $availableSkus[] = mysqli_real_escape_string($this->db, $row['name']);
+            }
+        }
+
+        $inStock = 0;
+        if (!empty($availableSkus)) {
+            $skuList = "'" . implode("','", $availableSkus) . "'";
+            $inStockQuery = "
+                SELECT SUM(cnt) as total FROM (
+                    SELECT COUNT(*) as cnt FROM product WHERE product_code IN ($skuList)
+                    UNION ALL
+                    SELECT COUNT(*) as cnt FROM garment_product WHERE gproduct_code IN ($skuList)
+                ) t";
+            $inStockResult = $this->query($this->db, $inStockQuery);
+            $inStock = (int)($this->fetchOne($inStockResult)['total'] ?? 0);
+        }
+
+        $outOfStock = $total - $inStock;
+
+        return [
+            'total' => $total,
+            'in_stock' => $inStock,
+            'out_of_stock' => $outOfStock,
+            'featured' => $featured
+        ];
+    }
 }
 

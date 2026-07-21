@@ -19,119 +19,122 @@
             ?>
 
             <!-- Page Content -->
-            <main class="flex-1 overflow-y-auto p-8 bg-gray-50/50">
-                <div class="max-w-7xl mx-auto">
-                    <!-- Filters & Actions -->
-                    <div class="mb-6 bg-black p-4 rounded-xl border border-zinc-800">
-                        <form method="GET" action="index.php" class="grid grid-cols-1 lg:grid-cols-12 gap-4 items-center">
-                            <input type="hidden" name="controller" value="product">
-                            <input type="hidden" name="action" value="index">
-                            
-                            <div class="lg:col-span-2">
-                                <select name="category" id="categoryFilter" class="w-full bg-black border border-zinc-800 text-white text-xs rounded-lg focus:ring-1 focus:ring-zinc-700 focus:border-zinc-700 block py-2 px-3">
-                                    <option value="">All Categories</option>
-                                    <?php foreach ($categories as $parent => $data): ?>
-                                        <optgroup label="<?php echo htmlspecialchars($parent); ?> (<?php echo $data['count']; ?>)">
-                                            <?php foreach ($data['children'] as $value => $childData): ?>
-                                                <option value="<?php echo htmlspecialchars($value); ?>" <?php echo $category == $value ? 'selected' : ''; ?>>
-                                                    <?php echo $childData['name']; ?> (<?php echo $childData['count']; ?>)
-                                                </option>
-                                            <?php endforeach; ?>
-                                        </optgroup>
-                                    <?php endforeach; ?>
-                                </select>
-                            </div>
+            <main class="flex-1 overflow-y-auto p-6 lg:p-8 bg-gray-50/50">
+                <div class="max-w-[1400px] mx-auto">
 
-                            <div class="lg:col-span-2">
-                                <select name="featured" id="featuredFilter" class="w-full bg-black border border-zinc-800 text-white text-xs rounded-lg focus:ring-1 focus:ring-zinc-700 focus:border-zinc-700 block py-2 px-3">
-                                    <option value="">All Featured</option>
-                                    <option value="1">Featured Only</option>
-                                    <option value="0">Non-Featured</option>
-                                </select>
-                            </div>
+                    <!-- Stats Cards -->
+                    <div class="stats-grid" id="stats-grid">
+                        <div class="stat-card stat-card--total">
+                            <div class="stat-icon"><i class="fas fa-box"></i></div>
+                            <div class="stat-value" id="stat-total">—</div>
+                            <div class="stat-label">Total Products</div>
+                        </div>
+                        <div class="stat-card stat-card--stock">
+                            <div class="stat-icon"><i class="fas fa-check-circle"></i></div>
+                            <div class="stat-value" id="stat-stock">—</div>
+                            <div class="stat-label">In Stock</div>
+                        </div>
+                        <div class="stat-card stat-card--oos">
+                            <div class="stat-icon"><i class="fas fa-exclamation-circle"></i></div>
+                            <div class="stat-value" id="stat-oos">—</div>
+                            <div class="stat-label">Out of Stock</div>
+                        </div>
+                        <div class="stat-card stat-card--featured">
+                            <div class="stat-icon"><i class="fas fa-star"></i></div>
+                            <div class="stat-value" id="stat-featured">—</div>
+                            <div class="stat-label">Featured</div>
+                        </div>
+                    </div>
 
-                            <div class="lg:col-span-2">
-                                <select name="sort" id="sortFilter" class="w-full bg-black border border-zinc-800 text-white text-xs rounded-lg focus:ring-1 focus:ring-zinc-700 focus:border-zinc-700 block py-2 px-3">
-                                    <option value="id_desc">Newest First</option>
-                                    <option value="id_asc">Oldest First</option>
-                                    <option value="name_asc">Name (A-Z)</option>
-                                    <option value="name_desc">Name (Z-A)</option>
-                                    <option value="code_asc">Code (A-Z)</option>
-                                    <option value="code_desc">Code (Z-A)</option>
-                                    <option value="rent_price_asc">Rent Price (Low to High)</option>
-                                    <option value="rent_price_desc">Rent Price (High to Low)</option>
-                                    <option value="sales_price_asc">Sale Price (Low to High)</option>
-                                    <option value="sales_price_desc">Sale Price (High to Low)</option>
-                                </select>
+                    <!-- Filter Bar -->
+                    <div class="filter-bar">
+                        <!-- Row 1: Search & Filters -->
+                        <div class="filter-row" style="margin-bottom: 0.75rem;">
+                            <div class="search-box">
+                                <i class="fas fa-search search-icon"></i>
+                                <input type="text" id="searchInput" value="<?php echo htmlspecialchars($search); ?>" placeholder="Search products by name, code, or SKU...">
                             </div>
-                            
-                            <div class="lg:col-span-2">
-                                <div class="relative">
-                                    <span class="absolute inset-y-0 left-0 pl-3 flex items-center text-zinc-500 text-xs">
-                                        <i class="fas fa-search"></i>
-                                    </span>
-                                    <input type="text" name="search" id="searchInput" value="<?php echo htmlspecialchars($search); ?>" placeholder="Search by name or code..." class="w-full bg-black border border-zinc-800 text-white text-xs rounded-lg focus:ring-1 focus:ring-zinc-700 focus:border-zinc-700 block pl-8 py-2" style="padding-left: 2.25rem !important;">
-                                </div>
-                            </div>
-                            
-                            <div class="lg:col-span-4 flex flex-wrap gap-2 justify-start lg:justify-end">
-                                <button type="button" onclick="loadProducts(1)" class="bg-zinc-900 border border-zinc-800 text-white hover:bg-zinc-800 rounded-lg px-4 py-2 text-xs font-semibold transition-all flex items-center justify-center cursor-pointer">
-                                    <i class="fas fa-search mr-1.5 text-zinc-400"></i> Find
+                            <select id="categoryFilter">
+                                <option value="">All Categories</option>
+                                <?php foreach ($categories as $parent => $data): ?>
+                                    <optgroup label="<?php echo htmlspecialchars($parent); ?> (<?php echo $data['count']; ?>)">
+                                        <?php foreach ($data['children'] as $value => $childData): ?>
+                                            <option value="<?php echo htmlspecialchars($value); ?>" <?php echo $category == $value ? 'selected' : ''; ?>>
+                                                <?php echo $childData['name']; ?> (<?php echo $childData['count']; ?>)
+                                            </option>
+                                        <?php endforeach; ?>
+                                    </optgroup>
+                                <?php endforeach; ?>
+                            </select>
+                            <select id="featuredFilter">
+                                <option value="">All Featured</option>
+                                <option value="1">Featured Only</option>
+                                <option value="0">Non-Featured</option>
+                            </select>
+                            <select id="sortFilter">
+                                <option value="id_desc">Newest First</option>
+                                <option value="id_asc">Oldest First</option>
+                                <option value="name_asc">Name (A-Z)</option>
+                                <option value="name_desc">Name (Z-A)</option>
+                                <option value="code_asc">Code (A-Z)</option>
+                                <option value="code_desc">Code (Z-A)</option>
+                                <option value="rent_price_asc">Rent ↑</option>
+                                <option value="rent_price_desc">Rent ↓</option>
+                                <option value="sales_price_asc">Sale ↑</option>
+                                <option value="sales_price_desc">Sale ↓</option>
+                            </select>
+                        </div>
+                        <!-- Row 2: Action Buttons -->
+                        <div class="filter-row" style="justify-content: space-between;">
+                            <div class="filter-actions">
+                                <button type="button" id="availableToggle" onclick="toggleAvailableOnly()" class="filter-btn">
+                                    <i class="fas fa-check-circle"></i> Available Only
                                 </button>
-                                <a href="index.php?controller=product&action=import" class="bg-zinc-900 border border-zinc-800 text-white hover:bg-zinc-800 rounded-lg px-4 py-2 text-xs font-semibold transition-all flex items-center justify-center cursor-pointer">
-                                    <i class="fas fa-file-import mr-1.5 text-zinc-400"></i> Import
+                                <a href="index.php?controller=product&action=import" class="filter-btn">
+                                    <i class="fas fa-file-import"></i> Import
                                 </a>
-                                <a href="javascript:void(0)" onclick="exportProducts()" class="bg-zinc-900 border border-zinc-800 text-white hover:bg-zinc-800 rounded-lg px-4 py-2 text-xs font-semibold transition-all flex items-center justify-center cursor-pointer">
-                                    <i class="fas fa-file-export mr-1.5 text-zinc-400"></i> Export
+                                <a href="javascript:void(0)" onclick="exportProducts()" class="filter-btn">
+                                    <i class="fas fa-file-export"></i> Export
                                 </a>
-                                <button type="button" id="availableToggle" onclick="toggleAvailableOnly()" class="bg-zinc-900 border border-zinc-800 text-zinc-400 hover:text-white hover:bg-zinc-800 rounded-lg px-4 py-2 text-xs font-semibold transition-all flex items-center justify-center cursor-pointer">
-                                    <i class="fas fa-check-circle mr-1.5 text-zinc-500" id="availableIcon"></i> Available Only
-                                </button>
-                                <a href="index.php?controller=product&action=descriptionCorrector" class="bg-zinc-900 border border-zinc-800 text-white hover:bg-zinc-800 rounded-lg px-4 py-2 text-xs font-semibold transition-all flex items-center justify-center cursor-pointer">
-                                    <i class="fas fa-magic mr-1.5 text-zinc-400"></i> Format Descriptions
-                                </a>
-                                <a href="index.php?controller=product&action=add" class="bg-white border border-white text-black hover:bg-black hover:text-white hover:border-zinc-800 rounded-lg px-4 py-2 text-xs font-semibold transition-all flex items-center justify-center cursor-pointer">
-                                    <i class="fas fa-plus mr-1.5"></i> Add Product
+                                <a href="index.php?controller=product&action=descriptionCorrector" class="filter-btn">
+                                    <i class="fas fa-magic"></i> Format Descriptions
                                 </a>
                             </div>
-                        </form>
+                            <a href="index.php?controller=product&action=add" class="filter-btn filter-btn--primary">
+                                <i class="fas fa-plus"></i> Add Product
+                            </a>
+                        </div>
                     </div>
 
                     <!-- Products Table -->
-                    <div class="bg-black rounded-xl border border-zinc-800 overflow-hidden">
+                    <div class="product-table-wrap">
                         <div class="table-responsive">
-                            <table class="w-full text-left border-collapse">
-                                <thead class="bg-zinc-950 border-b border-zinc-800">
+                            <table class="w-full text-left">
+                                <thead>
                                     <tr>
-                                        <th class="px-6 py-4 text-xs font-semibold text-zinc-500 uppercase tracking-wider w-16">#</th>
-                                        <th class="px-6 py-4 text-xs font-semibold text-zinc-500 uppercase tracking-wider min-w-[320px]">Product</th>
-                                        <th class="px-6 py-4 text-xs font-semibold text-zinc-500 uppercase tracking-wider">Code</th>
-                                        <th class="px-6 py-4 text-xs font-semibold text-zinc-500 uppercase tracking-wider">Category</th>
-                                        <th class="px-6 py-4 text-xs font-semibold text-zinc-500 uppercase tracking-wider">Inventory</th>
-                                        <th class="px-6 py-4 text-xs font-semibold text-zinc-500 uppercase tracking-wider">Pricing</th>
-                                        <th class="px-6 py-4 text-xs font-semibold text-zinc-500 uppercase tracking-wider text-center">Source</th>
-                                        <th class="px-6 py-4 text-xs font-semibold text-zinc-500 uppercase tracking-wider text-center">Availability</th>
-                                        <th class="px-6 py-4 text-xs font-semibold text-zinc-500 uppercase tracking-wider">Bookings</th>
-                                        <th class="px-6 py-4 text-xs font-semibold text-zinc-500 uppercase tracking-wider text-center">Featured</th>
-                                        <th class="px-6 py-4 text-xs font-semibold text-zinc-500 uppercase tracking-wider text-right">Actions</th>
+                                        <th style="width: 48px;">#</th>
+                                        <th style="min-width: 320px;">Product</th>
+                                        <th>Code</th>
+                                        <th>Category</th>
+                                        <th>Inventory</th>
+                                        <th>Pricing</th>
+                                        <th style="text-align: center;">Source</th>
+                                        <th style="text-align: center;">Availability</th>
+                                        <th>Bookings</th>
+                                        <th style="text-align: center;">Featured</th>
+                                        <th style="text-align: right; width: 120px;">Actions</th>
                                     </tr>
                                 </thead>
-                                <tbody id="products-body" class="divide-y divide-zinc-800/40">
-                                    <tr>
-                                        <td colspan="11" class="px-6 py-10 text-center text-gray-500">
-                                            <div class="flex flex-col items-center">
-                                                <i class="fas fa-spinner fa-spin text-3xl text-primary mb-4"></i>
-                                                <p>Loading products...</p>
-                                            </div>
-                                        </td>
-                                    </tr>
+                                <tbody id="products-body">
+                                    <!-- Skeleton Loading -->
                                 </tbody>
                             </table>
                         </div>
 
-                        <!-- Pagination Container -->
+                        <!-- Pagination -->
                         <div id="pagination-container"></div>
                     </div>
+
                 </div>
             </main>
         </div>
@@ -143,23 +146,45 @@
     let currentPage = 1;
     let availableOnly = false;
 
+    // Generate skeleton loading rows
+    function renderSkeletons(count = 8) {
+        let html = '';
+        for (let i = 0; i < count; i++) {
+            html += `
+                <tr>
+                    <td><div class="skeleton skeleton-text skeleton-text--tiny" style="height: 10px;">&nbsp;</div></td>
+                    <td>
+                        <div style="display: flex; align-items: center; gap: 1rem;">
+                            <div class="skeleton skeleton-img"></div>
+                            <div>
+                                <div class="skeleton skeleton-text skeleton-text--wide" style="margin-bottom: 8px;">&nbsp;</div>
+                                <div class="skeleton skeleton-text skeleton-text--short">&nbsp;</div>
+                            </div>
+                        </div>
+                    </td>
+                    <td><div class="skeleton skeleton-text skeleton-text--short">&nbsp;</div></td>
+                    <td><div class="skeleton skeleton-text skeleton-text--medium">&nbsp;</div></td>
+                    <td><div class="skeleton skeleton-text skeleton-text--short">&nbsp;</div></td>
+                    <td><div class="skeleton skeleton-text skeleton-text--medium">&nbsp;</div></td>
+                    <td style="text-align:center;"><div class="skeleton skeleton-text skeleton-text--tiny" style="margin: 0 auto;">&nbsp;</div></td>
+                    <td style="text-align:center;"><div class="skeleton skeleton-text skeleton-text--short" style="margin: 0 auto;">&nbsp;</div></td>
+                    <td><div class="skeleton skeleton-text skeleton-text--tiny">&nbsp;</div></td>
+                    <td style="text-align:center;"><div class="skeleton skeleton-text skeleton-text--tiny" style="margin: 0 auto;">&nbsp;</div></td>
+                    <td style="text-align:right;"><div class="skeleton skeleton-text skeleton-text--short" style="margin-left: auto;">&nbsp;</div></td>
+                </tr>
+            `;
+        }
+        return html;
+    }
+
     function toggleAvailableOnly() {
         availableOnly = !availableOnly;
         const btn = document.getElementById('availableToggle');
-        const icon = document.getElementById('availableIcon');
-        
         if (availableOnly) {
-            btn.classList.remove('bg-zinc-900', 'border-zinc-800', 'text-zinc-400', 'hover:bg-zinc-800');
-            btn.classList.add('bg-emerald-600', 'border-emerald-600', 'text-white', 'hover:bg-emerald-500');
-            icon.classList.remove('text-zinc-500');
-            icon.classList.add('text-white');
+            btn.classList.add('filter-btn--active');
         } else {
-            btn.classList.remove('bg-emerald-600', 'border-emerald-600', 'text-white', 'hover:bg-emerald-500');
-            btn.classList.add('bg-zinc-900', 'border-zinc-800', 'text-zinc-400', 'hover:bg-zinc-800');
-            icon.classList.remove('text-white');
-            icon.classList.add('text-zinc-500');
+            btn.classList.remove('filter-btn--active');
         }
-        
         loadProducts(1);
     }
 
@@ -175,6 +200,22 @@
             sortBy = parts.join('_');
         }
         window.location.href = `index.php?controller=product&action=export&search=${encodeURIComponent(search)}&category=${encodeURIComponent(category)}&sort_by=${sortBy}&sort_order=${sortOrder}&available_only=${availableOnly ? 1 : 0}`;
+    }
+
+    // Animate a counter from 0 to target
+    function animateCounter(el, target) {
+        if (isNaN(target)) { el.textContent = target; return; }
+        const duration = 600;
+        const start = performance.now();
+        const from = 0;
+        function tick(now) {
+            const elapsed = now - start;
+            const progress = Math.min(elapsed / duration, 1);
+            const eased = 1 - Math.pow(1 - progress, 3); // ease-out cubic
+            el.textContent = Math.round(from + (target - from) * eased).toLocaleString('en-IN');
+            if (progress < 1) requestAnimationFrame(tick);
+        }
+        requestAnimationFrame(tick);
     }
 
     async function loadProducts(page = 1) {
@@ -195,28 +236,33 @@
         const tbody = document.getElementById('products-body');
         const pagination = document.getElementById('pagination-container');
 
-        tbody.innerHTML = `
-            <tr>
-                <td colspan="11" class="px-6 py-10 text-center text-gray-500">
-                    <div class="flex flex-col items-center">
-                        <i class="fas fa-spinner fa-spin text-3xl text-primary mb-4"></i>
-                        <p>Loading products...</p>
-                    </div>
-                </td>
-            </tr>
-        `;
+        // Show skeleton loading
+        tbody.innerHTML = renderSkeletons(8);
 
         try {
             const response = await fetch(`index.php?controller=api&action=products&page=${page}&search=${encodeURIComponent(search)}&category=${encodeURIComponent(category)}&featured=${featured}&sort_by=${sortBy}&sort_order=${sortOrder}&available_only=${availableOnly ? 1 : 0}`);
             const data = await response.json();
 
+            // Update stats
+            if (data.stats) {
+                animateCounter(document.getElementById('stat-total'), data.stats.total || 0);
+                animateCounter(document.getElementById('stat-stock'), data.stats.in_stock || 0);
+                animateCounter(document.getElementById('stat-oos'), data.stats.out_of_stock || 0);
+                animateCounter(document.getElementById('stat-featured'), data.stats.featured || 0);
+            } else if (data.totalRecords !== undefined) {
+                animateCounter(document.getElementById('stat-total'), data.totalRecords);
+            }
+
             if (!data.products || data.products.length === 0) {
                 tbody.innerHTML = `
                     <tr>
-                        <td colspan="11" class="px-6 py-10 text-center text-gray-500">
-                            <div class="flex flex-col items-center">
-                                <i class="fas fa-box-open text-3xl mb-4 opacity-20"></i>
-                                <p>No products found matching your criteria.</p>
+                        <td colspan="11" style="text-align: center; padding: 3rem 1rem !important;">
+                            <div style="display: flex; flex-direction: column; align-items: center; gap: 0.75rem;">
+                                <i class="fas fa-box-open" style="font-size: 2.5rem; color: #222;"></i>
+                                <p style="color: #555; font-size: 0.85rem;">No products found matching your criteria.</p>
+                                <a href="index.php?controller=product&action=add" class="filter-btn filter-btn--primary" style="margin-top: 0.5rem;">
+                                    <i class="fas fa-plus"></i> Add Product
+                                </a>
                             </div>
                         </td>
                     </tr>
@@ -229,85 +275,102 @@
             const serialStart = (data.currentPage - 1) * 20 + 1;
 
             data.products.forEach((p, index) => {
-                const bookingText = p.details.bookings.length > 0 
-                    ? `<span class="px-2 py-0.5 rounded text-[10px] font-bold bg-red-500/10 text-red-500 border border-red-500/20">${p.details.bookings.length} Booked</span>`
-                    : `<span class="text-xs text-zinc-500">–</span>`;
+                // Bookings
+                const bookingCount = p.details.bookings ? p.details.bookings.length : 0;
+                const bookingHtml = bookingCount > 0 
+                    ? `<span class="badge badge--red booking-pulse"><i class="fas fa-calendar-check" style="font-size:0.6rem;"></i> ${bookingCount} Booked</span>`
+                    : `<span style="color: #333;">—</span>`;
 
+                // Product name
                 const rawName = (p.name || '').trim();
                 const cleanName = (rawName && rawName.toLowerCase() !== 'jewellery' && rawName.toLowerCase() !== 'garments' && rawName.toLowerCase() !== 'garment_product') ? rawName : '';
                 const displayName = cleanName ? cleanName.toLowerCase().replace(/\b\w/g, l => l.toUpperCase()) : 'Unnamed Product (' + p.code + ')';
-                const truncatedName = displayName.length > 40 ? displayName.substring(0, 40) + '...' : displayName;
+                const truncatedName = displayName.length > 45 ? displayName.substring(0, 45) + '...' : displayName;
 
+                // Inventory
                 const qtyVal = parseFloat(p.details.quantity || 0);
-                const qtyText = qtyVal > 0 
-                    ? `<span class="text-xs text-zinc-300 font-medium">${qtyVal % 1 === 0 ? qtyVal.toFixed(0) : qtyVal.toFixed(2)} in stock</span>`
-                    : `<span class="px-2 py-0.5 rounded text-[10px] font-bold bg-red-500/10 text-red-500 border border-red-500/20">Out of Stock</span>`;
+                const qtyHtml = qtyVal > 0 
+                    ? `<span class="badge badge--green"><i class="fas fa-cube" style="font-size:0.55rem;"></i> ${qtyVal % 1 === 0 ? qtyVal.toFixed(0) : qtyVal.toFixed(2)} in stock</span>`
+                    : `<span class="badge badge--red"><i class="fas fa-times-circle" style="font-size:0.55rem;"></i> Out of Stock</span>`;
 
+                // Pricing
                 const rentPrice = parseFloat(p.details.rent_price || 0);
                 const salePrice = parseFloat(p.details.sale_price || 0);
 
+                // Source toggle
+                const isManual = p.details.price_source === 'manual';
+                const sourceLabel = isManual ? 'Manual' : 'POS';
+                const sourceLabelColor = isManual ? 'color: #f59e0b;' : 'color: #555;';
+
+                // Availability
+                const avail = p.details.availability || 'both';
+
+                // Featured
+                const isFeatured = p.featured == 1;
+
+                // Type badge
+                const typeLabel = (p.details.product_type_label || p.type || '').toLowerCase();
+                const typeBadgeClass = typeLabel === 'jewellery' ? 'badge--blue' : 'badge--zinc';
+
                 html += `
-                    <tr class="hover:bg-zinc-900/30 transition-colors border-b border-zinc-900">
-                        <td class="px-6 py-4 text-xs text-zinc-500 font-medium">${serialStart + index}</td>
-                        <td class="px-6 py-4 min-w-[320px]">
-                            <div class="flex items-center">
-                                <a href="index.php?controller=product&action=view_details&id=${p.id}&type=${p.type}" class="block flex-shrink-0">
-                                    <img src="${p.details.image_path}" alt="" class="product-img mr-4 border border-zinc-800 hover:opacity-85 transition-opacity" onerror="this.src='assets/default-product.jpg'">
+                    <tr class="product-row" style="animation-delay: ${0.02 * (index + 1)}s;">
+                        <td style="color: #333; font-variant-numeric: tabular-nums; font-size: 0.75rem; font-weight: 500;">${serialStart + index}</td>
+                        <td style="min-width: 320px;">
+                            <div style="display: flex; align-items: center; gap: 0.85rem;">
+                                <a href="index.php?controller=product&action=view_details&id=${p.id}&type=${p.type}" style="flex-shrink: 0;">
+                                    <img src="${p.details.image_path}" alt="" class="product-img-lg" onerror="this.src='assets/default-product.jpg'">
                                 </a>
-                                <div>
+                                <div style="min-width: 0;">
                                     <a href="index.php?controller=product&action=view_details&id=${p.id}&type=${p.type}" 
-                                       class="text-sm font-semibold text-white hover:text-zinc-300 transition-colors block" 
-                                       title="${displayName}">
+                                       style="display: block; font-size: 0.82rem; font-weight: 600; color: #e5e5e5; text-decoration: none; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 260px; transition: color 0.15s;"
+                                       title="${displayName}"
+                                       onmouseover="this.style.color='#fff'" onmouseout="this.style.color='#e5e5e5'">
                                         ${truncatedName}
                                     </a>
-                                    <div class="text-[10px] text-zinc-500 font-medium capitalize mt-0.5">${p.details.product_type_label}</div>
+                                    <span class="badge ${typeBadgeClass}" style="margin-top: 4px; font-size: 0.6rem; padding: 0.1rem 0.4rem;">${typeLabel}</span>
                                 </div>
                             </div>
                         </td>
-                        <td class="px-6 py-4">
-                            <span class="font-mono text-xs text-zinc-300 bg-zinc-900 border border-zinc-800 px-2 py-0.5 rounded">${p.code}</span>
+                        <td><span class="code-badge">${p.code}</span></td>
+                        <td style="color: #888; font-size: 0.78rem; font-weight: 500;">${(p.details.category_name || 'N/A').toLowerCase().replace(/\b\w/g, l => l.toUpperCase())}</td>
+                        <td>${qtyHtml}</td>
+                        <td>
+                            <div class="price-primary">₹${rentPrice.toLocaleString('en-IN', {minimumFractionDigits: 0})}</div>
+                            <div class="price-secondary">Sale: ₹${salePrice.toLocaleString('en-IN', {minimumFractionDigits: 0})}</div>
                         </td>
-                        <td class="px-6 py-4 text-xs text-zinc-400 font-medium">${(p.details.category_name || 'N/A').toLowerCase().replace(/\b\w/g, l => l.toUpperCase())}</td>
-                        <td class="px-6 py-4">${qtyText}</td>
-                        <td class="px-6 py-4">
-                            <div class="text-xs font-bold text-white">Rent: ₹${rentPrice.toLocaleString('en-IN', {minimumFractionDigits: 0})}</div>
-                            <div class="text-[10px] text-zinc-500 mt-0.5">Sale: ₹${salePrice.toLocaleString('en-IN', {minimumFractionDigits: 0})}</div>
-                        </td>
-                        <td class="px-6 py-4 text-center">
-                            <label class="relative inline-flex items-center cursor-pointer">
-                                <input type="checkbox" class="sr-only peer" ${p.details.price_source === 'manual' ? 'checked' : ''} onchange="togglePriceSourceRow(${p.id}, '${p.type}', this.checked ? 'manual' : 'pos')">
-                                <div class="w-8 h-4 bg-zinc-800 rounded-full peer peer-focus:ring-0 peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-zinc-600 after:border after:rounded-full after:h-3 after:w-3 after:transition-all peer-checked:bg-amber-500"></div>
+                        <td style="text-align: center;">
+                            <label class="toggle-switch">
+                                <input type="checkbox" ${isManual ? 'checked' : ''} onchange="togglePriceSourceRow(${p.id}, '${p.type}', this.checked ? 'manual' : 'pos')">
+                                <span class="toggle-slider"></span>
                             </label>
-                            <div class="text-[9px] font-bold uppercase tracking-wider ${p.details.price_source === 'manual' ? 'text-amber-500' : 'text-zinc-500'} mt-1">
-                                ${p.details.price_source === 'manual' ? 'Manual' : 'POS'}
-                            </div>
+                            <div style="font-size: 0.6rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; margin-top: 3px; ${sourceLabelColor}">${sourceLabel}</div>
                         </td>
-                        <td class="px-6 py-4 text-center">
-                            <select onchange="toggleAvailabilityRow(${p.id}, '${p.type}', this.value)" class="bg-zinc-900 border border-zinc-800 text-white text-xs rounded-lg block w-24 py-1.5 px-2 cursor-pointer focus:ring-1 focus:ring-primary focus:border-primary mx-auto">
-                                <option value="both" ${p.details.availability === 'both' ? 'selected' : ''}>Both</option>
-                                <option value="rent" ${p.details.availability === 'rent' ? 'selected' : ''}>Rent</option>
-                                <option value="sell" ${p.details.availability === 'sell' ? 'selected' : ''}>Sell</option>
+                        <td style="text-align: center;">
+                            <select onchange="toggleAvailabilityRow(${p.id}, '${p.type}', this.value)" class="avail-select">
+                                <option value="both" ${avail === 'both' ? 'selected' : ''}>Both</option>
+                                <option value="rent" ${avail === 'rent' ? 'selected' : ''}>Rent</option>
+                                <option value="sell" ${avail === 'sell' ? 'selected' : ''}>Sell</option>
                             </select>
                         </td>
-                        <td class="px-6 py-4">${bookingText}</td>
-                        <td class="px-6 py-4 text-center">
-                            <button onclick="toggleFeatured(${p.id}, '${p.type}', ${p.featured == 1 ? 0 : 1})" class="transition-all transform hover:scale-110 text-zinc-500">
-                                <i class="${p.featured == 1 ? 'fas fa-star text-yellow-500' : 'far fa-star text-zinc-700'} text-lg"></i>
+                        <td>${bookingHtml}</td>
+                        <td style="text-align: center;">
+                            <button onclick="toggleFeatured(${p.id}, '${p.type}', ${isFeatured ? 0 : 1})" class="featured-star ${isFeatured ? 'featured-star--active' : 'featured-star--inactive'}">
+                                <i class="${isFeatured ? 'fas' : 'far'} fa-star"></i>
                             </button>
                         </td>
-                        <td class="px-6 py-4 text-right">
-                            <div class="flex items-center justify-end space-x-2.5">
-                                <a href="index.php?controller=product&action=view_details&id=${p.id}&type=${p.type}" title="View Details" class="text-zinc-500 hover:text-white transition-colors">
-                                    <i class="fas fa-eye text-xs"></i>
+                        <td style="text-align: right;">
+                            <div class="quick-actions" style="justify-content: flex-end;">
+                                <a href="index.php?controller=product&action=view_details&id=${p.id}&type=${p.type}" title="View" class="quick-action-btn">
+                                    <i class="fas fa-eye"></i>
                                 </a>
-                                <a href="index.php?controller=product&action=edit&id=${p.id}&type=${p.type}" title="Edit Product" class="text-zinc-500 hover:text-white transition-colors">
-                                    <i class="fas fa-edit text-xs"></i>
+                                <a href="index.php?controller=product&action=edit&id=${p.id}&type=${p.type}" title="Edit" class="quick-action-btn">
+                                    <i class="fas fa-pen"></i>
                                 </a>
                                 <a href="index.php?controller=product&action=delete&id=${p.id}&type=${p.type}" 
-                                   title="Delete Product"
+                                   title="Delete"
                                    onclick="return confirm('Are you sure you want to delete this product?')"
-                                   class="text-zinc-500 hover:text-red-500 transition-colors">
-                                    <i class="fas fa-trash text-xs"></i>
+                                   class="quick-action-btn quick-action-btn--danger">
+                                    <i class="fas fa-trash"></i>
                                 </a>
                             </div>
                         </td>
@@ -321,9 +384,14 @@
             console.error('Error fetching products:', error);
             tbody.innerHTML = `
                 <tr>
-                    <td colspan="8" class="px-6 py-10 text-center text-red-500">
-                        <i class="fas fa-exclamation-triangle text-3xl mb-4"></i>
-                        <p>Error loading products. Please try again.</p>
+                    <td colspan="11" style="text-align: center; padding: 3rem 1rem !important;">
+                        <div style="display: flex; flex-direction: column; align-items: center; gap: 0.75rem;">
+                            <i class="fas fa-exclamation-triangle" style="font-size: 2rem; color: #ef4444;"></i>
+                            <p style="color: #888; font-size: 0.85rem;">Error loading products. Please try again.</p>
+                            <button onclick="loadProducts(currentPage)" class="filter-btn" style="margin-top: 0.25rem;">
+                                <i class="fas fa-redo"></i> Retry
+                            </button>
+                        </div>
                     </td>
                 </tr>
             `;
@@ -340,60 +408,67 @@
         const startRange = (data.currentPage - 1) * 20 + 1;
         const endRange = Math.min(data.currentPage * 20, data.totalRecords);
 
-        let paginationHtml = `
-            <div class="px-6 py-4 bg-gray-50 border-t border-gray-100 flex flex-col md:flex-row items-center justify-between gap-4">
-                <div class="text-sm text-gray-500">
-                    Showing <span class="font-semibold text-gray-800">${startRange}</span> to 
-                    <span class="font-semibold text-gray-800">${endRange}</span> of 
-                    <span class="font-semibold text-gray-800">${data.totalRecords}</span> products
-                </div>
-                <div class="flex items-center space-x-1">
-        `;
+        let html = `<div class="pagination-bar">
+            <div class="page-info">
+                Showing <span>${startRange}</span> to <span>${endRange}</span> of <span>${data.totalRecords}</span> products
+            </div>
+            <div class="page-buttons">`;
 
         if (data.currentPage > 1) {
-            paginationHtml += `
-                <button onclick="loadProducts(1)" class="px-3 py-2 text-xs font-medium text-gray-500 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition-all">First</button>
-                <button onclick="loadProducts(${data.currentPage - 1})" class="px-3 py-2 text-xs font-medium text-gray-500 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition-all">Prev</button>
-            `;
+            html += `<button onclick="loadProducts(1)" class="page-btn page-btn--nav">First</button>`;
+            html += `<button onclick="loadProducts(${data.currentPage - 1})" class="page-btn page-btn--nav"><i class="fas fa-chevron-left" style="font-size:0.6rem;"></i></button>`;
         }
 
         const range = 2;
         const start = Math.max(1, data.currentPage - range);
         const end = Math.min(data.totalPages, data.currentPage + range);
 
+        if (start > 1) {
+            html += `<button onclick="loadProducts(1)" class="page-btn">1</button>`;
+            if (start > 2) html += `<span style="color:#333; padding: 0 0.25rem;">…</span>`;
+        }
+
         for (let i = start; i <= end; i++) {
-            paginationHtml += `
-                <button onclick="loadProducts(${i})" 
-                   class="px-4 py-2 text-sm font-medium rounded-lg transition-all ${i === data.currentPage ? 'bg-primary text-white shadow-sm' : 'text-gray-500 bg-white border border-gray-200 hover:bg-gray-50'}">
-                    ${i}
-                </button>
-            `;
+            html += `<button onclick="loadProducts(${i})" class="page-btn ${i === data.currentPage ? 'page-btn--active' : ''}">${i}</button>`;
+        }
+
+        if (end < data.totalPages) {
+            if (end < data.totalPages - 1) html += `<span style="color:#333; padding: 0 0.25rem;">…</span>`;
+            html += `<button onclick="loadProducts(${data.totalPages})" class="page-btn">${data.totalPages}</button>`;
         }
 
         if (data.currentPage < data.totalPages) {
-            paginationHtml += `
-                <button onclick="loadProducts(${data.currentPage + 1})" class="px-3 py-2 text-xs font-medium text-gray-500 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition-all">Next</button>
-                <button onclick="loadProducts(${data.totalPages})" class="px-3 py-2 text-xs font-medium text-gray-500 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition-all">Last</button>
-            `;
+            html += `<button onclick="loadProducts(${data.currentPage + 1})" class="page-btn page-btn--nav"><i class="fas fa-chevron-right" style="font-size:0.6rem;"></i></button>`;
+            html += `<button onclick="loadProducts(${data.totalPages})" class="page-btn page-btn--nav">Last</button>`;
         }
 
-        paginationHtml += `</div></div>`;
-        container.innerHTML = paginationHtml;
+        html += `</div></div>`;
+        container.innerHTML = html;
     }
 
     // Initialize
     document.addEventListener('DOMContentLoaded', () => {
         loadProducts(1);
         
-        // Add event listeners for filters
+        // Filter change listeners
         document.getElementById('categoryFilter').addEventListener('change', () => loadProducts(1));
         document.getElementById('featuredFilter').addEventListener('change', () => loadProducts(1));
         document.getElementById('sortFilter').addEventListener('change', () => loadProducts(1));
         
+        // Debounced search
         let searchTimeout;
         document.getElementById('searchInput').addEventListener('input', () => {
             clearTimeout(searchTimeout);
             searchTimeout = setTimeout(() => loadProducts(1), 500);
+        });
+
+        // Enter key on search
+        document.getElementById('searchInput').addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                clearTimeout(searchTimeout);
+                loadProducts(1);
+            }
         });
     });
 
@@ -453,8 +528,6 @@
             alert('Something went wrong. Please try again.');
         }
     }
-
-    document.getElementById('featuredFilter').addEventListener('change', () => loadProducts(1));
     </script>
 </body>
 </html>

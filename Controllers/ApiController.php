@@ -48,13 +48,15 @@ class ApiController extends Controller {
         $products = $productModel->getProducts($params);
         $totalRecords = $productModel->getTotalCount($params);
         $categories = $productModel->getCategories();
+        $stats = $productModel->getProductStats();
         
         $this->json([
             'products' => $products,
             'totalRecords' => (int)$totalRecords,
             'totalPages' => ceil($totalRecords / $limit),
             'currentPage' => $page,
-            'categories' => $categories
+            'categories' => $categories,
+            'stats' => $stats
         ]);
     }
 

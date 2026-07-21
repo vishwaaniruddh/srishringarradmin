@@ -355,6 +355,181 @@ class ProductController extends Controller {
         }
     }
 
+    public function aiGenerateVideoStart() {
+        $id = (int)($_GET['id'] ?? 0);
+        $type = $_GET['type'] ?? 'jewellery';
+        
+        $input = json_decode(file_get_contents('php://input'), true);
+        $prompt = $input['prompt'] ?? 'A beautiful, cinematic showcase of this fashion product. The product is the central focus.';
+
+        if (!$id) {
+            $this->json(['error' => 'Product ID is required'], 400);
+            return;
+        }
+
+        $secrets = include(__DIR__ . '/../Config/secrets.php');
+        $apiKey = $secrets['GEMINI_API_KEY'] ?? '';
+
+        if (empty($apiKey)) {
+            $this->json(['error' => 'Gemini API Key is not configured in secrets.php'], 400);
+            return;
+        }
+
+        $productModel = new \Models\ProductModel();
+        $images = $productModel->getProductImages($id, $type);
+
+        if (empty($images)) {
+            $this->json(['error' => 'Product has no images to analyze.'], 400);
+            return;
+        }
+
+        $imgRelativePath = $images[0]['img_name'];
+        $localPath = __DIR__ . '/../../yn/uploads' . $imgRelativePath;
+        $imgContent = null;
+        $mimeType = 'image/jpeg';
+
+        if (file_exists($localPath)) {
+            $imgContent = file_get_contents($localPath);
+            $mime = mime_content_type($localPath);
+            if ($mime) $mimeType = $mime;
+        } else {
+            $remoteUrl = 'https://srishringarr.com/yn/uploads' . $imgRelativePath;
+            $imgContent = @file_get_contents($remoteUrl);
+            $ext = strtolower(pathinfo($imgRelativePath, PATHINFO_EXTENSION));
+            if ($ext === 'png') $mimeType = 'image/png';
+            elseif ($ext === 'webp') $mimeType = 'image/webp';
+        }
+
+        if (empty($imgContent)) {
+            $this->json(['error' => 'Failed to load product image for video generation.'], 400);
+            return;
+        }
+
+        $imgData = base64_encode($imgContent);
+        
+        $payload = [
+            'instances' => [
+                [
+                    'prompt' => $prompt,
+                    'image' => [
+                        'bytesBase64Encoded' => $imgData,
+                        'mimeType' => $mimeType
+                    ]
+                ]
+            ],
+            'parameters' => [
+                'aspectRatio' => '9:16'
+            ]
+        ];
+
+        $url = "https://generativelanguage.googleapis.com/v1beta/models/veo-3.1-generate-preview:predictLongRunning";
+        
+        $ch = curl_init($url);
+        curl_setopt($ch, CURLOPT_HTTPHEADER, [
+            'Content-Type: application/json',
+            'x-goog-api-key: ' . $apiKey
+        ]);
+        curl_setopt($ch, CURLOPT_POST, true);
+        curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($payload));
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        
+        $response = curl_exec($ch);
+        $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+
+        if ($httpCode !== 200) {
+            $this->json(['error' => 'API request failed: ' . $response], 500);
+            return;
+        }
+
+        $decoded = json_decode($response, true);
+        $operationName = $decoded['name'] ?? '';
+
+        if (empty($operationName)) {
+            $this->json(['error' => 'Failed to get operation name.'], 500);
+            return;
+        }
+
+        $this->json(['success' => true, 'operation_name' => $operationName]);
+    }
+
+    public function aiGenerateVideoStatus() {
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            $this->json(['error' => 'Method not allowed'], 405);
+            return;
+        }
+
+        $input = json_decode(file_get_contents('php://input'), true);
+        $operationName = $input['operation_name'] ?? '';
+        $productId = (int)($input['product_id'] ?? 0);
+
+        if (empty($operationName)) {
+            $this->json(['error' => 'operation_name is required'], 400);
+            return;
+        }
+
+        $secrets = include(__DIR__ . '/../Config/secrets.php');
+        $apiKey = $secrets['GEMINI_API_KEY'] ?? '';
+
+        $url = "https://generativelanguage.googleapis.com/v1beta/" . $operationName;
+        
+        $ch = curl_init($url);
+        curl_setopt($ch, CURLOPT_HTTPHEADER, [
+            'x-goog-api-key: ' . $apiKey
+        ]);
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        
+        $response = curl_exec($ch);
+        $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+
+        if ($httpCode !== 200) {
+            $this->json(['error' => 'Status request failed: ' . $response], 500);
+            return;
+        }
+
+        $decoded = json_decode($response, true);
+        $isDone = $decoded['done'] ?? false;
+
+        if (!$isDone) {
+            $this->json(['success' => true, 'done' => false]);
+            return;
+        }
+
+        if (isset($decoded['error'])) {
+            $this->json(['error' => 'Video generation failed: ' . json_encode($decoded['error'])], 500);
+            return;
+        }
+
+        $videoUri = $decoded['response']['generateVideoResponse']['generatedSamples'][0]['video']['uri'] ?? '';
+        if (empty($videoUri)) {
+            $this->json(['error' => 'No video URI found in response.'], 500);
+            return;
+        }
+
+        // Download video
+        $uploadDir = __DIR__ . "/../../yn/uploads/product_videos";
+        if (!is_dir($uploadDir)) {
+            mkdir($uploadDir, 0777, true);
+        }
+        
+        $fileName = uniqid("prod_{$productId}_vid_") . '.mp4';
+        $filePath = $uploadDir . '/' . $fileName;
+
+        $ch = curl_init($videoUri);
+        $fp = fopen($filePath, 'wb');
+        curl_setopt($ch, CURLOPT_FILE, $fp);
+        curl_setopt($ch, CURLOPT_HEADER, 0);
+        curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
+        curl_setopt($ch, CURLOPT_HTTPHEADER, [
+            'x-goog-api-key: ' . $apiKey
+        ]);
+        curl_exec($ch);
+        fclose($fp);
+
+        $relativePath = "uploads/product_videos/{$fileName}";
+        
+        $this->json(['success' => true, 'done' => true, 'video_url' => "http://localhost/ss/yn/" . $relativePath]);
+    }
+
     public function saveAiImage() {
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
             $this->json(['error' => 'Method not allowed'], 405);
