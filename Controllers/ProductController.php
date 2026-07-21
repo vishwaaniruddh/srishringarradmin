@@ -358,6 +358,11 @@ class ProductController extends Controller {
                     [
                         'parts' => $parts
                     ]
+                ],
+                'generationConfig' => [
+                    'imageConfig' => [
+                        'aspectRatio' => '2:3'
+                    ]
                 ]
             ]);
 

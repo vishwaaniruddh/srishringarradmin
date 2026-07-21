@@ -444,7 +444,7 @@
                                                 <!-- Final Prompt Textarea -->
                                                 <div>
                                                     <label style="font-size:0.65rem; font-weight:700; color:#888; text-transform:uppercase; letter-spacing:0.05em; margin-bottom:0.4rem; display:block;">Final Prompt (Edit if needed)</label>
-                                                    <textarea id="ai_final_prompt" rows="4" class="ai-input w-full" style="resize:vertical;">A photorealistic beautiful Indian fashion model wearing this exact <?php echo htmlspecialchars($product['category_name'] ?? ($product['subcategory_name'] ?? 'product')); ?>. The background should have elegant royal palace with marble pillars and chandeliers. Shot type: full body head-to-toe shot showing the complete outfit/jewelry look. Do not change the <?php echo htmlspecialchars($product['category_name'] ?? ($product['subcategory_name'] ?? 'product')); ?> details.</textarea>
+                                                    <textarea id="ai_final_prompt" rows="4" class="ai-input w-full" style="resize:vertical;">A photorealistic beautiful Indian fashion model wearing this exact <?php echo htmlspecialchars($product['category_name'] ?? ($product['subcategory_name'] ?? 'product')); ?>. The background should have elegant royal palace with marble pillars and chandeliers. Shot type: full body head-to-toe shot showing the complete outfit/jewelry look. Do not change the <?php echo htmlspecialchars($product['category_name'] ?? ($product['subcategory_name'] ?? 'product')); ?> details. Aspect ratio: 2:3 vertical fashion portrait format.</textarea>
                                                 </div>
 
                                                 <!-- Quantity Selector -->
@@ -948,7 +948,8 @@
                 `A photorealistic beautiful Indian fashion model wearing this exact ${catName}.`,
                 `The background should have ${bgPrompt}.`,
                 `Shot type: ${shotType}.`,
-                `Do not change the ${catName} details.`
+                `Do not change the ${catName} details.`,
+                `Aspect ratio: 2:3 vertical fashion portrait format.`
             ];
             
             if (hairStyle) {
@@ -1008,7 +1009,7 @@
                     data.images_base64.forEach((b64, index) => {
                         grid.innerHTML += `
                             <div style="display:flex; flex-direction:column; gap:0.5rem; background:#0a0a0a; border:1px solid #1a1a1a; padding:0.5rem; border-radius:8px;">
-                                <img src="data:image/jpeg;base64,${b64}" style="width:100%; aspect-ratio:1; object-fit:cover; border-radius:4px;">
+                                <img src="data:image/jpeg;base64,${b64}" style="width:100%; aspect-ratio:2/3; object-fit:cover; border-radius:4px;">
                                 <button type="button" onclick="saveAiGeneratedImage(this, '${b64}')" class="btn-submit" style="width:100%; justify-content:center; padding:0.4rem; font-size:0.7rem;">
                                     <i class="fas fa-save"></i> Save Image ${index + 1}
                                 </button>
