@@ -17,7 +17,7 @@ class AimodelsController {
         $modelId = (int)($_POST['model_id'] ?? ($rawInput['model_id'] ?? 0));
         $b64 = $_POST['cropped_image'] ?? ($rawInput['cropped_image'] ?? '');
 
-        if ($modelId < 1 || $modelId > 5) {
+        if ($modelId < 1 || $modelId > 10) {
             if (!empty($b64)) {
                 header('Content-Type: application/json');
                 echo json_encode(['error' => 'Invalid model ID']);

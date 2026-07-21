@@ -100,7 +100,7 @@
                     <div class="mb-8">
                         <h1 class="text-2xl font-bold text-white mb-2">AI Face Reference Models</h1>
                         <p class="text-sm text-zinc-400">
-                            Upload up to 5 model faces to use as consistency references in the AI Image Studio. 
+                            Upload up to 10 model faces to use as consistency references in the AI Image Studio. 
                             Use the <strong>Adjust Framing</strong> tool to perfectly center and position the face.
                         </p>
                     </div>
@@ -118,7 +118,7 @@
                     <?php endif; ?>
 
                     <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-6">
-                        <?php for($i = 1; $i <= 5; $i++): 
+                        <?php for($i = 1; $i <= 10; $i++): 
                             $modelPath = "assets/models/model_$i.png";
                             $fullPath = __DIR__ . '/../../' . $modelPath;
                             $exists = file_exists($fullPath);

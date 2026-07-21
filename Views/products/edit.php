@@ -380,11 +380,11 @@
                                                                 <span style="font-size:0.6rem; color:#aaa; font-weight:600;">NONE</span>
                                                             </div>
                                                         </label>
-                                                        <?php for($i=1; $i<=5; $i++): ?>
+                                                        <?php for($i=1; $i<=10; $i++): ?>
                                                         <label class="model-picker-label">
                                                             <input type="radio" name="ai_model_face" value="model_<?= $i ?>.png" class="hidden peer">
-                                                            <div class="peer-checked:border-pink-500 peer-checked:ring-2 peer-checked:ring-pink-500/30 border border-zinc-800 rounded-lg overflow-hidden cursor-pointer transition-all opacity-60 peer-checked:opacity-100 hover:opacity-100" style="width:50px; height:50px;">
-                                                                <img src="assets/models/model_<?= $i ?>.png" alt="Model <?= $i ?>" style="width:100%; height:100%; object-fit:cover;">
+                                                            <div class="peer-checked:border-pink-500 peer-checked:ring-2 peer-checked:ring-pink-500/30 border border-zinc-800 rounded-lg overflow-hidden cursor-pointer transition-all opacity-60 peer-checked:opacity-100 hover:opacity-100" style="width:50px; height:50px;" title="Model <?= $i ?>">
+                                                                <img src="assets/models/model_<?= $i ?>.png" alt="Model <?= $i ?>" style="width:100%; height:100%; object-fit:cover;" onerror="this.parentElement.parentElement.style.display='none'">
                                                             </div>
                                                         </label>
                                                         <?php endfor; ?>
