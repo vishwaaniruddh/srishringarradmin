@@ -664,7 +664,8 @@ class ProductController extends Controller {
         mysqli_stmt_close($stmt);
 
         if ($success) {
-            $this->json(['success' => true, 'path' => $relative_path]);
+            $insert_id = mysqli_insert_id($db);
+            $this->json(['success' => true, 'path' => $relative_path, 'id' => $insert_id]);
         } else {
             $this->json(['error' => 'Failed to insert image record in database'], 500);
         }

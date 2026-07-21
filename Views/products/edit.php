@@ -684,7 +684,7 @@
                                 </div>
 
                                 <!-- Existing Images -->
-                                <div class="img-grid" style="margin-bottom:0.6rem;">
+                                <div id="existing_img_grid" class="img-grid" style="margin-bottom:0.6rem;">
                                     <?php foreach ($images as $index => $img): ?>
                                         <div class="img-thumb">
                                             <?php 
@@ -1057,7 +1057,30 @@
                     btn.style.background = 'rgba(16,185,129,0.1)';
                     btn.style.borderColor = 'rgba(16,185,129,0.3)';
                     btn.style.color = '#10b981';
-                    // We removed the page reload so you don't lose the other generated variations!
+                    
+                    // Dynamically append the saved image to the gallery without reloading the page!
+                    const imgGrid = document.getElementById('existing_img_grid');
+                    if (imgGrid && data.path) {
+                        const isNewAdmin = (data.path.indexOf('/new_admin/') === 0);
+                        const localSrc = isNewAdmin ? '/ss' + data.path : '/ss/yn/uploads' + data.path;
+                        const cloudSrc = isNewAdmin ? 'http://srishringarr.com' + data.path : 'http://srishringarr.com/yn/uploads' + data.path;
+                        
+                        const newThumb = document.createElement('div');
+                        newThumb.className = 'img-thumb';
+                        newThumb.innerHTML = `
+                            <img src="${localSrc}" onerror="this.onerror=null; this.src='${cloudSrc}';" alt="">
+                            <div class="img-overlay">
+                                <span style="color:#fff; font-size:0.62rem; font-weight:600;">Image</span>
+                            </div>
+                            <button type="button" onclick="setMainImage(this, ${data.id})" class="img-set-main" title="Set as Main Image">
+                                <i class="far fa-star"></i>
+                            </button>
+                            <button type="button" onclick="deleteProductImage(this, ${data.id})" class="img-del-btn" title="Delete Image">
+                                <i class="fas fa-trash-alt"></i>
+                            </button>
+                        `;
+                        imgGrid.appendChild(newThumb);
+                    }
                 } else { 
                     alert('Error: ' + (data.error || 'Failed to save image')); 
                     btn.innerHTML = orig; 
