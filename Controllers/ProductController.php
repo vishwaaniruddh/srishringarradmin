@@ -259,7 +259,11 @@ class ProductController extends Controller {
         $type = $_GET['type'] ?? 'jewellery';
         
         $input = json_decode(file_get_contents('php://input'), true);
-        $prompt = $input['prompt'] ?? 'A photorealistic beautiful Indian fashion model wearing this exact product. The model should have open flowing hair. The background should have elegant props like a palace or traditional setting that compliments the jewelry perfectly. Do not change the product details. Show a close-up portrait shot focusing on the product.';
+        $basePrompt = $input['prompt'] ?? 'A photorealistic beautiful Indian fashion model wearing this exact product. The model should have open flowing hair. The background should have elegant props like a palace or traditional setting that compliments the jewelry perfectly. Do not change the product details. Show a close-up portrait shot focusing on the product.';
+        $faceReference = $input['face_reference'] ?? '';
+        $numImages = (int)($input['num_images'] ?? 1);
+        if ($numImages < 1) $numImages = 1;
+        if ($numImages > 4) $numImages = 4;
 
         if (!$id) {
             $this->json(['error' => 'Product ID is required'], 400);
@@ -305,53 +309,113 @@ class ProductController extends Controller {
         }
 
         $imgData = base64_encode($imgContent);
-        $url = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-image:generateContent?key=' . $apiKey;
-        $payload = json_encode([
-            'contents' => [
-                [
-                    'parts' => [
-                        [
-                            'text' => $prompt
-                        ],
-                        [
-                            'inlineData' => [
-                                'mimeType' => $mimeType,
-                                'data' => $imgData
-                            ]
-                        ]
-                    ]
+        
+        $mediaParts = [
+            [
+                'inlineData' => [
+                    'mimeType' => $mimeType,
+                    'data' => $imgData
                 ]
             ]
-        ]);
+        ];
 
-        $ch = curl_init($url);
-        curl_setopt_array($ch, [
-            CURLOPT_RETURNTRANSFER => true,
-            CURLOPT_POST => true,
-            CURLOPT_HTTPHEADER => ['Content-Type: application/json'],
-            CURLOPT_POSTFIELDS => $payload,
-            CURLOPT_TIMEOUT => 30, // Image generation might take a bit longer
-            CURLOPT_SSL_VERIFYPEER => false,
-        ]);
-
-        $response = curl_exec($ch);
-        $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-        @curl_close($ch);
-
-        if ($httpCode !== 200) {
-            $errObj = json_decode($response, true);
-            $errMsg = $errObj['error']['message'] ?? 'API request failed';
-            $this->json(['error' => 'Gemini API Error: ' . $errMsg], 500);
-            return;
+        // Add face reference if selected
+        if (!empty($faceReference)) {
+            $facePath = __DIR__ . '/../assets/models/' . basename($faceReference);
+            if (file_exists($facePath)) {
+                $faceContent = file_get_contents($facePath);
+                $faceMime = mime_content_type($facePath) ?: 'image/png';
+                $mediaParts[] = [
+                    'inlineData' => [
+                        'mimeType' => $faceMime,
+                        'data' => base64_encode($faceContent)
+                    ]
+                ];
+            }
         }
 
-        $decoded = json_decode($response, true);
-        $b64 = $decoded['candidates'][0]['content']['parts'][0]['inlineData']['data'] ?? null;
+        $url = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-image:generateContent?key=' . $apiKey;
+        $generatedImages = [];
+        $errors = [];
         
-        if ($b64) {
-            $this->json(['success' => true, 'image_base64' => $b64]);
+        $totalPromptTokens = 0;
+        $totalCandidateTokens = 0;
+        $totalTokensSum = 0;
+
+        $variations = [
+            '', // Standard as prompted
+            ' Also, ensure a slight side-profile angle.',
+            ' Also, ensure a dynamic and confident fashion pose.',
+            ' Also, ensure a different elegant camera angle.'
+        ];
+
+        for ($i = 0; $i < $numImages; $i++) {
+            $currentPrompt = $basePrompt . ($variations[$i] ?? '');
+            $parts = array_merge([['text' => $currentPrompt]], $mediaParts);
+            
+            $payload = json_encode([
+                'contents' => [
+                    [
+                        'parts' => $parts
+                    ]
+                ]
+            ]);
+
+            $ch = curl_init($url);
+            curl_setopt_array($ch, [
+                CURLOPT_RETURNTRANSFER => true,
+                CURLOPT_POST => true,
+                CURLOPT_HTTPHEADER => ['Content-Type: application/json'],
+                CURLOPT_POSTFIELDS => $payload,
+                CURLOPT_TIMEOUT => 45, // Wait longer for multiple sequential requests
+                CURLOPT_SSL_VERIFYPEER => false,
+            ]);
+
+            $response = curl_exec($ch);
+            $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+            @curl_close($ch);
+
+            if ($httpCode === 200) {
+                $decoded = json_decode($response, true);
+                
+                // Track Token Usage
+                if (isset($decoded['usageMetadata'])) {
+                    $totalPromptTokens += (int)($decoded['usageMetadata']['promptTokenCount'] ?? 0);
+                    $totalCandidateTokens += (int)($decoded['usageMetadata']['candidatesTokenCount'] ?? 0);
+                    $totalTokensSum += (int)($decoded['usageMetadata']['totalTokenCount'] ?? 0);
+                }
+
+                $b64 = $decoded['candidates'][0]['content']['parts'][0]['inlineData']['data'] ?? null;
+                if ($b64) {
+                    $generatedImages[] = $b64;
+                } else {
+                    $errors[] = 'No image data returned in iteration ' . ($i+1);
+                }
+            } else {
+                $errObj = json_decode($response, true);
+                $errMsg = $errObj['error']['message'] ?? 'API request failed';
+                $errors[] = 'API Error on iteration ' . ($i+1) . ': ' . $errMsg;
+            }
+        }
+
+        // Log Analytics to DB
+        $costEstimate = ($totalPromptTokens / 1000000) * 0.075 + ($totalCandidateTokens / 1000000) * 0.30;
+        
+        $db = \Core\Database::getConnection('con');
+        if ($db) {
+            $stmt = $db->prepare("INSERT INTO ai_analytics (product_id, product_type, prompt_text, num_images, prompt_tokens, candidate_tokens, total_tokens, cost_estimate) VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
+            if ($stmt) {
+                $stmt->bind_param("issiiiid", $id, $type, $basePrompt, $numImages, $totalPromptTokens, $totalCandidateTokens, $totalTokensSum, $costEstimate);
+                $stmt->execute();
+                $stmt->close();
+            }
+        }
+
+        if (count($generatedImages) > 0) {
+            // Even if some failed, return the successful ones
+            $this->json(['success' => true, 'images_base64' => $generatedImages, 'partial_errors' => $errors]);
         } else {
-            $this->json(['error' => 'No image data returned. API Response: ' . $response], 500);
+            $this->json(['error' => implode(' | ', $errors)], 500);
         }
     }
 
@@ -566,7 +630,7 @@ class ProductController extends Controller {
 
         $current_year = date('Y');
         $current_month = date('m');
-        $upload_base = __DIR__ . "/../../yn/uploads/";
+        $upload_base = __DIR__ . "/../"; // Points to new_admin/
         $upload_path = $upload_base . $current_year . '/' . $current_month . '/';
 
         if (!file_exists($upload_path)) {
@@ -581,7 +645,7 @@ class ProductController extends Controller {
             return;
         }
 
-        $relative_path = '/' . $current_year . '/' . $current_month . '/' . $new_filename;
+        $relative_path = '/new_admin/' . $current_year . '/' . $current_month . '/' . $new_filename;
         
         $db = $productModel->getDbConnection();
         $date_added = date('Y-m-d H:i:s');

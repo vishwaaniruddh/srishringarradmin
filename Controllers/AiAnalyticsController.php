@@ -49,9 +49,38 @@ class AiAnalyticsController extends Controller {
                     $sessions[] = $row;
                 }
             }
+
+            // --- Fetch AI Image Generations (Cost Analytics) ---
+            $image_totals = [
+                'total_generations' => 0,
+                'total_images' => 0,
+                'total_tokens' => 0,
+                'total_cost' => 0.00
+            ];
+            $image_logs = [];
+
+            $res = mysqli_query($con, "SELECT COUNT(*) as gens, SUM(num_images) as imgs, SUM(total_tokens) as tokens, SUM(cost_estimate) as cost FROM ai_analytics");
+            if ($res && $row = mysqli_fetch_assoc($res)) {
+                $image_totals['total_generations'] = $row['gens'] ?? 0;
+                $image_totals['total_images'] = $row['imgs'] ?? 0;
+                $image_totals['total_tokens'] = $row['tokens'] ?? 0;
+                $image_totals['total_cost'] = $row['cost'] ?? 0.00;
+            }
+
+            $logRes = mysqli_query($con, "SELECT * FROM ai_analytics ORDER BY created_at DESC LIMIT 100");
+            if ($logRes) {
+                while ($row = mysqli_fetch_assoc($logRes)) {
+                    $image_logs[] = $row;
+                }
+            }
+
             mysqli_close($con);
         }
         
-        $this->view('ai_analytics/index', ['sessions' => $sessions]);
+        $this->view('ai_analytics/index', [
+            'sessions' => $sessions,
+            'image_totals' => $image_totals,
+            'image_logs' => $image_logs
+        ]);
     }
 }

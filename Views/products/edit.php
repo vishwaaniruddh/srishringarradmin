@@ -359,7 +359,7 @@
                                         </div>
                                     </div>
 
-                                    <!-- AI Image Studio -->
+                                    <!-- Advanced AI Image Studio -->
                                     <div class="field-span-2">
                                         <div class="ai-card">
                                             <div class="ai-card-hdr">
@@ -367,33 +367,132 @@
                                                 <h4>AI Image Studio (Gemini)</h4>
                                             </div>
                                             <p class="ai-card-desc">Generate an AI fashion model wearing this exact product.</p>
-                                            <div style="display: flex; gap: 0.5rem; align-items: center;">
-                                                <?php
-                                                $catName = htmlspecialchars($product['category_name'] ?? ($product['subcategory_name'] ?? 'product'));
-                                                $defaultPrompt = "A photorealistic beautiful Indian fashion model wearing this exact $catName. The model should have open flowing hair (khule baal). The background should have elegant props (piche props) like a palace or traditional setting that compliments the jewelry perfectly. Do not change the $catName details. Show a close-up portrait shot focusing on the $catName.";
-                                                ?>
-                                                <input type="text" id="aiImagePrompt" value="<?= $defaultPrompt ?>" class="ai-input" style="flex:1;" placeholder="Enter prompt...">
-                                                <button type="button" onclick="aiGenerateModelImage()" id="aiImageBtn" class="ai-btn">
-                                                    <i class="fas fa-image"></i> Generate
+                                            
+                                            <div style="display:flex; flex-direction:column; gap:0.8rem; margin-top:0.8rem;">
+                                                
+                                                <!-- Face Reference Models -->
+                                                <div>
+                                                    <label style="font-size:0.65rem; font-weight:700; color:#888; text-transform:uppercase; letter-spacing:0.05em; margin-bottom:0.4rem; display:block;">Model Face (Optional)</label>
+                                                    <div style="display:flex; gap:0.5rem; flex-wrap:wrap;">
+                                                        <label class="model-picker-label">
+                                                            <input type="radio" name="ai_model_face" value="" checked class="hidden peer">
+                                                            <div class="peer-checked:border-pink-500 peer-checked:ring-2 peer-checked:ring-pink-500/30 border border-zinc-800 rounded-lg overflow-hidden cursor-pointer transition-all opacity-70 peer-checked:opacity-100 bg-zinc-900 flex items-center justify-center" style="width:50px; height:50px;">
+                                                                <span style="font-size:0.6rem; color:#aaa; font-weight:600;">NONE</span>
+                                                            </div>
+                                                        </label>
+                                                        <?php for($i=1; $i<=5; $i++): ?>
+                                                        <label class="model-picker-label">
+                                                            <input type="radio" name="ai_model_face" value="model_<?= $i ?>.png" class="hidden peer">
+                                                            <div class="peer-checked:border-pink-500 peer-checked:ring-2 peer-checked:ring-pink-500/30 border border-zinc-800 rounded-lg overflow-hidden cursor-pointer transition-all opacity-60 peer-checked:opacity-100 hover:opacity-100" style="width:50px; height:50px;">
+                                                                <img src="assets/models/model_<?= $i ?>.png" alt="Model <?= $i ?>" style="width:100%; height:100%; object-fit:cover;">
+                                                            </div>
+                                                        </label>
+                                                        <?php endfor; ?>
+                                                    </div>
+                                                </div>
+
+                                                <!-- Background Presets -->
+                                                <div>
+                                                    <label style="font-size:0.65rem; font-weight:700; color:#888; text-transform:uppercase; letter-spacing:0.05em; margin-bottom:0.4rem; display:block;">Background / Props</label>
+                                                    <div style="display:flex; gap:0.4rem; flex-wrap:wrap;" id="bg_preset_container">
+                                                        <?php
+                                                        $bgPresets = [
+                                                            'Palace' => 'elegant royal palace with marble pillars and chandeliers',
+                                                            'Beach' => 'golden hour beach with soft waves and sunset sky',
+                                                            'Studio' => 'clean professional photography studio with soft gradient backdrop',
+                                                            'Mountains' => 'majestic Himalayan mountains with misty peaks',
+                                                            'Lake' => 'serene lake with reflections and lush greenery',
+                                                            'Garden' => 'blooming flower garden with roses and jasmine',
+                                                            'Haveli' => 'traditional Rajasthani haveli with jharokha windows',
+                                                            'City Night' => 'modern city skyline at night with bokeh lights'
+                                                        ];
+                                                        $first = true;
+                                                        foreach($bgPresets as $label => $promptPart):
+                                                        ?>
+                                                        <label class="bg-picker-label">
+                                                            <input type="radio" name="ai_bg_preset" value="<?= htmlspecialchars($promptPart) ?>" <?= $first ? 'checked' : '' ?> class="hidden peer">
+                                                            <div class="peer-checked:bg-pink-600 peer-checked:text-white peer-checked:border-pink-600 border border-zinc-800 bg-zinc-900 text-zinc-400 px-3 py-1.5 rounded-full text-xs font-medium cursor-pointer transition-all hover:bg-zinc-800">
+                                                                <?= $label ?>
+                                                            </div>
+                                                        </label>
+                                                        <?php $first=false; endforeach; ?>
+                                                    </div>
+                                                    <input type="text" id="ai_bg_custom" class="ai-input mt-2 w-full" value="elegant royal palace with marble pillars and chandeliers" placeholder="Describe the background and props...">
+                                                </div>
+
+                                                <!-- Shot & Hair Controls -->
+                                                <div style="display:grid; grid-template-columns:1fr 1fr; gap:1rem;">
+                                                    <div>
+                                                        <label style="font-size:0.65rem; font-weight:700; color:#888; text-transform:uppercase; letter-spacing:0.05em; margin-bottom:0.4rem; display:block;">Shot Type</label>
+                                                        <div style="display:flex; flex-direction:column; gap:0.3rem;">
+                                                            <label class="flex items-center gap-2 text-xs text-zinc-300 cursor-pointer"><input type="radio" name="ai_shot_type" value="close-up portrait shot focusing on the face and the jewelry"> Close-up Portrait</label>
+                                                            <label class="flex items-center gap-2 text-xs text-zinc-300 cursor-pointer"><input type="radio" name="ai_shot_type" value="half body shot from waist up, showing the model's torso and face"> Half Body</label>
+                                                            <label class="flex items-center gap-2 text-xs text-zinc-300 cursor-pointer"><input type="radio" name="ai_shot_type" value="full body head-to-toe shot showing the complete outfit/jewelry look" checked> Full Body</label>
+                                                            <label class="flex items-center gap-2 text-xs text-zinc-300 cursor-pointer"><input type="radio" name="ai_shot_type" value="shot from behind showing the back design and details of the product"> Back View</label>
+                                                        </div>
+                                                    </div>
+                                                    <div>
+                                                        <label style="font-size:0.65rem; font-weight:700; color:#888; text-transform:uppercase; letter-spacing:0.05em; margin-bottom:0.4rem; display:block;">Hair Style</label>
+                                                        <div style="display:flex; flex-direction:column; gap:0.3rem;">
+                                                            <label class="flex items-center gap-2 text-xs text-zinc-300 cursor-pointer"><input type="radio" name="ai_hair_style" value="open flowing hair (khule baal)"> Open Flowing</label>
+                                                            <label class="flex items-center gap-2 text-xs text-zinc-300 cursor-pointer"><input type="radio" name="ai_hair_style" value="neatly tied bun with gajra"> Tied / Bun</label>
+                                                            <label class="flex items-center gap-2 text-xs text-zinc-300 cursor-pointer"><input type="radio" name="ai_hair_style" value="" checked> As per product</label>
+                                                        </div>
+                                                    </div>
+                                                </div>
+
+                                                <!-- Final Prompt Textarea -->
+                                                <div>
+                                                    <label style="font-size:0.65rem; font-weight:700; color:#888; text-transform:uppercase; letter-spacing:0.05em; margin-bottom:0.4rem; display:block;">Final Prompt (Edit if needed)</label>
+                                                    <textarea id="ai_final_prompt" rows="4" class="ai-input w-full" style="resize:vertical;">A photorealistic beautiful Indian fashion model wearing this exact <?php echo htmlspecialchars($product['category_name'] ?? ($product['subcategory_name'] ?? 'product')); ?>. The background should have elegant royal palace with marble pillars and chandeliers. Shot type: full body head-to-toe shot showing the complete outfit/jewelry look. Do not change the <?php echo htmlspecialchars($product['category_name'] ?? ($product['subcategory_name'] ?? 'product')); ?> details.</textarea>
+                                                </div>
+
+                                                <!-- Quantity Selector -->
+                                                <div>
+                                                    <label style="font-size:0.65rem; font-weight:700; color:#888; text-transform:uppercase; letter-spacing:0.05em; margin-bottom:0.4rem; display:block;">Number of Images (Variations)</label>
+                                                    <div style="display:flex; gap:0.5rem;">
+                                                        <label class="bg-picker-label">
+                                                            <input type="radio" name="ai_num_images" value="1" checked class="hidden peer">
+                                                            <div class="peer-checked:bg-pink-600 peer-checked:text-white peer-checked:border-pink-600 border border-zinc-800 bg-zinc-900 text-zinc-400 px-4 py-1.5 rounded-full text-xs font-medium cursor-pointer transition-all">1 Image</div>
+                                                        </label>
+                                                        <label class="bg-picker-label">
+                                                            <input type="radio" name="ai_num_images" value="2" class="hidden peer">
+                                                            <div class="peer-checked:bg-pink-600 peer-checked:text-white peer-checked:border-pink-600 border border-zinc-800 bg-zinc-900 text-zinc-400 px-4 py-1.5 rounded-full text-xs font-medium cursor-pointer transition-all">2 Images</div>
+                                                        </label>
+                                                        <label class="bg-picker-label">
+                                                            <input type="radio" name="ai_num_images" value="3" class="hidden peer">
+                                                            <div class="peer-checked:bg-pink-600 peer-checked:text-white peer-checked:border-pink-600 border border-zinc-800 bg-zinc-900 text-zinc-400 px-4 py-1.5 rounded-full text-xs font-medium cursor-pointer transition-all">3 Images</div>
+                                                        </label>
+                                                        <label class="bg-picker-label">
+                                                            <input type="radio" name="ai_num_images" value="4" class="hidden peer">
+                                                            <div class="peer-checked:bg-pink-600 peer-checked:text-white peer-checked:border-pink-600 border border-zinc-800 bg-zinc-900 text-zinc-400 px-4 py-1.5 rounded-full text-xs font-medium cursor-pointer transition-all">4 Images</div>
+                                                        </label>
+                                                    </div>
+                                                </div>
+
+                                                <!-- Generate Button -->
+                                                <button type="button" onclick="aiGenerateAdvancedImage()" id="aiImageBtn" class="btn-submit" style="justify-content:center; padding:0.6rem; margin-top:0.5rem; background:#f472b6 !important; border-color:#f472b6 !important; color:#000 !important;">
+                                                    <i class="fas fa-magic"></i> Generate Model Image
                                                 </button>
                                             </div>
+
                                             <!-- Loading -->
                                             <div id="aiImageLoading" class="hidden" style="display:none; flex-direction:column; align-items:center; gap:0.5rem; padding:1rem; background:#111; border-radius:6px; margin-top:0.6rem; font-size:0.72rem; color:#666;">
                                                 <div style="width:18px; height:18px; border:2px solid #f472b6; border-top-color:transparent; border-radius:50%; animation:spin 0.8s linear infinite;"></div>
-                                                <span>AI is generating image. This may take 10-15 seconds...</span>
+                                                <span>AI is generating image. This may take 15-20 seconds...</span>
                                             </div>
                                             <!-- Result -->
-                                            <div id="aiImageResult" class="hidden" style="margin-top:0.6rem; padding-top:0.6rem; border-top:1px solid #1a1a1a;">
-                                                <h5 style="font-size:0.62rem; font-weight:700; color:#555; text-transform:uppercase; letter-spacing:0.05em; margin-bottom:0.4rem;">Generated Image</h5>
-                                                <div style="display:flex; justify-content:center; background:#000; border-radius:6px; padding:0.5rem; border:1px solid #1a1a1a;">
-                                                    <img id="aiGeneratedImg" src="" alt="Generated Model" style="max-width:100%; max-height:300px; border-radius:4px;">
+                                            <div id="aiImageResult" class="hidden" style="margin-top:0.8rem; padding-top:0.8rem; border-top:1px solid #1a1a1a;">
+                                                <h5 style="font-size:0.62rem; font-weight:700; color:#555; text-transform:uppercase; letter-spacing:0.05em; margin-bottom:0.4rem;">Generated Images</h5>
+                                                
+                                                <!-- Grid for up to 4 images -->
+                                                <div id="aiImageGrid" style="display:grid; grid-template-columns:repeat(auto-fit, minmax(200px, 1fr)); gap:1rem; margin-bottom:1rem;">
+                                                    <!-- Injected by JS -->
                                                 </div>
-                                                <div style="display:flex; gap:0.5rem; margin-top:0.5rem;">
-                                                    <button type="button" onclick="saveAiGeneratedImage()" id="aiSaveImgBtn" class="btn-submit" style="flex:1;">
-                                                        <i class="fas fa-save"></i> Use This Image
-                                                    </button>
-                                                    <button type="button" onclick="resetAiImage()" id="aiResetImgBtn" class="btn-cancel" style="flex:1;">
-                                                        <i class="fas fa-redo"></i> Try Again
+                                                
+                                                <div style="display:flex; justify-content:center;">
+                                                    <button type="button" onclick="resetAiImage()" id="aiResetImgBtn" class="btn-cancel" style="padding:0.5rem 2rem;">
+                                                        <i class="fas fa-redo"></i> Clear Results & Try Again
                                                     </button>
                                                 </div>
                                             </div>
@@ -588,7 +687,12 @@
                                 <div class="img-grid" style="margin-bottom:0.6rem;">
                                     <?php foreach ($images as $index => $img): ?>
                                         <div class="img-thumb">
-                                            <img src="http://srishringarr.com/yn/uploads<?php echo $img['img_name']; ?>" alt="">
+                                            <?php 
+                                            $isNewAdmin = (strpos($img['img_name'], '/new_admin/') === 0);
+                                            $localSrc = $isNewAdmin ? '/ss' . $img['img_name'] : '/ss/yn/uploads' . $img['img_name'];
+                                            $cloudSrc = $isNewAdmin ? 'http://srishringarr.com' . $img['img_name'] : 'http://srishringarr.com/yn/uploads' . $img['img_name'];
+                                            ?>
+                                            <img src="<?php echo $localSrc; ?>" onerror="this.onerror=null; this.src='<?php echo $cloudSrc; ?>';" alt="">
                                             <div class="img-overlay">
                                                 <span style="color:#fff; font-size:0.62rem; font-weight:600;">
                                                     <?php echo ($index === 0) ? 'Main' : 'Image'; ?>
@@ -831,38 +935,113 @@
             }
         }
 
-        async function aiGenerateModelImage() {
+        function updateFinalPrompt() {
+            const catName = '<?php echo htmlspecialchars($product['category_name'] ?? ($product['subcategory_name'] ?? 'product')); ?>';
+            
+            // Gather inputs
+            const faceInput = document.querySelector('input[name="ai_model_face"]:checked').value;
+            const customBg = document.getElementById('ai_bg_custom').value.trim();
+            const shotType = document.querySelector('input[name="ai_shot_type"]:checked').value;
+            const hairStyle = document.querySelector('input[name="ai_hair_style"]:checked').value;
+
+            // Assemble background part
+            let bgPrompt = customBg;
+            if (!bgPrompt) bgPrompt = 'clean studio background';
+
+            // Assemble final prompt
+            let promptParts = [
+                `A photorealistic beautiful Indian fashion model wearing this exact ${catName}.`,
+                `The background should have ${bgPrompt}.`,
+                `Shot type: ${shotType}.`,
+                `Do not change the ${catName} details.`
+            ];
+            
+            if (hairStyle) {
+                promptParts.push(`The model should have ${hairStyle}.`);
+            }
+            if (faceInput) {
+                promptParts.push(`The model's face must match the reference photo exactly.`);
+            }
+
+            document.getElementById('ai_final_prompt').value = promptParts.join(' ');
+        }
+
+        // Attach listeners to all inputs to live-update the prompt textarea
+        document.querySelectorAll('input[name="ai_model_face"], input[name="ai_bg_preset"], input[name="ai_shot_type"], input[name="ai_hair_style"]').forEach(input => {
+            input.addEventListener('change', updateFinalPrompt);
+        });
+        document.getElementById('ai_bg_custom').addEventListener('input', updateFinalPrompt);
+
+        document.querySelectorAll('input[name="ai_bg_preset"]').forEach(radio => {
+            radio.addEventListener('change', (e) => {
+                const customInput = document.getElementById('ai_bg_custom');
+                customInput.value = e.target.value;
+                updateFinalPrompt(); // update the big box too
+                
+                // Add a subtle highlight effect to show it updated
+                customInput.style.transition = 'all 0.3s ease';
+                customInput.style.boxShadow = '0 0 0 2px rgba(244,114,182,0.4)';
+                setTimeout(() => { customInput.style.boxShadow = ''; }, 600);
+            });
+        });
+
+        async function aiGenerateAdvancedImage() {
             const btn = document.getElementById('aiImageBtn');
-            const prompt = document.getElementById('aiImagePrompt').value.trim();
+            const faceInput = document.querySelector('input[name="ai_model_face"]:checked').value;
+            const finalPrompt = document.getElementById('ai_final_prompt').value.trim();
+            const numImages = document.querySelector('input[name="ai_num_images"]:checked').value;
+
             btn.disabled = true;
             showEl('aiImageLoading');
             hideEl('aiImageResult');
+            document.getElementById('aiImageGrid').innerHTML = ''; // Clear old results
+            
             try {
                 const response = await fetch(`index.php?controller=product&action=aiGenerateModelImage&id=${productId}&type=${productType}`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ prompt: prompt })
+                    body: JSON.stringify({ 
+                        prompt: finalPrompt,
+                        face_reference: faceInput,
+                        num_images: numImages
+                    })
                 });
                 const data = await response.json();
-                if (data.success && data.image_base64) {
-                    document.getElementById('aiGeneratedImg').src = `data:image/jpeg;base64,${data.image_base64}`;
-                    window.currentGeneratedAiImage = data.image_base64;
+                
+                if (data.success && data.images_base64 && data.images_base64.length > 0) {
+                    const grid = document.getElementById('aiImageGrid');
+                    data.images_base64.forEach((b64, index) => {
+                        grid.innerHTML += `
+                            <div style="display:flex; flex-direction:column; gap:0.5rem; background:#0a0a0a; border:1px solid #1a1a1a; padding:0.5rem; border-radius:8px;">
+                                <img src="data:image/jpeg;base64,${b64}" style="width:100%; aspect-ratio:1; object-fit:cover; border-radius:4px;">
+                                <button type="button" onclick="saveAiGeneratedImage(this, '${b64}')" class="btn-submit" style="width:100%; justify-content:center; padding:0.4rem; font-size:0.7rem;">
+                                    <i class="fas fa-save"></i> Save Image ${index + 1}
+                                </button>
+                            </div>
+                        `;
+                    });
+                    
                     document.getElementById('aiImageResult').classList.remove('hidden');
                     document.getElementById('aiImageResult').style.display = 'block';
-                } else { alert('Error: ' + (data.error || 'Failed to generate image')); }
-            } catch (err) { console.error(err); alert('A network error occurred.'); }
-            finally { btn.disabled = false; hideEl('aiImageLoading'); }
+                } else { 
+                    alert('Error: ' + (data.error || 'Failed to generate images')); 
+                }
+            } catch (err) { 
+                console.error(err); 
+                alert('A network error occurred.'); 
+            } finally { 
+                btn.disabled = false; 
+                hideEl('aiImageLoading'); 
+            }
         }
 
         function resetAiImage() {
             hideEl('aiImageResult');
-            window.currentGeneratedAiImage = null;
-            document.getElementById('aiImagePrompt').focus();
+            document.getElementById('aiImageGrid').innerHTML = '';
+            document.getElementById('ai_final_prompt').focus();
         }
 
-        async function saveAiGeneratedImage() {
-            if (!window.currentGeneratedAiImage) return;
-            const btn = document.getElementById('aiSaveImgBtn');
+        async function saveAiGeneratedImage(btn, base64Str) {
             const orig = btn.innerHTML;
             btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving...';
             btn.disabled = true;
@@ -870,12 +1049,26 @@
                 const response = await fetch(`index.php?controller=product&action=saveAiImage&id=${productId}&type=${productType}`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ image_base64: window.currentGeneratedAiImage })
+                    body: JSON.stringify({ image_base64: base64Str })
                 });
                 const data = await response.json();
-                if (data.success) { btn.innerHTML = '<i class="fas fa-check" style="color:#10b981;"></i> Saved!'; setTimeout(() => window.location.reload(), 1000); }
-                else { alert('Error: ' + (data.error || 'Failed to save image')); btn.innerHTML = orig; btn.disabled = false; }
-            } catch (err) { console.error(err); alert('A network error occurred.'); btn.innerHTML = orig; btn.disabled = false; }
+                if (data.success) { 
+                    btn.innerHTML = '<i class="fas fa-check" style="color:#10b981;"></i> Saved!'; 
+                    btn.style.background = 'rgba(16,185,129,0.1)';
+                    btn.style.borderColor = 'rgba(16,185,129,0.3)';
+                    btn.style.color = '#10b981';
+                    // We removed the page reload so you don't lose the other generated variations!
+                } else { 
+                    alert('Error: ' + (data.error || 'Failed to save image')); 
+                    btn.innerHTML = orig; 
+                    btn.disabled = false; 
+                }
+            } catch (err) { 
+                console.error(err); 
+                alert('A network error occurred.'); 
+                btn.innerHTML = orig; 
+                btn.disabled = false; 
+            }
         }
 
         async function aiGenerateVideo() {

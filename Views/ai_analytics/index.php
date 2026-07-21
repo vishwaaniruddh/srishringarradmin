@@ -18,13 +18,78 @@
             <!-- Topbar -->
             <header class="h-16 flex items-center justify-between px-6 border-b border-white/5 bg-[#0a0a0a] shrink-0">
                 <div class="flex items-center gap-4">
-                    <h1 class="text-lg font-bold text-white tracking-wide">AI Generation History</h1>
-                    <span class="px-2 py-1 bg-indigo-500/10 text-indigo-400 text-[10px] font-bold rounded uppercase tracking-wider border border-indigo-500/20">Analytics Table</span>
+                    <h1 class="text-lg font-bold text-white tracking-wide">AI Analytics & Usage</h1>
+                    <span class="px-2 py-1 bg-indigo-500/10 text-indigo-400 text-[10px] font-bold rounded uppercase tracking-wider border border-indigo-500/20">Cost Dashboard</span>
                 </div>
             </header>
 
-            <div class="flex-1 p-6 flex flex-col overflow-hidden">
-                <div class="bg-[#0a0a0a] border border-white/5 rounded-xl flex-1 flex flex-col overflow-hidden shadow-2xl">
+            <div class="flex-1 p-6 flex flex-col overflow-y-auto custom-scrollbar gap-6">
+                
+                <!-- Metrics Section -->
+                <div class="grid grid-cols-1 md:grid-cols-4 gap-4 shrink-0">
+                    <div class="bg-[#0a0a0a] border border-white/5 p-5 rounded-xl shadow-lg">
+                        <div class="text-zinc-500 text-xs font-bold uppercase tracking-wider mb-1">Total API Calls</div>
+                        <div class="text-3xl font-bold text-white"><?php echo number_format($image_totals['total_generations'] ?? 0); ?></div>
+                    </div>
+                    <div class="bg-[#0a0a0a] border border-white/5 p-5 rounded-xl shadow-lg">
+                        <div class="text-zinc-500 text-xs font-bold uppercase tracking-wider mb-1">Images Generated</div>
+                        <div class="text-3xl font-bold text-pink-400"><?php echo number_format($image_totals['total_images'] ?? 0); ?></div>
+                    </div>
+                    <div class="bg-[#0a0a0a] border border-white/5 p-5 rounded-xl shadow-lg">
+                        <div class="text-zinc-500 text-xs font-bold uppercase tracking-wider mb-1">Tokens Used (Gemini)</div>
+                        <div class="text-3xl font-bold text-emerald-400"><?php echo number_format($image_totals['total_tokens'] ?? 0); ?></div>
+                    </div>
+                    <div class="bg-[#0a0a0a] border border-white/5 p-5 rounded-xl shadow-lg">
+                        <div class="text-zinc-500 text-xs font-bold uppercase tracking-wider mb-1">Est. Total Cost</div>
+                        <div class="text-3xl font-bold text-amber-400">$<?php echo number_format($image_totals['total_cost'] ?? 0, 4); ?></div>
+                    </div>
+                </div>
+
+                <!-- Image Generation Logs -->
+                <div class="bg-[#0a0a0a] border border-white/5 rounded-xl flex flex-col overflow-hidden shadow-2xl shrink-0" style="max-height: 400px;">
+                    <div class="px-6 py-4 border-b border-white/5 bg-[#111]">
+                        <h2 class="text-sm font-bold text-white uppercase tracking-wider">Image Generation Cost Log</h2>
+                    </div>
+                    <?php if (empty($image_logs)): ?>
+                        <div class="flex-1 flex flex-col items-center justify-center py-10">
+                            <i class="fas fa-image text-3xl text-zinc-700 mb-3"></i>
+                            <h2 class="text-md font-medium text-zinc-400">No images generated yet</h2>
+                        </div>
+                    <?php else: ?>
+                        <div class="overflow-x-auto overflow-y-auto flex-1 custom-scrollbar">
+                            <table class="w-full text-left text-sm whitespace-nowrap">
+                                <thead class="bg-[#111] sticky top-0 z-10 border-b border-white/5">
+                                    <tr>
+                                        <th class="px-6 py-3 font-semibold text-zinc-400 text-xs">Date</th>
+                                        <th class="px-6 py-3 font-semibold text-zinc-400 text-xs">Product</th>
+                                        <th class="px-6 py-3 font-semibold text-zinc-400 text-xs">Images</th>
+                                        <th class="px-6 py-3 font-semibold text-zinc-400 text-xs">Prompt</th>
+                                        <th class="px-6 py-3 font-semibold text-zinc-400 text-xs">Tokens</th>
+                                        <th class="px-6 py-3 font-semibold text-zinc-400 text-xs">Cost</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="divide-y divide-white/5">
+                                    <?php foreach ($image_logs as $log): ?>
+                                        <tr class="hover:bg-white/[0.02] transition-colors">
+                                            <td class="px-6 py-3 text-xs text-zinc-300"><?php echo date('M j, Y g:i A', strtotime($log['created_at'])); ?></td>
+                                            <td class="px-6 py-3 text-xs text-zinc-300">ID: <?php echo htmlspecialchars($log['product_id']); ?> (<?php echo htmlspecialchars($log['product_type']); ?>)</td>
+                                            <td class="px-6 py-3 text-xs font-bold text-pink-400"><?php echo htmlspecialchars($log['num_images']); ?></td>
+                                            <td class="px-6 py-3 text-xs text-zinc-500 max-w-xs truncate" title="<?php echo htmlspecialchars($log['prompt_text']); ?>"><?php echo htmlspecialchars($log['prompt_text']); ?></td>
+                                            <td class="px-6 py-3 text-xs text-emerald-400"><?php echo number_format($log['total_tokens']); ?></td>
+                                            <td class="px-6 py-3 text-xs font-mono text-amber-400">$<?php echo number_format($log['cost_estimate'], 5); ?></td>
+                                        </tr>
+                                    <?php endforeach; ?>
+                                </tbody>
+                            </table>
+                        </div>
+                    <?php endif; ?>
+                </div>
+
+                <!-- Playground History -->
+                <div class="bg-[#0a0a0a] border border-white/5 rounded-xl flex flex-col overflow-hidden shadow-2xl shrink-0" style="max-height: 400px;">
+                    <div class="px-6 py-4 border-b border-white/5 bg-[#111]">
+                        <h2 class="text-sm font-bold text-white uppercase tracking-wider">Playground History</h2>
+                    </div>
                     
                     <?php if (empty($sessions)): ?>
                         <div class="flex-1 flex flex-col items-center justify-center py-20">

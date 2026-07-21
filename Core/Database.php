@@ -5,6 +5,10 @@ class Database {
     private static $instances = [];
 
     public static function getConnection($type = 'con') {
+        if (isset(self::$instances[$type]) && !@mysqli_ping(self::$instances[$type])) {
+            unset(self::$instances[$type]); // Connection died, clear it so it reconnects
+        }
+
         if (!isset(self::$instances[$type])) {
             // Using include instead of require_once to ensure variables are available in this scope
             // even if the file was previously included elsewhere.
