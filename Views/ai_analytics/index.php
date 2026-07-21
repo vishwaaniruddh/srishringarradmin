@@ -40,8 +40,8 @@
                         <div class="text-3xl font-bold text-emerald-400"><?php echo number_format($image_totals['total_tokens'] ?? 0); ?></div>
                     </div>
                     <div class="bg-[#0a0a0a] border border-white/5 p-5 rounded-xl shadow-lg">
-                        <div class="text-zinc-500 text-xs font-bold uppercase tracking-wider mb-1">Est. Total Cost</div>
-                        <div class="text-3xl font-bold text-amber-400">$<?php echo number_format($image_totals['total_cost'] ?? 0, 4); ?></div>
+                        <div class="text-zinc-500 text-xs font-bold uppercase tracking-wider mb-1">Est. Total Cost (INR)</div>
+                        <div class="text-3xl font-bold text-amber-400">₹<?php echo number_format($image_totals['total_cost'] ?? 0, 3); ?></div>
                     </div>
                 </div>
 
@@ -65,7 +65,7 @@
                                         <th class="px-6 py-3 font-semibold text-zinc-400 text-xs">Images</th>
                                         <th class="px-6 py-3 font-semibold text-zinc-400 text-xs">Prompt</th>
                                         <th class="px-6 py-3 font-semibold text-zinc-400 text-xs">Tokens</th>
-                                        <th class="px-6 py-3 font-semibold text-zinc-400 text-xs">Cost</th>
+                                        <th class="px-6 py-3 font-semibold text-zinc-400 text-xs">Cost (INR)</th>
                                     </tr>
                                 </thead>
                                 <tbody class="divide-y divide-white/5">
@@ -76,7 +76,7 @@
                                             <td class="px-6 py-3 text-xs font-bold text-pink-400"><?php echo htmlspecialchars($log['num_images']); ?></td>
                                             <td class="px-6 py-3 text-xs text-zinc-500 max-w-xs truncate" title="<?php echo htmlspecialchars($log['prompt_text']); ?>"><?php echo htmlspecialchars($log['prompt_text']); ?></td>
                                             <td class="px-6 py-3 text-xs text-emerald-400"><?php echo number_format($log['total_tokens']); ?></td>
-                                            <td class="px-6 py-3 text-xs font-mono text-amber-400">$<?php echo number_format($log['cost_estimate'], 5); ?></td>
+                                            <td class="px-6 py-3 text-xs font-mono text-amber-400">₹<?php echo number_format($log['cost_estimate'], 4); ?></td>
                                         </tr>
                                     <?php endforeach; ?>
                                 </tbody>

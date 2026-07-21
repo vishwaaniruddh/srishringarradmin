@@ -403,8 +403,9 @@ class ProductController extends Controller {
             }
         }
 
-        // Log Analytics to DB
-        $costEstimate = ($totalPromptTokens / 1000000) * 0.075 + ($totalCandidateTokens / 1000000) * 0.30;
+        // Log Analytics to DB (Cost in INR, 1 USD = 86 INR)
+        $usdCost = ($totalPromptTokens / 1000000) * 0.075 + ($totalCandidateTokens / 1000000) * 0.30;
+        $costEstimate = $usdCost * 86;
         
         $db = \Core\Database::getConnection('con');
         if ($db) {
