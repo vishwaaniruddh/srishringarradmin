@@ -403,9 +403,9 @@ class ProductController extends Controller {
             }
         }
 
-        // Log Analytics to DB (Cost in INR, 1 USD = 86 INR)
-        $usdCost = ($totalPromptTokens / 1000000) * 0.075 + ($totalCandidateTokens / 1000000) * 0.30;
-        $costEstimate = $usdCost * 86;
+        // Log Analytics to DB (Imagen 3 rate: $0.03 per image = ~₹2.58 per image at 86 INR/USD)
+        $actualGeneratedCount = count($generatedImages);
+        $costEstimate = $actualGeneratedCount * 0.03 * 86;
         
         $db = \Core\Database::getConnection('con');
         if ($db) {
