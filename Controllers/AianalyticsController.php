@@ -6,11 +6,7 @@ use Core\Controller;
 class AianalyticsController extends Controller {
 
     private function getDbConnection() {
-        $con = mysqli_connect("localhost", "root", "", "u464193275_srishrinjewels");
-        if (!$con) {
-            return null;
-        }
-        return $con;
+        return \Core\Database::getConnection('con');
     }
 
     public function index() {
@@ -73,8 +69,6 @@ class AianalyticsController extends Controller {
                     $image_logs[] = $row;
                 }
             }
-
-            mysqli_close($con);
         }
         
         $this->view('ai_analytics/index', [

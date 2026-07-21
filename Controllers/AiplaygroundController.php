@@ -12,11 +12,7 @@ class AiplaygroundController extends Controller {
     }
 
     private function getDbConnection() {
-        $con = mysqli_connect("localhost", "root", "", "u464193275_srishrinjewels");
-        if (!$con) {
-            return null;
-        }
-        return $con;
+        return \Core\Database::getConnection('con');
     }
 
     private function saveHistory($session_id, $type, $size, $info, $data) {
