@@ -374,17 +374,27 @@
                                                 <div>
                                                     <label style="font-size:0.65rem; font-weight:700; color:#888; text-transform:uppercase; letter-spacing:0.05em; margin-bottom:0.4rem; display:block;">Model Face (Optional)</label>
                                                     <div style="display:flex; gap:0.5rem; flex-wrap:wrap;">
-                                                        <label class="model-picker-label">
+                                                        <label class="model-picker-label relative group">
                                                             <input type="radio" name="ai_model_face" value="" checked class="hidden peer">
-                                                            <div class="peer-checked:border-pink-500 peer-checked:ring-2 peer-checked:ring-pink-500/30 border border-zinc-800 rounded-lg overflow-hidden cursor-pointer transition-all opacity-70 peer-checked:opacity-100 bg-zinc-900 flex items-center justify-center" style="width:50px; height:50px;">
-                                                                <span style="font-size:0.6rem; color:#aaa; font-weight:600;">NONE</span>
+                                                            <div class="peer-checked:border-pink-500 peer-checked:ring-2 peer-checked:ring-pink-500/30 border border-zinc-800 rounded-xl overflow-hidden cursor-pointer transition-all opacity-70 peer-checked:opacity-100 bg-zinc-900 flex items-center justify-center" style="width:64px; height:64px;">
+                                                                <span style="font-size:0.65rem; color:#aaa; font-weight:700;">NONE</span>
                                                             </div>
                                                         </label>
                                                         <?php for($i=1; $i<=10; $i++): ?>
-                                                        <label class="model-picker-label">
+                                                        <label class="model-picker-label relative group">
                                                             <input type="radio" name="ai_model_face" value="model_<?= $i ?>.png" class="hidden peer">
-                                                            <div class="peer-checked:border-pink-500 peer-checked:ring-2 peer-checked:ring-pink-500/30 border border-zinc-800 rounded-lg overflow-hidden cursor-pointer transition-all opacity-60 peer-checked:opacity-100 hover:opacity-100" style="width:50px; height:50px;" title="Model <?= $i ?>">
+                                                            <div class="peer-checked:border-pink-500 peer-checked:ring-2 peer-checked:ring-pink-500/30 border border-zinc-800 rounded-xl overflow-hidden cursor-pointer transition-all opacity-70 peer-checked:opacity-100 hover:opacity-100 bg-zinc-900" style="width:64px; height:64px;" title="Model <?= $i ?>">
                                                                 <img src="assets/models/model_<?= $i ?>.png" alt="Model <?= $i ?>" style="width:100%; height:100%; object-fit:cover;" onerror="this.parentElement.parentElement.style.display='none'">
+                                                            </div>
+
+                                                            <!-- Hover Zoom Popover -->
+                                                            <div class="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden group-hover:flex flex-col items-center z-50 pointer-events-none">
+                                                                <div class="bg-[#0a0a0a] p-1.5 rounded-xl border border-pink-500/40 shadow-2xl shadow-pink-500/20 w-44 h-44 overflow-hidden">
+                                                                    <img src="assets/models/model_<?= $i ?>.png" alt="Model <?= $i ?>" class="w-full h-full object-cover rounded-lg">
+                                                                </div>
+                                                                <div class="text-[10px] font-bold text-pink-400 bg-black/90 px-2.5 py-0.5 rounded-full border border-pink-500/30 -mt-2 uppercase tracking-wider shadow-lg">
+                                                                    Model <?= $i ?>
+                                                                </div>
                                                             </div>
                                                         </label>
                                                         <?php endfor; ?>
