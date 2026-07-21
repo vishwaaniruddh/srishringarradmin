@@ -13,58 +13,49 @@ class AimodelsController {
             exit;
         }
 
-        $modelId = (int)($_POST['model_id'] ?? 0);
-        
+        $rawInput = json_decode(file_get_contents('php://input'), true);
+        $modelId = (int)($_POST['model_id'] ?? ($rawInput['model_id'] ?? 0));
+        $b64 = $_POST['cropped_image'] ?? ($rawInput['cropped_image'] ?? '');
+
         if ($modelId < 1 || $modelId > 5) {
+            if (!empty($b64)) {
+                header('Content-Type: application/json');
+                echo json_encode(['error' => 'Invalid model ID']);
+                exit;
+            }
             header("Location: index.php?controller=aimodels&error=Invalid model ID");
             exit;
         }
 
+        $fileName = "model_$modelId.png";
+        $destPath = __DIR__ . '/../assets/models/' . $fileName;
+
+        // Ensure directory exists
+        $modelsDir = dirname($destPath);
+        if (!is_dir($modelsDir)) {
+            mkdir($modelsDir, 0777, true);
+        }
+
+        // Handle Base64 cropped image payload (from Cropper modal)
+        if (!empty($b64)) {
+            $b64Data = preg_replace('#^data:image/\w+;base64,#i', '', $b64);
+            $imageData = base64_decode($b64Data);
+            if ($imageData && file_put_contents($destPath, $imageData) !== false) {
+                header('Content-Type: application/json');
+                echo json_encode(['success' => true, 'message' => 'Model framing saved successfully']);
+                exit;
+            } else {
+                header('Content-Type: application/json');
+                echo json_encode(['error' => 'Failed to save cropped image']);
+                exit;
+            }
+        }
+
+        // Handle standard file upload
         if (isset($_FILES['model_image']) && $_FILES['model_image']['error'] === UPLOAD_ERR_OK) {
             $tmpPath = $_FILES['model_image']['tmp_name'];
-            $fileName = "model_$modelId.png";
-            $destPath = __DIR__ . '/../assets/models/' . $fileName;
-
-            // Ensure the models directory exists
-            $modelsDir = dirname($destPath);
-            if (!is_dir($modelsDir)) {
-                mkdir($modelsDir, 0777, true);
-            }
-
-            // Convert and save as PNG
-            $imageInfo = getimagesize($tmpPath);
-            if ($imageInfo !== false) {
-                $type = $imageInfo[2];
-                $image = null;
-
-                if ($type == IMAGETYPE_JPEG) {
-                    $image = imagecreatefromjpeg($tmpPath);
-                } elseif ($type == IMAGETYPE_PNG) {
-                    $image = imagecreatefrompng($tmpPath);
-                } elseif ($type == IMAGETYPE_WEBP) {
-                    $image = imagecreatefromwebp($tmpPath);
-                }
-
-                if ($image) {
-                    // Resize/Crop to 1:1 square ratio for consistency (optional but recommended)
-                    $width = imagesx($image);
-                    $height = imagesy($image);
-                    $size = min($width, $height);
-                    
-                    $x = ($width - $size) / 2;
-                    $y = ($height - $size) / 2;
-
-                    $squareImage = imagecrop($image, ['x' => $x, 'y' => $y, 'width' => $size, 'height' => $size]);
-                    
-                    if ($squareImage !== false) {
-                        imagepng($squareImage, $destPath);
-                        header("Location: index.php?controller=aimodels&success=Model updated successfully");
-                        exit;
-                    }
-                }
-            }
-            
-            header("Location: index.php?controller=aimodels&error=Invalid image format or failed to process");
+            move_uploaded_file($tmpPath, $destPath);
+            header("Location: index.php?controller=aimodels&success=Model uploaded successfully");
             exit;
         }
 
