@@ -2,8 +2,87 @@
 <html lang="en" class="dark">
 <head>
     <title>AI Models - Srishringarr</title>
+    <?php include __DIR__ . '/../partials/head.php'; ?>
     <!-- Cropper.js CSS -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.css">
+    <style>
+        .model-card {
+            background: #0a0a0a;
+            border: 1px solid #1f1f1f;
+            border-radius: 12px;
+            overflow: hidden;
+            transition: all 0.2s;
+        }
+        .model-card:hover {
+            border-color: #333;
+        }
+        .model-img-wrapper {
+            position: relative;
+            width: 100%;
+            aspect-ratio: 1;
+            background: #111;
+            border-bottom: 1px solid #1f1f1f;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .model-img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        .model-empty {
+            color: #444;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        .model-empty i {
+            font-size: 2rem;
+        }
+        .model-info {
+            padding: 1rem;
+        }
+        .model-title {
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: #ddd;
+            margin-bottom: 0.2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .model-status {
+            font-size: 0.65rem;
+            padding: 0.15rem 0.4rem;
+            border-radius: 4px;
+            font-weight: 600;
+        }
+        .status-active { background: rgba(16, 185, 129, 0.1); color: #10b981; }
+        .status-empty { background: rgba(239, 68, 68, 0.1); color: #ef4444; }
+        
+        .upload-btn {
+            display: block;
+            width: 100%;
+            padding: 0.5rem;
+            text-align: center;
+            background: #1a1a1a;
+            border: 1px solid #2a2a2a;
+            border-radius: 6px;
+            color: #aaa;
+            font-size: 0.75rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.15s;
+            margin-top: 0.75rem;
+        }
+        .upload-btn:hover {
+            background: #222;
+            color: #fff;
+            border-color: #444;
+        }
+    </style>
 </head>
 <body class="bg-black font-sans text-gray-300">
     <div class="flex min-h-screen">
