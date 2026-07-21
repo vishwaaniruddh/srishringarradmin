@@ -3,7 +3,7 @@ namespace Controllers;
 
 use Core\Controller;
 
-class AiPlaygroundController extends Controller {
+class AiplaygroundController extends Controller {
 
     public function index() {
         $session_id = uniqid('sess_');

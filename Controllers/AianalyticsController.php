@@ -3,7 +3,7 @@ namespace Controllers;
 
 use Core\Controller;
 
-class AiAnalyticsController extends Controller {
+class AianalyticsController extends Controller {
 
     private function getDbConnection() {
         $con = mysqli_connect("localhost", "root", "", "u464193275_srishrinjewels");
