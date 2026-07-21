@@ -687,12 +687,7 @@
                                 <div id="existing_img_grid" class="img-grid" style="margin-bottom:0.6rem;">
                                     <?php foreach ($images as $index => $img): ?>
                                         <div class="img-thumb">
-                                            <?php 
-                                            $isNewAdmin = (strpos($img['img_name'], '/new_admin/') === 0);
-                                            $localSrc = $isNewAdmin ? '/ss' . $img['img_name'] : '/ss/yn/uploads' . $img['img_name'];
-                                            $cloudSrc = $isNewAdmin ? 'http://srishringarr.com' . $img['img_name'] : 'http://srishringarr.com/yn/uploads' . $img['img_name'];
-                                            ?>
-                                            <img src="<?php echo $localSrc; ?>" onerror="this.onerror=null; this.src='<?php echo $cloudSrc; ?>';" alt="">
+                                            <img src="/ss/yn/uploads<?php echo $img['img_name']; ?>" onerror="this.onerror=null; this.src='http://srishringarr.com/yn/uploads<?php echo $img['img_name']; ?>';" alt="">
                                             <div class="img-overlay">
                                                 <span style="color:#fff; font-size:0.62rem; font-weight:600;">
                                                     <?php echo ($index === 0) ? 'Main' : 'Image'; ?>
@@ -1061,9 +1056,8 @@
                     // Dynamically append the saved image to the gallery without reloading the page!
                     const imgGrid = document.getElementById('existing_img_grid');
                     if (imgGrid && data.path) {
-                        const isNewAdmin = (data.path.indexOf('/new_admin/') === 0);
-                        const localSrc = isNewAdmin ? '/ss' + data.path : '/ss/yn/uploads' + data.path;
-                        const cloudSrc = isNewAdmin ? 'http://srishringarr.com' + data.path : 'http://srishringarr.com/yn/uploads' + data.path;
+                        const localSrc = '/ss/yn/uploads' + data.path;
+                        const cloudSrc = 'http://srishringarr.com/yn/uploads' + data.path;
                         
                         const newThumb = document.createElement('div');
                         newThumb.className = 'img-thumb';

@@ -630,7 +630,7 @@ class ProductController extends Controller {
 
         $current_year = date('Y');
         $current_month = date('m');
-        $upload_base = __DIR__ . "/../"; // Points to new_admin/
+        $upload_base = __DIR__ . "/../../yn/uploads/";
         $upload_path = $upload_base . $current_year . '/' . $current_month . '/';
 
         if (!file_exists($upload_path)) {
@@ -645,7 +645,7 @@ class ProductController extends Controller {
             return;
         }
 
-        $relative_path = '/new_admin/' . $current_year . '/' . $current_month . '/' . $new_filename;
+        $relative_path = '/' . $current_year . '/' . $current_month . '/' . $new_filename;
         
         $db = $productModel->getDbConnection();
         $date_added = date('Y-m-d H:i:s');
