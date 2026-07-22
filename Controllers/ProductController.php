@@ -1714,6 +1714,33 @@ class ProductController extends Controller {
         }
     }
 
+    public function updateImageWeight() {
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            $this->json(['error' => 'Method not allowed'], 405);
+            return;
+        }
+
+        $input = json_decode(file_get_contents('php://input'), true) ?: $_POST;
+        $imageId = (int)($input['image_id'] ?? 0);
+        $weight = (int)($input['weight'] ?? 0);
+
+        if (!$imageId) {
+            $this->json(['error' => 'Image ID is required'], 400);
+            return;
+        }
+
+        $productModel = new ProductModel();
+        try {
+            if ($productModel->updateImageWeight($imageId, $weight)) {
+                $this->json(['success' => true, 'message' => 'Image weight updated successfully']);
+            } else {
+                $this->json(['error' => 'Failed to update image weight'], 500);
+            }
+        } catch (\Exception $e) {
+            $this->json(['error' => $e->getMessage()], 500);
+        }
+    }
+
     public function descriptionCorrector() {
         $productModel = new ProductModel();
         $products = $productModel->getPoorlyFormattedProducts();

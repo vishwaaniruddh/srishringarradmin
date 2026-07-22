@@ -135,13 +135,24 @@
             border: 1px solid #1f1f1f;
         }
         .img-thumb img { width: 100%; height: 100%; object-fit: contain; }
-        .img-thumb .img-overlay {
-            position: absolute; inset: 0;
-            background: rgba(0,0,0,0.5);
-            opacity: 0; transition: opacity 0.2s;
-            display: flex; align-items: center; justify-content: center;
-        }
         .img-thumb:hover .img-overlay { opacity: 1; }
+        .img-weight-pill {
+            position: absolute; bottom: 4px; left: 4px; right: 4px;
+            background: rgba(10, 10, 10, 0.88); backdrop-filter: blur(4px);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            border-radius: 4px; padding: 1px 4px;
+            display: flex; align-items: center; justify-content: space-between;
+            z-index: 15; transition: border-color 0.2s;
+        }
+        .img-weight-pill:hover { border-color: rgba(244, 114, 182, 0.5); }
+        .img-weight-input {
+            width: 36px; background: transparent; border: none;
+            color: #f472b6; font-weight: 700; font-size: 0.72rem;
+            text-align: center; outline: none; padding: 0;
+        }
+        .img-weight-input:focus {
+            background: #1a1a1a; border-radius: 2px;
+        }
         .img-badge {
             position: absolute; top: 4px; left: 4px;
             width: 20px; height: 20px; border-radius: 50%;
@@ -715,6 +726,10 @@
                                             <button type="button" onclick="deleteProductImage(this, <?php echo $img['id']; ?>)" class="img-del-btn" title="Delete Image">
                                                 <i class="fas fa-trash-alt"></i>
                                             </button>
+                                            <div class="img-weight-pill" title="Display Order Weight (0 = First/Main Image)">
+                                                <span style="font-size:0.55rem; color:#888; font-weight:700;">W:</span>
+                                                <input type="number" min="0" name="image_weights[<?php echo $img['id']; ?>]" value="<?php echo (int)($img['rank'] ?? $index); ?>" class="img-weight-input" onchange="updateImageWeight(<?php echo $img['id']; ?>, this.value)">
+                                            </div>
                                         </div>
                                     <?php endforeach; ?>
                                 </div>
@@ -1083,6 +1098,10 @@
                             <button type="button" onclick="deleteProductImage(this, ${data.id})" class="img-del-btn" title="Delete Image">
                                 <i class="fas fa-trash-alt"></i>
                             </button>
+                            <div class="img-weight-pill" title="Display Order Weight (0 = First/Main Image)">
+                                <span style="font-size:0.55rem; color:#888; font-weight:700;">W:</span>
+                                <input type="number" min="0" name="image_weights[${data.id}]" value="1" class="img-weight-input" onchange="updateImageWeight(${data.id}, this.value)">
+                            </div>
                         `;
                         imgGrid.appendChild(newThumb);
                     }
@@ -1159,6 +1178,21 @@
                     hideEl('aiVideoLoading');
                 }
             }, 10000);
+        }
+        async function updateImageWeight(imageId, weightVal) {
+            try {
+                const response = await fetch('index.php?controller=product&action=updateImageWeight', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ image_id: imageId, weight: weightVal })
+                });
+                const data = await response.json();
+                if (!data.success) {
+                    alert('Error updating image weight: ' + (data.error || 'Unknown error'));
+                }
+            } catch (err) {
+                console.error(err);
+            }
         }
     </script>
 </body>

@@ -770,12 +770,54 @@ class ProductModel extends Model
                 mysqli_stmt_close($stmt);
             }
 
+            // Update image weights if provided in form post
+            if (isset($data['image_weights']) && is_array($data['image_weights'])) {
+                foreach ($data['image_weights'] as $imgId => $w) {
+                    $wVal = (int)$w;
+                    $iId = (int)$imgId;
+                    $this->query($this->db, "UPDATE product_images_new SET rank = $wVal WHERE id = $iId");
+                }
+            }
+
             mysqli_commit($this->db);
             return true;
         } catch (\Exception $e) {
             mysqli_rollback($this->db);
             throw $e;
         }
+    }
+
+    public function updateImageWeight($imageId, $weight)
+    {
+        $imageId = (int)$imageId;
+        $weight = (int)$weight;
+        $sql = "UPDATE product_images_new SET rank = $weight WHERE id = $imageId";
+        $res = $this->query($this->db, $sql);
+
+        // If weight is set to 0, update product's main image to this image
+        if ($weight === 0) {
+            $imgQ = "SELECT img_name, product_id, gproduct_id FROM product_images_new WHERE id = $imageId LIMIT 1";
+            $qRes = $this->query($this->db, $imgQ);
+            $row = $this->fetchOne($qRes);
+            if ($row) {
+                $main_image = $row['img_name'];
+                $isJewel = ($row['product_id'] > 0);
+                $table = $isJewel ? 'product' : 'garment_product';
+                $field = $isJewel ? 'product_image' : 'gproduct_image';
+                $pk = $isJewel ? 'product_id' : 'gproduct_id';
+                $productId = $isJewel ? $row['product_id'] : $row['gproduct_id'];
+
+                if ($productId) {
+                    $sql3 = "UPDATE $table SET $field = ? WHERE $pk = ?";
+                    $stmt = mysqli_prepare($this->db, $sql3);
+                    mysqli_stmt_bind_param($stmt, "si", $main_image, $productId);
+                    mysqli_stmt_execute($stmt);
+                    mysqli_stmt_close($stmt);
+                }
+            }
+        }
+
+        return $res;
     }
     public function deleteProduct($id, $type)
     {
