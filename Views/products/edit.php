@@ -129,29 +129,42 @@
         /* Images grid */
         .img-grid { display: grid; grid-template-columns: repeat(6, 1fr); gap: 0.5rem; }
         @media (max-width: 640px) { .img-grid { grid-template-columns: repeat(3, 1fr); } }
+        .img-card-item {
+            display: flex; flex-direction: column;
+            background: #0a0a0a; border: 1px solid #1f1f1f;
+            border-radius: 8px; overflow: hidden; transition: all 0.2s;
+        }
+        .img-card-item:hover { border-color: #333; }
         .img-thumb {
-            aspect-ratio: 1; position: relative;
-            border-radius: 8px; overflow: hidden;
-            border: 1px solid #1f1f1f;
+            aspect-ratio: 1; position: relative; width: 100%;
+            background: #111;
         }
         .img-thumb img { width: 100%; height: 100%; object-fit: contain; }
+        .img-thumb .img-overlay {
+            position: absolute; inset: 0;
+            background: rgba(0,0,0,0.5);
+            opacity: 0; transition: opacity 0.2s;
+            display: flex; align-items: center; justify-content: center;
+        }
         .img-thumb:hover .img-overlay { opacity: 1; }
-        .img-weight-pill {
-            position: absolute; bottom: 4px; left: 4px; right: 4px;
-            background: rgba(10, 10, 10, 0.88); backdrop-filter: blur(4px);
-            border: 1px solid rgba(255, 255, 255, 0.15);
-            border-radius: 4px; padding: 1px 4px;
+        .img-card-footer {
             display: flex; align-items: center; justify-content: space-between;
-            z-index: 15; transition: border-color 0.2s;
+            padding: 0.35rem 0.5rem; background: #0c0c0c;
+            border-top: 1px solid #1a1a1a;
         }
-        .img-weight-pill:hover { border-color: rgba(244, 114, 182, 0.5); }
-        .img-weight-input {
-            width: 36px; background: transparent; border: none;
-            color: #f472b6; font-weight: 700; font-size: 0.72rem;
-            text-align: center; outline: none; padding: 0;
+        .img-order-label {
+            font-size: 0.65rem; font-weight: 700; color: #888;
+            text-transform: uppercase; letter-spacing: 0.04em;
+            display: flex; align-items: center; gap: 0.3rem;
         }
-        .img-weight-input:focus {
-            background: #1a1a1a; border-radius: 2px;
+        .img-order-input {
+            width: 42px; height: 24px; background: #000;
+            border: 1px solid #2a2a2a; border-radius: 4px;
+            color: #f472b6; font-weight: 700; font-size: 0.75rem;
+            text-align: center; outline: none; transition: all 0.2s;
+        }
+        .img-order-input:focus {
+            border-color: #ec4899; box-shadow: 0 0 0 2px rgba(236,72,153,0.2);
         }
         .img-badge {
             position: absolute; top: 4px; left: 4px;
@@ -707,28 +720,30 @@
                                 <!-- Existing Images -->
                                 <div id="existing_img_grid" class="img-grid" style="margin-bottom:0.6rem;">
                                     <?php foreach ($images as $index => $img): ?>
-                                        <div class="img-thumb">
-                                            <img src="/ss/yn/uploads<?php echo $img['img_name']; ?>" onerror="this.onerror=null; this.src='http://srishringarr.com/yn/uploads<?php echo $img['img_name']; ?>';" alt="">
-                                            <div class="img-overlay">
-                                                <span style="color:#fff; font-size:0.62rem; font-weight:600;">
-                                                    <?php echo ($index === 0) ? 'Main' : 'Image'; ?>
-                                                </span>
-                                            </div>
-                                            <?php if ($index === 0): ?>
-                                                <div class="img-badge" style="background:#f59e0b; color:#fff;" title="Main Image">
-                                                    <i class="fas fa-star"></i>
+                                        <div class="img-card-item">
+                                            <div class="img-thumb">
+                                                <img src="/ss/yn/uploads<?php echo $img['img_name']; ?>" onerror="this.onerror=null; this.src='http://srishringarr.com/yn/uploads<?php echo $img['img_name']; ?>';" alt="">
+                                                <div class="img-overlay">
+                                                    <span style="color:#fff; font-size:0.62rem; font-weight:600;">
+                                                        <?php echo ($index === 0) ? 'Main' : 'Image'; ?>
+                                                    </span>
                                                 </div>
-                                            <?php else: ?>
-                                                <button type="button" onclick="setMainImage(this, <?php echo $img['id']; ?>)" class="img-set-main" title="Set as Main Image">
-                                                    <i class="far fa-star"></i>
+                                                <?php if ($index === 0): ?>
+                                                    <div class="img-badge" style="background:#f59e0b; color:#fff;" title="Main Image">
+                                                        <i class="fas fa-star"></i>
+                                                    </div>
+                                                <?php else: ?>
+                                                    <button type="button" onclick="setMainImage(this, <?php echo $img['id']; ?>)" class="img-set-main" title="Set as Main Image">
+                                                        <i class="far fa-star"></i>
+                                                    </button>
+                                                <?php endif; ?>
+                                                <button type="button" onclick="deleteProductImage(this, <?php echo $img['id']; ?>)" class="img-del-btn" title="Delete Image">
+                                                    <i class="fas fa-trash-alt"></i>
                                                 </button>
-                                            <?php endif; ?>
-                                            <button type="button" onclick="deleteProductImage(this, <?php echo $img['id']; ?>)" class="img-del-btn" title="Delete Image">
-                                                <i class="fas fa-trash-alt"></i>
-                                            </button>
-                                            <div class="img-weight-pill" title="Display Order Weight (0 = First/Main Image)">
-                                                <span style="font-size:0.55rem; color:#888; font-weight:700;">W:</span>
-                                                <input type="number" min="0" name="image_weights[<?php echo $img['id']; ?>]" value="<?php echo (int)($img['rank'] ?? $index); ?>" class="img-weight-input" onchange="updateImageWeight(<?php echo $img['id']; ?>, this.value)">
+                                            </div>
+                                            <div class="img-card-footer">
+                                                <span class="img-order-label"><i class="fas fa-sort-numeric-down text-pink-400"></i> Order</span>
+                                                <input type="number" min="0" name="image_weights[<?php echo $img['id']; ?>]" value="<?php echo (int)($img['rank'] ?? $index); ?>" class="img-order-input" onchange="updateImageWeight(<?php echo $img['id']; ?>, this)">
                                             </div>
                                         </div>
                                     <?php endforeach; ?>
@@ -1086,21 +1101,23 @@
                         const cloudSrc = 'http://srishringarr.com/yn/uploads' + data.path;
                         
                         const newThumb = document.createElement('div');
-                        newThumb.className = 'img-thumb';
+                        newThumb.className = 'img-card-item';
                         newThumb.innerHTML = `
-                            <img src="${localSrc}" onerror="this.onerror=null; this.src='${cloudSrc}';" alt="">
-                            <div class="img-overlay">
-                                <span style="color:#fff; font-size:0.62rem; font-weight:600;">Image</span>
+                            <div class="img-thumb">
+                                <img src="${localSrc}" onerror="this.onerror=null; this.src='${cloudSrc}';" alt="">
+                                <div class="img-overlay">
+                                    <span style="color:#fff; font-size:0.62rem; font-weight:600;">Image</span>
+                                </div>
+                                <button type="button" onclick="setMainImage(this, ${data.id})" class="img-set-main" title="Set as Main Image">
+                                    <i class="far fa-star"></i>
+                                </button>
+                                <button type="button" onclick="deleteProductImage(this, ${data.id})" class="img-del-btn" title="Delete Image">
+                                    <i class="fas fa-trash-alt"></i>
+                                </button>
                             </div>
-                            <button type="button" onclick="setMainImage(this, ${data.id})" class="img-set-main" title="Set as Main Image">
-                                <i class="far fa-star"></i>
-                            </button>
-                            <button type="button" onclick="deleteProductImage(this, ${data.id})" class="img-del-btn" title="Delete Image">
-                                <i class="fas fa-trash-alt"></i>
-                            </button>
-                            <div class="img-weight-pill" title="Display Order Weight (0 = First/Main Image)">
-                                <span style="font-size:0.55rem; color:#888; font-weight:700;">W:</span>
-                                <input type="number" min="0" name="image_weights[${data.id}]" value="1" class="img-weight-input" onchange="updateImageWeight(${data.id}, this.value)">
+                            <div class="img-card-footer">
+                                <span class="img-order-label"><i class="fas fa-sort-numeric-down text-pink-400"></i> Order</span>
+                                <input type="number" min="0" name="image_weights[${data.id}]" value="1" class="img-order-input" onchange="updateImageWeight(${data.id}, this)">
                             </div>
                         `;
                         imgGrid.appendChild(newThumb);
@@ -1179,19 +1196,30 @@
                 }
             }, 10000);
         }
-        async function updateImageWeight(imageId, weightVal) {
+        async function updateImageWeight(imageId, inputElem) {
+            const val = inputElem.value;
+            inputElem.style.borderColor = '#3b82f6';
             try {
                 const response = await fetch('index.php?controller=product&action=updateImageWeight', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ image_id: imageId, weight: weightVal })
+                    body: JSON.stringify({ image_id: imageId, weight: val })
                 });
                 const data = await response.json();
-                if (!data.success) {
+                if (data.success) {
+                    inputElem.style.borderColor = '#10b981';
+                    inputElem.style.color = '#10b981';
+                    setTimeout(() => {
+                        inputElem.style.borderColor = '';
+                        inputElem.style.color = '';
+                    }, 1000);
+                } else {
                     alert('Error updating image weight: ' + (data.error || 'Unknown error'));
+                    inputElem.style.borderColor = '#ef4444';
                 }
             } catch (err) {
                 console.error(err);
+                inputElem.style.borderColor = '#ef4444';
             }
         }
     </script>
