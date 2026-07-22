@@ -770,8 +770,15 @@ class ProductModel extends Model
                 mysqli_stmt_close($stmt);
             }
 
-            // Update image weights if provided in form post
-            if (isset($data['image_weights']) && is_array($data['image_weights'])) {
+            // Update image weights if provided in form post (with duplicate & main image validation)
+            if (isset($data['image_weights']) && is_array($data['image_weights']) && count($data['image_weights']) > 0) {
+                $vals = array_map('intval', array_values($data['image_weights']));
+                if (count($vals) !== count(array_unique($vals))) {
+                    throw new \Exception("Duplicate image order weights detected! Each image must have a unique order weight.");
+                }
+                if (!in_array(0, $vals, true)) {
+                    throw new \Exception("A Main Image must be set! At least one image must have Order Weight 0.");
+                }
                 foreach ($data['image_weights'] as $imgId => $w) {
                     $wVal = (int)$w;
                     $iId = (int)$imgId;

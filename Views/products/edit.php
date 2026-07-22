@@ -312,7 +312,7 @@
                             </button>
                         </div>
 
-                        <form action="index.php?controller=product&action=update" method="POST" enctype="multipart/form-data" class="edit-form">
+                        <form action="index.php?controller=product&action=update" method="POST" enctype="multipart/form-data" class="edit-form" onsubmit="return validateProductForm(this)">
                             <input type="hidden" name="id" value="<?php echo $product['id']; ?>">
                             <input type="hidden" name="type" id="product_type" value="<?php echo $type; ?>">
                             <input type="hidden" name="code" value="<?php echo htmlspecialchars($product['code']); ?>">
@@ -1202,8 +1202,60 @@
                 }
             }, 10000);
         }
+        function validateProductForm(form) {
+            const weightInputs = document.querySelectorAll('.img-order-input');
+            if (weightInputs.length > 0) {
+                const weights = [];
+                let hasZero = false;
+                let hasDuplicate = false;
+
+                weightInputs.forEach(input => {
+                    input.style.borderColor = '';
+                    const val = parseInt(input.value, 10);
+                    if (isNaN(val)) return;
+
+                    if (val === 0) hasZero = true;
+
+                    if (weights.includes(val)) {
+                        hasDuplicate = true;
+                        input.style.borderColor = '#ef4444';
+                    } else {
+                        weights.push(val);
+                    }
+                });
+
+                if (hasDuplicate) {
+                    alert('Validation Error: Duplicate image order weights detected! Every image must have a unique order weight number (e.g. 0, 1, 2, 3...).');
+                    return false;
+                }
+
+                if (!hasZero) {
+                    alert('Validation Error: A Main Image must be set! At least one image must have Order Weight 0.');
+                    return false;
+                }
+            }
+            return true;
+        }
+
         async function updateImageWeight(imageId, inputElem) {
-            const val = inputElem.value;
+            const val = parseInt(inputElem.value, 10);
+            const weightInputs = document.querySelectorAll('.img-order-input');
+            
+            // Check for duplicates
+            let duplicateCount = 0;
+            weightInputs.forEach(inp => {
+                inp.style.borderColor = '';
+                if (parseInt(inp.value, 10) === val) {
+                    duplicateCount++;
+                }
+            });
+
+            if (duplicateCount > 1) {
+                inputElem.style.borderColor = '#ef4444';
+                alert(`Validation Error: Order Weight ${val} is already assigned to another image! Each image must have a unique order weight.`);
+                return;
+            }
+
             inputElem.style.borderColor = '#3b82f6';
             try {
                 const response = await fetch('index.php?controller=product&action=updateImageWeight', {
