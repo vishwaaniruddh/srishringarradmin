@@ -798,33 +798,20 @@ class ProductModel extends Model
     {
         $imageId = (int)$imageId;
         $weight = (int)$weight;
-        $sql = "UPDATE product_images_new SET rank = $weight WHERE id = $imageId";
-        $res = $this->query($this->db, $sql);
-
-        // If weight is set to 0, update product's main image to this image
-        if ($weight === 0) {
-            $imgQ = "SELECT img_name, product_id, gproduct_id FROM product_images_new WHERE id = $imageId LIMIT 1";
-            $qRes = $this->query($this->db, $imgQ);
-            $row = $this->fetchOne($qRes);
-            if ($row) {
-                $main_image = $row['img_name'];
-                $isJewel = ($row['product_id'] > 0);
-                $table = $isJewel ? 'product' : 'garment_product';
-                $field = $isJewel ? 'product_image' : 'gproduct_image';
-                $pk = $isJewel ? 'product_id' : 'gproduct_id';
-                $productId = $isJewel ? $row['product_id'] : $row['gproduct_id'];
-
-                if ($productId) {
-                    $sql3 = "UPDATE $table SET $field = ? WHERE $pk = ?";
-                    $stmt = mysqli_prepare($this->db, $sql3);
-                    mysqli_stmt_bind_param($stmt, "si", $main_image, $productId);
-                    mysqli_stmt_execute($stmt);
-                    mysqli_stmt_close($stmt);
-                }
-            }
+        
+        $imgQ = "SELECT img_name, product_id, gproduct_id FROM product_images_new WHERE id = $imageId LIMIT 1";
+        $qRes = $this->query($this->db, $imgQ);
+        $row = $this->fetchOne($qRes);
+        
+        if ($row && $weight === 0) {
+            $isJewel = ($row['product_id'] > 0);
+            $type = $isJewel ? 'jewellery' : 'garments';
+            $productId = $isJewel ? $row['product_id'] : $row['gproduct_id'];
+            return $this->setMainProductImage($imageId, $productId, $type);
         }
 
-        return $res;
+        $sql = "UPDATE product_images_new SET rank = $weight WHERE id = $imageId";
+        return $this->query($this->db, $sql);
     }
     public function deleteProduct($id, $type)
     {
@@ -1030,12 +1017,23 @@ class ProductModel extends Model
         $productId = (int) $productId;
         $img_field = ($type === 'jewellery') ? 'product_id' : 'gproduct_id';
 
-        $sql1 = "UPDATE product_images_new SET rank = 1 WHERE $img_field = $productId";
-        $this->query($this->db, $sql1);
+        // 1. Set chosen image to rank 0
+        $this->query($this->db, "UPDATE product_images_new SET rank = 0 WHERE id = $imageId");
 
-        $sql2 = "UPDATE product_images_new SET rank = 0 WHERE id = $imageId";
-        $this->query($this->db, $sql2);
+        // 2. Fetch all OTHER images for this product ordered by their current rank and id
+        $otherSql = "SELECT id FROM product_images_new WHERE $img_field = $productId AND id != $imageId ORDER BY rank ASC, id ASC";
+        $resOthers = $this->query($this->db, $otherSql);
+        $others = $this->fetchAll($resOthers);
 
+        // 3. Re-assign unique sequential ranks 1, 2, 3, 4... to all other images
+        $nextRank = 1;
+        foreach ($others as $row) {
+            $otherId = (int)$row['id'];
+            $this->query($this->db, "UPDATE product_images_new SET rank = $nextRank WHERE id = $otherId");
+            $nextRank++;
+        }
+
+        // 4. Sync main product image in product / garment_product table
         $imgQ = "SELECT img_name FROM product_images_new WHERE id = $imageId LIMIT 1";
         $res = $this->query($this->db, $imgQ);
         $row = $this->fetchOne($res);
