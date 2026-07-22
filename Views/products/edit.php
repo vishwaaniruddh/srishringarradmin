@@ -158,10 +158,16 @@
             display: flex; align-items: center; gap: 0.3rem;
         }
         .img-order-input {
-            width: 42px; height: 24px; background: #000;
+            width: 46px; height: 24px; background: #000;
             border: 1px solid #2a2a2a; border-radius: 4px;
-            color: #f472b6; font-weight: 700; font-size: 0.75rem;
+            color: #f472b6; font-weight: 700; font-size: 0.8rem;
             text-align: center; outline: none; transition: all 0.2s;
+            -moz-appearance: textfield;
+        }
+        .img-order-input::-webkit-outer-spin-button,
+        .img-order-input::-webkit-inner-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
         }
         .img-order-input:focus {
             border-color: #ec4899; box-shadow: 0 0 0 2px rgba(236,72,153,0.2);
