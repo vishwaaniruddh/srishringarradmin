@@ -229,8 +229,8 @@
 
             <!-- Logo & Branding -->
             <div class="text-center mb-8 fade-in-up">
-                <div class="w-14 h-14 mx-auto mb-4 rounded-2xl bg-gradient-to-br from-orange-500/20 to-orange-600/10 border border-orange-500/20 flex items-center justify-center">
-                    <span class="material-symbols-outlined text-[28px]" style="color: #f47d31;">diamond</span>
+                <div class="inline-flex items-center justify-center p-3 mb-4 rounded-2xl bg-white/95 shadow-xl shadow-orange-500/10 border border-white/20">
+                    <img src="assets/logo.webp" alt="Srishringarr Logo" class="h-10 w-auto object-contain">
                 </div>
                 <h1 class="text-[22px] font-extrabold text-white tracking-tight" style="font-family: 'Manrope', sans-serif;">Srishringarr</h1>
                 <p class="text-[11px] font-bold uppercase tracking-[0.2em] mt-1" style="color: #f47d31;">Luxury Admin Panel</p>

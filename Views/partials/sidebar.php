@@ -13,10 +13,11 @@ function isActive($controller, $action = null) {
 }
 ?>
 <aside id="sidebar" class="sidebar-transition fixed inset-y-0 left-0 z-50 w-64 bg-black border-r border-zinc-800 transform -translate-x-full lg:translate-x-0 lg:sticky lg:top-0 lg:h-screen lg:overflow-y-auto">
-    <div class="flex items-center justify-between h-20 px-6 bg-black border-b border-zinc-800">
-        <span class="text-lg font-bold text-white tracking-tight flex items-center">
-            <span class="mr-2 text-md">▲</span> Srishringarr
-        </span>
+    <div class="flex items-center justify-between h-20 px-5 bg-black border-b border-zinc-800">
+        <a href="index.php" class="flex items-center gap-3">
+            <img src="assets/logo.webp" alt="Logo" class="h-9 w-auto object-contain bg-white/95 px-2 py-1 rounded-lg shadow-sm">
+            <span class="text-sm font-bold text-white tracking-tight">Srishringarr</span>
+        </a>
         <button id="close-sidebar" class="lg:hidden text-zinc-500 hover:text-white">
             <i class="fas fa-times"></i>
         </button>
