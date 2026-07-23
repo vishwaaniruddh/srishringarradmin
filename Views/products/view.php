@@ -149,7 +149,7 @@
                                     <span>Suggest Names</span>
                                 </button>
                                 <div class="flex-1 flex items-center space-x-2">
-                                    <input type="number" id="aiDescMaxWords" value="100" min="10" max="500" class="w-16 py-2.5 bg-zinc-900/80 border border-zinc-800 rounded-lg px-2 text-center text-xs text-zinc-300 focus:border-indigo-500 transition-all" title="Max Words" placeholder="Words">
+                                    <input type="number" id="aiDescMaxWords" value="100" min="10" max="500" class="w-20 py-2.5 bg-zinc-900/80 border border-zinc-800 rounded-lg px-2 text-center text-xs text-zinc-300 focus:border-indigo-500 transition-all [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none" style="-webkit-appearance: none; -moz-appearance: textfield;" title="Max Words" placeholder="Words">
                                     <button onclick="aiGenerateDescription()" id="aiDescBtn" class="flex-1 flex items-center justify-center space-x-2 py-2.5 px-4 bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 rounded-lg text-xs font-medium text-zinc-300 transition-all cursor-pointer">
                                         <i class="fas fa-align-left text-[10px]"></i>
                                         <span>Gen Description</span>

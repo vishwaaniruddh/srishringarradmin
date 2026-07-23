@@ -4,6 +4,16 @@
     <title>Edit Product - Srishringarr</title>
     <?php include __DIR__ . '/../partials/head.php'; ?>
     <style>
+        /* Remove number input spinners */
+        #aiDescMaxWords::-webkit-inner-spin-button,
+        #aiDescMaxWords::-webkit-outer-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
+        }
+        #aiDescMaxWords {
+            -moz-appearance: textfield;
+        }
+
         /* Edit Page Compact Overrides */
         .edit-wrap { max-width: 100%; margin: 0 auto; }
         .edit-card {
@@ -363,7 +373,7 @@
                                                 <button type="button" onclick="aiGenerateNames()" id="aiNamesBtn" class="ai-btn">
                                                     <i class="fas fa-heading"></i> Suggest Names
                                                 </button>
-                                                <input type="number" id="aiDescMaxWords" value="100" min="10" max="500" class="ai-input" style="width: 55px; text-align: center;" title="Max Words">
+                                                <input type="number" id="aiDescMaxWords" value="100" min="10" max="500" class="ai-input" style="width: 85px; text-align: center; -webkit-appearance: none; -moz-appearance: textfield;" title="Max Words" placeholder="Words">
                                                 <button type="button" onclick="aiGenerateDescription()" id="aiDescBtn" class="ai-btn">
                                                     <i class="fas fa-align-left"></i> Gen Description
                                                 </button>
