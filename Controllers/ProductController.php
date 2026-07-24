@@ -878,14 +878,27 @@ class ProductController extends Controller {
         }
         
         $input = json_decode(file_get_contents('php://input'), true);
+        $ids = $input['ids'] ?? null;
         $id = (int)($input['id'] ?? 0);
-        
-        if (!$id) {
-            $this->json(['error' => 'Missing image ID'], 400);
-        }
-        
+
         $productModel = new ProductModel();
         try {
+            if (is_array($ids) && count($ids) > 0) {
+                $successCount = 0;
+                foreach ($ids as $imgId) {
+                    if ($productModel->deleteImage((int)$imgId)) {
+                        $successCount++;
+                    }
+                }
+                $this->json(['success' => true, 'deleted_count' => $successCount]);
+                return;
+            }
+
+            if (!$id) {
+                $this->json(['error' => 'Missing image ID'], 400);
+                return;
+            }
+
             if ($productModel->deleteImage($id)) {
                 $this->json(['success' => true]);
             } else {

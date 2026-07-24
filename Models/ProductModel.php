@@ -589,11 +589,11 @@ class ProductModel extends Model
 
                 $img_sql = "INSERT INTO product_images_new (
                     prod_name, prod_image, pro_code, img_name, 
-                    subcat_id, $img_field, date_added
-                ) VALUES (?, ?, ?, ?, ?, ?, ?)";
+                    subcat_id, $img_field, rank, date_added
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
 
                 $stmt = mysqli_prepare($this->db, $img_sql);
-                mysqli_stmt_bind_param($stmt, "ssssiis", $name, $full_path, $code, $full_path, $subcat_val, $product_id, $date_added);
+                mysqli_stmt_bind_param($stmt, "ssssiiis", $name, $full_path, $code, $full_path, $subcat_val, $product_id, $index, $date_added);
                 mysqli_stmt_execute($stmt);
                 mysqli_stmt_close($stmt);
             }
@@ -748,37 +748,36 @@ class ProductModel extends Model
                 mysqli_stmt_close($stmt);
             }
 
-            // Save New Images
+            // Save New Images with auto-incremented ranks
             $date_added = date('Y-m-d H:i:s');
+            $img_field = ($type === 'jewellery') ? 'product_id' : 'gproduct_id';
+            $maxRankQuery = "SELECT COALESCE(MAX(rank), -1) as max_rank FROM product_images_new WHERE $img_field = $id";
+            $maxRes = $this->query($this->db, $maxRankQuery);
+            $maxRow = $this->fetchOne($maxRes);
+            $nextRankVal = ($maxRow ? (int)$maxRow['max_rank'] : -1) + 1;
+
             foreach ($images as $path) {
-                $img_field = ($type === 'jewellery') ? 'product_id' : 'gproduct_id';
                 $subcat_val = ($type === 'jewellery') ? $sub : 0;
                 $full_path = '/' . $path;
                 $code = $data['code'];
 
                 $img_sql = "INSERT INTO product_images_new (
                     prod_name, prod_image, pro_code, img_name, 
-                    subcat_id, $img_field, date_added
-                ) VALUES (?, ?, ?, ?, ?, ?, ?)";
+                    subcat_id, $img_field, rank, date_added
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
 
                 $stmt = mysqli_prepare($this->db, $img_sql);
                 if (!$stmt)
                     throw new \Exception(mysqli_error($this->db));
-                mysqli_stmt_bind_param($stmt, "ssssiis", $name, $full_path, $code, $full_path, $subcat_val, $id, $date_added);
+                mysqli_stmt_bind_param($stmt, "ssssiiis", $name, $full_path, $code, $full_path, $subcat_val, $id, $nextRankVal, $date_added);
                 if (!mysqli_stmt_execute($stmt))
                     throw new \Exception(mysqli_error($this->db));
                 mysqli_stmt_close($stmt);
+                $nextRankVal++;
             }
 
-            // Update image weights if provided in form post (with duplicate & main image validation)
+            // Update image weights if provided in form post
             if (isset($data['image_weights']) && is_array($data['image_weights']) && count($data['image_weights']) > 0) {
-                $vals = array_map('intval', array_values($data['image_weights']));
-                if (count($vals) !== count(array_unique($vals))) {
-                    throw new \Exception("Duplicate image order weights detected! Each image must have a unique order weight.");
-                }
-                if (!in_array(0, $vals, true)) {
-                    throw new \Exception("A Main Image must be set! At least one image must have Order Weight 0.");
-                }
                 foreach ($data['image_weights'] as $imgId => $w) {
                     $wVal = (int)$w;
                     $iId = (int)$imgId;
@@ -844,8 +843,40 @@ class ProductModel extends Model
     public function deleteImage($imageId)
     {
         $imageId = (int) $imageId;
+        $imgQ = "SELECT product_id, gproduct_id, rank FROM product_images_new WHERE id = $imageId LIMIT 1";
+        $res = $this->query($this->db, $imgQ);
+        $row = $this->fetchOne($res);
+
         $sql = "DELETE FROM product_images_new WHERE id = $imageId";
-        return $this->query($this->db, $sql);
+        $deleted = $this->query($this->db, $sql);
+
+        if ($deleted && $row) {
+            $isJewel = ($row['product_id'] > 0);
+            $img_field = $isJewel ? 'product_id' : 'gproduct_id';
+            $productId = $isJewel ? $row['product_id'] : $row['gproduct_id'];
+
+            if ($productId > 0) {
+                // Re-index remaining images sequentially 0, 1, 2, 3...
+                $otherSql = "SELECT id FROM product_images_new WHERE $img_field = $productId ORDER BY rank ASC, id ASC";
+                $resOthers = $this->query($this->db, $otherSql);
+                $others = $this->fetchAll($resOthers);
+
+                $nextRank = 0;
+                foreach ($others as $other) {
+                    $otherId = (int)$other['id'];
+                    $this->query($this->db, "UPDATE product_images_new SET rank = $nextRank WHERE id = $otherId");
+                    $nextRank++;
+                }
+
+                // If deleted image was rank 0, set first remaining image as main product image
+                if ((int)$row['rank'] === 0 && !empty($others)) {
+                    $firstId = (int)$others[0]['id'];
+                    $type = $isJewel ? 'jewellery' : 'garments';
+                    $this->setMainProductImage($firstId, $productId, $type);
+                }
+            }
+        }
+        return $deleted;
     }
 
     public function syncProductBySku($type, $data, $images = [])

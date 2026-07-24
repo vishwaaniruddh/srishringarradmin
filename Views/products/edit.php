@@ -728,16 +728,40 @@
 
                             <!-- Section 4: Images -->
                             <div class="edit-section" style="border-bottom:none; padding-bottom:0;">
-                                <div class="section-hdr">
-                                    <div class="section-num">4</div>
-                                    <div class="section-title">Product Images</div>
+                                <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.75rem; flex-wrap: wrap; gap: 0.5rem;">
+                                    <div class="section-hdr" style="margin-bottom:0;">
+                                        <div class="section-num">4</div>
+                                        <div class="section-title">Product Images</div>
+                                    </div>
+                                    <div style="display: flex; gap: 0.4rem; align-items: center;">
+                                        <div id="bulkSelectActions" style="display:none; gap:0.4rem; align-items:center;">
+                                            <button type="button" onclick="selectAllImages(true)" style="display: inline-flex; align-items: center; gap: 0.35rem; font-size: 0.7rem; font-weight: 600; padding: 0.35rem 0.7rem; border-radius: 6px; background: #18181b; border: 1px solid #27272a; color: #e4e4e7; cursor: pointer; transition: all 0.15s;">
+                                                <i class="fas fa-check-square" style="color:#38bdf8;"></i> Select All
+                                            </button>
+                                            <button type="button" onclick="selectAllImages(false)" style="display: inline-flex; align-items: center; gap: 0.35rem; font-size: 0.7rem; font-weight: 600; padding: 0.35rem 0.7rem; border-radius: 6px; background: #18181b; border: 1px solid #27272a; color: #a1a1aa; cursor: pointer; transition: all 0.15s;">
+                                                <i class="far fa-square"></i> Deselect
+                                            </button>
+                                            <button type="button" id="deleteSelectedBtn" onclick="deleteSelectedImages()" style="display: inline-flex; align-items: center; gap: 0.35rem; font-size: 0.7rem; font-weight: 600; padding: 0.35rem 0.75rem; border-radius: 6px; background: #dc2626; border: 1px solid #ef4444; color: #ffffff; opacity: 0.5; cursor: not-allowed; transition: all 0.2s;" disabled>
+                                                <i class="fas fa-trash-alt"></i> Delete Selected (<span id="selectedCount">0</span>)
+                                            </button>
+                                            <button type="button" onclick="toggleBulkDeleteMode(false)" style="display: inline-flex; align-items: center; gap: 0.35rem; font-size: 0.7rem; font-weight: 600; padding: 0.35rem 0.65rem; border-radius: 6px; background: transparent; border: 1px solid #27272a; color: #71717a; cursor: pointer; transition: all 0.15s;">
+                                                <i class="fas fa-times"></i> Cancel
+                                            </button>
+                                        </div>
+                                        <button type="button" id="enableBulkDeleteBtn" onclick="toggleBulkDeleteMode(true)" style="display: inline-flex; align-items: center; gap: 0.4rem; font-size: 0.72rem; font-weight: 600; padding: 0.4rem 0.85rem; border-radius: 8px; background: rgba(239, 68, 68, 0.12); border: 1px solid rgba(239, 68, 68, 0.35); color: #f87171; cursor: pointer; transition: all 0.2s ease;">
+                                            <i class="fas fa-check-double"></i> Select Multiple to Delete
+                                        </button>
+                                    </div>
                                 </div>
 
                                 <!-- Existing Images -->
                                 <div id="existing_img_grid" class="img-grid" style="margin-bottom:0.6rem;">
                                     <?php foreach ($images as $index => $img): ?>
-                                        <div class="img-card-item">
+                                        <div class="img-card-item" data-image-id="<?php echo $img['id']; ?>" onclick="handleCardClick(event, this)">
                                             <div class="img-thumb">
+                                                <label class="img-select-wrapper" style="display:none; position:absolute; top:8px; left:8px; z-index:10; cursor:pointer;">
+                                                    <input type="checkbox" class="img-select-checkbox" value="<?php echo $img['id']; ?>" onchange="updateSelectedCount()" style="width:18px; height:18px; accent-color:#ef4444; cursor:pointer;">
+                                                </label>
                                                 <img src="/ss/yn/uploads<?php echo $img['img_name']; ?>" onerror="this.onerror=null; this.src='http://srishringarr.com/yn/uploads<?php echo $img['img_name']; ?>';" alt="">
                                                 <div class="img-overlay">
                                                     <span style="color:#fff; font-size:0.62rem; font-weight:600;">
@@ -759,7 +783,7 @@
                                             </div>
                                             <div class="img-card-footer">
                                                 <span class="img-order-label"><i class="fas fa-sort-numeric-down text-pink-400"></i> Order</span>
-                                                <input type="number" min="0" name="image_weights[<?php echo $img['id']; ?>]" value="<?php echo (int)($img['rank'] ?? $index); ?>" class="img-order-input" onchange="updateImageWeight(<?php echo $img['id']; ?>, this)">
+                                                <input type="number" min="0" name="image_weights[<?php echo $img['id']; ?>]" value="<?php echo (isset($img['rank']) && (int)$img['rank'] > 0) ? (int)$img['rank'] : $index; ?>" class="img-order-input" onchange="updateImageWeight(<?php echo $img['id']; ?>, this)">
                                             </div>
                                         </div>
                                     <?php endforeach; ?>
@@ -852,6 +876,136 @@
             });
         });
 
+        let isBulkDeleteActive = false;
+
+        function toggleBulkDeleteMode(enable) {
+            if (enable === undefined) enable = !isBulkDeleteActive;
+            isBulkDeleteActive = enable;
+
+            const actions = document.getElementById('bulkSelectActions');
+            const enableBtn = document.getElementById('enableBulkDeleteBtn');
+            const checkboxes = document.querySelectorAll('.img-select-wrapper');
+            const cards = document.querySelectorAll('.img-card-item');
+
+            if (enable) {
+                if (actions) actions.style.display = 'flex';
+                if (enableBtn) enableBtn.style.display = 'none';
+                checkboxes.forEach(cb => cb.style.display = 'block');
+                cards.forEach(card => card.style.cursor = 'pointer');
+            } else {
+                if (actions) actions.style.display = 'none';
+                if (enableBtn) enableBtn.style.display = 'inline-flex';
+                checkboxes.forEach(cb => cb.style.display = 'none');
+                cards.forEach(card => card.style.cursor = '');
+                selectAllImages(false);
+            }
+            updateSelectedCount();
+        }
+
+        function handleCardClick(event, cardElem) {
+            if (!isBulkDeleteActive) return;
+            if (event.target.closest('.img-del-btn') || event.target.closest('.img-set-main') || event.target.closest('.img-order-input')) {
+                return;
+            }
+            const cb = cardElem.querySelector('.img-select-checkbox');
+            if (cb && event.target !== cb) {
+                cb.checked = !cb.checked;
+                updateSelectedCount();
+            }
+        }
+
+        function updateSelectedCount() {
+            const checked = document.querySelectorAll('.img-select-checkbox:checked');
+            const count = checked.length;
+            const countSpan = document.getElementById('selectedCount');
+            const btn = document.getElementById('deleteSelectedBtn');
+
+            if (countSpan) countSpan.textContent = count;
+
+            if (btn) {
+                if (count > 0) {
+                    btn.disabled = false;
+                    btn.style.opacity = '1';
+                    btn.style.cursor = 'pointer';
+                } else {
+                    btn.disabled = true;
+                    btn.style.opacity = '0.5';
+                    btn.style.cursor = 'not-allowed';
+                }
+            }
+
+            document.querySelectorAll('.img-card-item').forEach(card => {
+                const cb = card.querySelector('.img-select-checkbox');
+                if (cb && cb.checked) {
+                    card.style.outline = '2px solid #ef4444';
+                    card.style.borderRadius = '8px';
+                } else {
+                    card.style.outline = '';
+                }
+            });
+        }
+
+        function selectAllImages(check) {
+            const checkboxes = document.querySelectorAll('.img-select-checkbox');
+            checkboxes.forEach(cb => {
+                cb.checked = check;
+            });
+            updateSelectedCount();
+        }
+
+        async function deleteSelectedImages() {
+            const checked = document.querySelectorAll('.img-select-checkbox:checked');
+            const ids = Array.from(checked).map(cb => parseInt(cb.value, 10)).filter(id => id > 0);
+
+            if (ids.length === 0) return;
+
+            if (!confirm(`Are you sure you want to delete ${ids.length} selected image(s)?`)) return;
+
+            const btn = document.getElementById('deleteSelectedBtn');
+            const origText = btn ? btn.innerHTML : '';
+            if (btn) {
+                btn.disabled = true;
+                btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Deleting...';
+            }
+
+            try {
+                const response = await fetch('index.php?controller=product&action=deleteImage', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ ids: ids })
+                });
+                const data = await response.json();
+                if (data.success) {
+                    checked.forEach(cb => {
+                        const cardItem = cb.closest('.img-card-item');
+                        if (cardItem) cardItem.remove();
+                    });
+                    reindexImageWeightsUI();
+                    toggleBulkDeleteMode(false);
+                } else {
+                    alert('Error: ' + (data.error || 'Failed to delete selected images'));
+                }
+            } catch (err) {
+                console.error(err);
+                alert('A network error occurred while deleting images.');
+            } finally {
+                if (btn) btn.innerHTML = origText;
+                updateSelectedCount();
+            }
+        }
+
+        function reindexImageWeightsUI() {
+            const cards = document.querySelectorAll('#existing_img_grid .img-card-item');
+            cards.forEach((card, index) => {
+                const input = card.querySelector('.img-order-input');
+                if (input) {
+                    input.value = index;
+                    input.style.borderColor = '';
+                    input.style.color = '';
+                }
+            });
+        }
+
         async function deleteProductImage(btn, imgId) {
             if (!confirm('Are you sure you want to delete this image?')) return;
             try {
@@ -861,7 +1015,12 @@
                     body: JSON.stringify({ id: imgId })
                 });
                 const data = await response.json();
-                if (data.success) { btn.closest('.img-thumb').remove(); }
+                if (data.success) { 
+                    const cardItem = btn.closest('.img-card-item');
+                    if (cardItem) cardItem.remove();
+                    else btn.closest('.img-thumb')?.parentElement?.remove();
+                    reindexImageWeightsUI();
+                }
                 else { alert(data.error || 'Failed to delete the image'); }
             } catch (error) { console.error('Error deleting image:', error); alert('An error occurred while deleting the image.'); }
         }
@@ -1133,10 +1292,11 @@
                             </div>
                             <div class="img-card-footer">
                                 <span class="img-order-label"><i class="fas fa-sort-numeric-down text-pink-400"></i> Order</span>
-                                <input type="number" min="0" name="image_weights[${data.id}]" value="1" class="img-order-input" onchange="updateImageWeight(${data.id}, this)">
+                                <input type="number" min="0" name="image_weights[${data.id}]" value="${imgGrid.querySelectorAll('.img-card-item').length + 1}" class="img-order-input" onchange="updateImageWeight(${data.id}, this)">
                             </div>
                         `;
                         imgGrid.appendChild(newThumb);
+                        reindexImageWeightsUI();
                     }
                 } else { 
                     alert('Error: ' + (data.error || 'Failed to save image')); 
@@ -1228,20 +1388,13 @@
 
                     if (weights.includes(val)) {
                         hasDuplicate = true;
-                        input.style.borderColor = '#ef4444';
                     } else {
                         weights.push(val);
                     }
                 });
 
-                if (hasDuplicate) {
-                    alert('Validation Error: Duplicate image order weights detected! Every image must have a unique order weight number (e.g. 0, 1, 2, 3...).');
-                    return false;
-                }
-
-                if (!hasZero) {
-                    alert('Validation Error: A Main Image must be set! At least one image must have Order Weight 0.');
-                    return false;
+                if (hasDuplicate || !hasZero) {
+                    reindexImageWeightsUI();
                 }
             }
             return true;
