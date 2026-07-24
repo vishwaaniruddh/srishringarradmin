@@ -484,8 +484,12 @@
                                                     <div>
                                                         <label style="font-size:0.65rem; font-weight:700; color:#888; text-transform:uppercase; letter-spacing:0.05em; margin-bottom:0.4rem; display:block;">Hair Style</label>
                                                         <div style="display:flex; flex-direction:column; gap:0.3rem;">
-                                                            <label class="flex items-center gap-2 text-xs text-zinc-300 cursor-pointer"><input type="radio" name="ai_hair_style" value="open flowing hair (khule baal)"> Open Flowing</label>
-                                                            <label class="flex items-center gap-2 text-xs text-zinc-300 cursor-pointer"><input type="radio" name="ai_hair_style" value="neatly tied bun with gajra"> Tied / Bun</label>
+                                                            <label class="flex items-center gap-2 text-xs text-zinc-300 cursor-pointer"><input type="radio" name="ai_hair_style" value="open flowing hair with soft waves (khule baal)"> Open Flowing</label>
+                                                            <label class="flex items-center gap-2 text-xs text-zinc-300 cursor-pointer"><input type="radio" name="ai_hair_style" value="neatly tied bun with gajra flowers"> Tied / Bun</label>
+                                                            <label class="flex items-center gap-2 text-xs text-zinc-300 cursor-pointer"><input type="radio" name="ai_hair_style" value="traditional long braided hair (gajra choti)"> Traditional Braid (Choti)</label>
+                                                            <label class="flex items-center gap-2 text-xs text-zinc-300 cursor-pointer"><input type="radio" name="ai_hair_style" value="elegant half-up half-down hairstyle"> Half Up, Half Down</label>
+                                                            <label class="flex items-center gap-2 text-xs text-zinc-300 cursor-pointer"><input type="radio" name="ai_hair_style" value="glamorous side-swept waves"> Side Swept Waves</label>
+                                                            <label class="flex items-center gap-2 text-xs text-zinc-300 cursor-pointer"><input type="radio" name="ai_hair_style" value="sleek straight hair with center part"> Sleek Straight</label>
                                                             <label class="flex items-center gap-2 text-xs text-zinc-300 cursor-pointer"><input type="radio" name="ai_hair_style" value="" checked> As per product</label>
                                                         </div>
                                                     </div>
