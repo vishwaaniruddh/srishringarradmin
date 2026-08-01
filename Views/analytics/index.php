@@ -531,9 +531,24 @@
                                                     <div class="relative py-2">
                                                         <span class="timeline-dot dot-<?php echo $type; ?>"></span>
                                                         <div class="flex items-start justify-between gap-2">
-                                                            <div class="flex items-center gap-2 min-w-0">
+                                                            <div class="flex items-center gap-2 min-w-0 flex-wrap">
                                                                 <span class="event-badge badge-<?php echo $type; ?>"><?php echo str_replace('_', ' ', $type); ?></span>
-                                                                <span class="text-xs text-zinc-300 truncate"><?php echo htmlspecialchars($label); ?></span>
+                                                                <?php if ($type === 'product_view' && !empty($ev['website_url'])): ?>
+                                                                    <a href="<?php echo htmlspecialchars($ev['website_url']); ?>" target="_blank" rel="noopener" 
+                                                                       class="text-xs text-indigo-300 hover:text-indigo-200 font-medium truncate transition-colors hover:underline flex items-center gap-1" 
+                                                                       title="View on website">
+                                                                        <?php echo htmlspecialchars($label); ?>
+                                                                        <i class="fas fa-external-link-alt text-[8px] text-indigo-400/50 flex-shrink-0"></i>
+                                                                    </a>
+                                                                    <?php if (!empty($ev['product_sku'])): ?>
+                                                                        <span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-zinc-800 border border-zinc-700 text-[9px] font-mono text-zinc-400 flex-shrink-0" title="Product SKU">
+                                                                            <i class="fas fa-barcode text-[7px] text-zinc-500"></i>
+                                                                            <?php echo htmlspecialchars($ev['product_sku']); ?>
+                                                                        </span>
+                                                                    <?php endif; ?>
+                                                                <?php else: ?>
+                                                                    <span class="text-xs text-zinc-300 truncate"><?php echo htmlspecialchars($label); ?></span>
+                                                                <?php endif; ?>
                                                             </div>
                                                             <span class="text-[10px] text-zinc-600 whitespace-nowrap flex-shrink-0"><?php echo $time; ?></span>
                                                         </div>

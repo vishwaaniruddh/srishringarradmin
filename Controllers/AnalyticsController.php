@@ -265,6 +265,28 @@ class AnalyticsController extends Controller {
                 $events = [];
                 if ($eventsQ) {
                     while ($ev = mysqli_fetch_assoc($eventsQ)) {
+                        // Enrich product_view events with SKU and website URL
+                        if ($ev['event_type'] === 'product_view' && $ev['target_id']) {
+                            $evPid = (int)$ev['target_id'];
+                            $evSku = '';
+
+                            // Try jewellery table first
+                            $skuQ = mysqli_query($db, "SELECT product_code FROM product WHERE product_id = $evPid LIMIT 1");
+                            if ($skuQ && $skuRow = mysqli_fetch_assoc($skuQ)) {
+                                $evSku = $skuRow['product_code'] ?? '';
+                            }
+
+                            // Fallback: try garment table
+                            if (empty($evSku)) {
+                                $skuQ2 = mysqli_query($db, "SELECT gproduct_code FROM garment_product WHERE gproduct_id = $evPid LIMIT 1");
+                                if ($skuQ2 && $skuRow2 = mysqli_fetch_assoc($skuQ2)) {
+                                    $evSku = $skuRow2['gproduct_code'] ?? '';
+                                }
+                            }
+
+                            $ev['product_sku'] = $evSku;
+                            $ev['website_url'] = 'https://srishringarr.com' . ($ev['page_path'] ?? '');
+                        }
                         $events[] = $ev;
                     }
                 }
