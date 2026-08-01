@@ -857,6 +857,58 @@ class ProductController extends Controller {
         }
     }
 
+    public function edit2() {
+        $id = (int)($_GET['id'] ?? 0);
+        $type = $_GET['type'] ?? 'jewellery';
+        
+        if (!$id) $this->redirect('index.php?controller=product&action=index');
+
+        $productModel = new ProductModel();
+        $product = $productModel->getProductById($id, $type);
+        $images = $productModel->getProductImages($id, $type);
+        
+        $jewelCategories = $productModel->getJewelCategories();
+        $garments = $productModel->getGarments();
+        
+        $allCategoriesTree = $productModel->getAllCategoriesWithSubcategories($type);
+        $assignedCategories = $productModel->getProductAssignedCategories($id, $type);
+        
+        $this->view('products/edit2', [
+            'product' => $product,
+            'images' => $images,
+            'type' => $type,
+            'jewelCategories' => $jewelCategories,
+            'garments' => $garments,
+            'allCategoriesTree' => $allCategoriesTree,
+            'assignedCategories' => $assignedCategories
+        ]);
+    }
+
+    public function update2() {
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') $this->redirect('index.php?controller=product&action=index');
+
+        $id = (int)$_POST['id'];
+        $type = $_POST['type'] ?? 'jewellery';
+        $code = $_POST['code'] ?? '';
+        $productModel = new ProductModel();
+        
+        try {
+            // Process New Images
+            $uploadedImages = $this->handleImageUploads($code);
+
+            $productModel->updateProduct($type, $id, $_POST, $uploadedImages);
+
+            // Process Multi-Category Selection
+            $mainCategories = $_POST['categories'] ?? [];
+            $subcategories = $_POST['sub_categories'] ?? [];
+            $productModel->saveProductCategories($id, $type, $mainCategories, $subcategories);
+
+            $this->redirect("index.php?controller=product&action=edit2&id=$id&type=$type&success=1");
+        } catch (\Exception $e) {
+            $this->redirect("index.php?controller=product&action=edit2&id=$id&type=$type&error=" . urlencode($e->getMessage()));
+        }
+    }
+
     public function delete() {
         $id = (int)($_GET['id'] ?? 0);
         $type = $_GET['type'] ?? 'jewellery';

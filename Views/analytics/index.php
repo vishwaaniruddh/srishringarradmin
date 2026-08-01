@@ -4,6 +4,56 @@
     <title>Analytics Dashboard - Srishringarr</title>
     <?php include __DIR__ . '/../partials/head.php'; ?>
     <style>
+        .trending-card {
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+            overflow: hidden;
+        }
+        .trending-card::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(135deg, rgba(99,102,241,0.06), transparent 60%);
+            opacity: 0;
+            transition: opacity 0.3s;
+            pointer-events: none;
+        }
+        .trending-card:hover::before {
+            opacity: 1;
+        }
+        .trending-card:hover {
+            border-color: rgba(99,102,241,0.4);
+            transform: translateY(-2px);
+            box-shadow: 0 8px 30px -12px rgba(99,102,241,0.15);
+        }
+        .trending-card .rank-badge {
+            position: absolute;
+            top: 12px;
+            left: 12px;
+            z-index: 10;
+        }
+        .trending-card .product-img {
+            width: 100%;
+            aspect-ratio: 1;
+            object-fit: cover;
+            transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .trending-card:hover .product-img {
+            transform: scale(1.05);
+        }
+        .trending-card .visit-site-btn {
+            opacity: 0;
+            transform: translateY(6px);
+            transition: all 0.3s;
+        }
+        .trending-card:hover .visit-site-btn {
+            opacity: 1;
+            transform: translateY(0);
+        }
+        .rank-1 { background: linear-gradient(135deg, #f59e0b, #d97706); }
+        .rank-2 { background: linear-gradient(135deg, #94a3b8, #64748b); }
+        .rank-3 { background: linear-gradient(135deg, #b45309, #92400e); }
+        .rank-default { background: linear-gradient(135deg, #3f3f46, #27272a); }
         .timeline-line { position: relative; }
         .timeline-line::before {
             content: '';
@@ -22,12 +72,8 @@
             left: 11px;
             top: 6px;
         }
-        .session-card {
-            transition: all 0.2s;
-        }
-        .session-card:hover {
-            border-color: #3f3f46;
-        }
+        .session-card { transition: all 0.2s; }
+        .session-card:hover { border-color: #3f3f46; }
         .event-badge {
             font-size: 9px;
             padding: 2px 6px;
@@ -52,6 +98,25 @@
         .dot-cart_add, .dot-cart_view { background: #f472b6; }
         .dot-checkout_start { background: #c084fc; }
         .dot-search { background: #38bdf8; }
+        .stat-card {
+            transition: all 0.25s cubic-bezier(0.4,0,0.2,1);
+        }
+        .stat-card:hover {
+            border-color: #3f3f46;
+            transform: translateY(-1px);
+        }
+        .mini-bar {
+            height: 4px;
+            border-radius: 2px;
+            transition: width 0.8s cubic-bezier(0.4,0,0.2,1);
+        }
+        @keyframes fadeInUp {
+            from { opacity: 0; transform: translateY(12px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .animate-in {
+            animation: fadeInUp 0.4s ease-out forwards;
+        }
     </style>
 </head>
 <body class="bg-zinc-950 font-sans text-zinc-300 antialiased">
@@ -62,102 +127,320 @@
         <div class="flex-1 flex flex-col min-w-0">
             <!-- Topbar -->
             <?php 
-            $pageTitle = 'User Analytics';
+            $pageTitle = 'Analytics & Trending';
             include __DIR__ . '/../partials/topbar.php'; 
             ?>
 
             <main class="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8">
-                <div class="max-w-6xl mx-auto">
-                    <!-- Top stats cards -->
-                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
-                        <!-- Card 1: Unique Sessions -->
-                        <div class="bg-zinc-950 border border-zinc-900 rounded-xl p-5 hover:border-zinc-800 transition-all">
-                            <div class="flex justify-between items-start">
-                                <div>
-                                    <p class="text-[10px] font-bold text-zinc-500 uppercase tracking-wider">Unique Sessions</p>
-                                    <h3 class="text-2xl font-semibold text-white mt-1.5"><?php echo number_format($totalSessions); ?></h3>
-                                </div>
-                                <span class="p-2 bg-indigo-500/10 border border-indigo-500/20 rounded-lg text-indigo-400 text-xs">
-                                    <i class="fas fa-users"></i>
-                                </span>
-                            </div>
-                        </div>
+                <div class="max-w-7xl mx-auto">
 
-                        <!-- Card 2: Page Views -->
-                        <div class="bg-zinc-950 border border-zinc-900 rounded-xl p-5 hover:border-zinc-800 transition-all">
-                            <div class="flex justify-between items-start">
-                                <div>
-                                    <p class="text-[10px] font-bold text-zinc-500 uppercase tracking-wider">Total Page Views</p>
-                                    <h3 class="text-2xl font-semibold text-white mt-1.5"><?php echo number_format($totalPageViews); ?></h3>
-                                </div>
-                                <span class="p-2 bg-emerald-500/10 border border-emerald-500/20 rounded-lg text-emerald-400 text-xs">
-                                    <i class="fas fa-eye"></i>
-                                </span>
-                            </div>
-                        </div>
+                    <!-- Date Filter Bar -->
+                    <div class="bg-zinc-950 border border-zinc-900 rounded-xl p-4 mb-6">
+                        <form method="GET" action="index.php" class="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+                            <input type="hidden" name="controller" value="analytics">
+                            <input type="hidden" name="action" value="index">
 
-                        <!-- Card 3: Product Detail Views -->
-                        <div class="bg-zinc-950 border border-zinc-900 rounded-xl p-5 hover:border-zinc-800 transition-all">
-                            <div class="flex justify-between items-start">
-                                <div>
-                                    <p class="text-[10px] font-bold text-zinc-500 uppercase tracking-wider">Product Detail Views</p>
-                                    <h3 class="text-2xl font-semibold text-white mt-1.5"><?php echo number_format($totalProductViews); ?></h3>
+                            <!-- Quick Preset Badges -->
+                            <div class="flex flex-wrap items-center gap-2">
+                                <span class="text-xs font-semibold text-zinc-400 mr-1 flex items-center gap-1.5">
+                                    <i class="fas fa-calendar-alt text-indigo-400"></i> Date Range:
+                                </span>
+                                <?php 
+                                $presets = [
+                                    'all' => 'All Time',
+                                    'today' => 'Today',
+                                    '7days' => 'Last 7 Days',
+                                    '30days' => 'Last 30 Days',
+                                    'this_month' => 'This Month'
+                                ];
+                                $activePreset = $preset ?: ($startDate || $endDate ? 'custom' : 'all');
+                                foreach ($presets as $key => $label): 
+                                    $isActive = ($activePreset === $key);
+                                ?>
+                                    <a href="index.php?controller=analytics&action=index&preset=<?php echo $key; ?>" 
+                                       class="px-2.5 py-1 rounded-lg text-xs font-medium border transition-colors <?php echo $isActive ? 'bg-indigo-600 border-indigo-500 text-white shadow-sm' : 'bg-zinc-900 border-zinc-800 text-zinc-400 hover:text-white hover:bg-zinc-800'; ?>">
+                                        <?php echo $label; ?>
+                                    </a>
+                                <?php endforeach; ?>
+                            </div>
+
+                            <!-- Custom Date Range -->
+                            <div class="flex flex-wrap items-center gap-2">
+                                <div class="flex items-center gap-1.5 bg-zinc-900 border border-zinc-800 rounded-lg px-2 py-1">
+                                    <span class="text-[10px] uppercase font-bold text-zinc-500">From</span>
+                                    <input type="date" name="start_date" value="<?php echo htmlspecialchars($startDate ?? ''); ?>" 
+                                           class="bg-transparent border-0 text-zinc-200 text-xs focus:outline-none focus:ring-0 p-0 cursor-pointer">
                                 </div>
-                                <span class="p-2 bg-amber-500/10 border border-amber-500/20 rounded-lg text-amber-400 text-xs">
-                                    <i class="fas fa-gem"></i>
+                                <div class="flex items-center gap-1.5 bg-zinc-900 border border-zinc-800 rounded-lg px-2 py-1">
+                                    <span class="text-[10px] uppercase font-bold text-zinc-500">To</span>
+                                    <input type="date" name="end_date" value="<?php echo htmlspecialchars($endDate ?? ''); ?>" 
+                                           class="bg-transparent border-0 text-zinc-200 text-xs focus:outline-none focus:ring-0 p-0 cursor-pointer">
+                                </div>
+                                <button type="submit" class="bg-indigo-600 hover:bg-indigo-500 text-white font-medium text-xs px-3.5 py-1.5 rounded-lg transition-colors flex items-center gap-1.5 shadow-sm">
+                                    <i class="fas fa-filter text-[10px]"></i> Apply
+                                </button>
+                                <?php if ($startDate || $endDate || $preset): ?>
+                                    <a href="index.php?controller=analytics&action=index" class="bg-zinc-900 hover:bg-zinc-800 text-zinc-400 hover:text-zinc-200 text-xs px-3 py-1.5 rounded-lg border border-zinc-800 transition-colors flex items-center gap-1">
+                                        <i class="fas fa-times text-[10px]"></i> Reset
+                                    </a>
+                                <?php endif; ?>
+                            </div>
+                        </form>
+
+                        <?php if ($startDate || $endDate): ?>
+                            <div class="mt-3 pt-3 border-t border-zinc-900 flex items-center gap-2 text-xs text-zinc-400">
+                                <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+                                Filtering: 
+                                <span class="text-zinc-200 font-semibold">
+                                    <?php echo $startDate ? date('d M Y', strtotime($startDate)) : 'Start'; ?> 
+                                    &rarr; 
+                                    <?php echo $endDate ? date('d M Y', strtotime($endDate)) : 'Today'; ?>
                                 </span>
                             </div>
-                        </div>
+                        <?php endif; ?>
                     </div>
 
-                    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
-                        <!-- Conversion Funnel Card -->
-                        <div class="bg-zinc-950 border border-zinc-900 rounded-xl p-5 lg:col-span-2">
+                    <!-- Stats Overview Row -->
+                    <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-8">
+                        <?php
+                        $statsCards = [
+                            ['label' => 'Unique Visitors', 'value' => $totalSessions, 'icon' => 'fa-users', 'color' => 'indigo'],
+                            ['label' => 'Total Page Views', 'value' => $totalPageViews, 'icon' => 'fa-eye', 'color' => 'emerald'],
+                            ['label' => 'Product Views', 'value' => $totalProductViews, 'icon' => 'fa-gem', 'color' => 'amber'],
+                            ['label' => 'Cart Adds', 'value' => $funnel['cart_adds'], 'icon' => 'fa-shopping-cart', 'color' => 'pink'],
+                        ];
+                        foreach ($statsCards as $sc):
+                        ?>
+                        <div class="stat-card bg-zinc-950 border border-zinc-900 rounded-xl p-4">
+                            <div class="flex items-center gap-2 mb-2">
+                                <span class="w-7 h-7 rounded-lg bg-<?php echo $sc['color']; ?>-500/10 border border-<?php echo $sc['color']; ?>-500/20 flex items-center justify-center">
+                                    <i class="fas <?php echo $sc['icon']; ?> text-<?php echo $sc['color']; ?>-400 text-[10px]"></i>
+                                </span>
+                                <span class="text-[10px] font-bold text-zinc-500 uppercase tracking-wider"><?php echo $sc['label']; ?></span>
+                            </div>
+                            <p class="text-xl font-bold text-white"><?php echo number_format($sc['value']); ?></p>
+                        </div>
+                        <?php endforeach; ?>
+                    </div>
+
+                    <!-- ============================================= -->
+                    <!-- TRENDING PRODUCTS - Hero Section               -->
+                    <!-- ============================================= -->
+                    <div class="mb-8">
+                        <div class="flex items-center justify-between mb-5">
+                            <div class="flex items-center gap-3">
+                                <span class="w-9 h-9 rounded-xl bg-gradient-to-br from-amber-500/20 to-orange-500/20 border border-amber-500/30 flex items-center justify-center">
+                                    <i class="fas fa-fire text-amber-400 text-sm"></i>
+                                </span>
+                                <div>
+                                    <h2 class="text-base font-bold text-white tracking-tight">Trending Products</h2>
+                                    <p class="text-[11px] text-zinc-500 mt-0.5">Most viewed products by your customers — click to view on website</p>
+                                </div>
+                            </div>
+                            <span class="text-[10px] uppercase font-bold text-zinc-600 tracking-wider">Top 10</span>
+                        </div>
+
+                        <?php if (empty($topProducts)): ?>
+                            <div class="bg-zinc-950 border border-zinc-900 rounded-xl p-12 text-center">
+                                <i class="fas fa-chart-line text-zinc-800 text-3xl mb-3"></i>
+                                <p class="text-xs text-zinc-500">No product views logged yet for the selected period.</p>
+                            </div>
+                        <?php else: ?>
+                            <!-- Product Grid -->
+                            <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
+                                <?php foreach ($topProducts as $i => $p): 
+                                    $rank = $i + 1;
+                                    $rankClass = $rank === 1 ? 'rank-1' : ($rank === 2 ? 'rank-2' : ($rank === 3 ? 'rank-3' : 'rank-default'));
+                                    $convRate = $p['view_count'] > 0 ? round(($p['cart_adds'] / $p['view_count']) * 100, 1) : 0;
+                                ?>
+                                <a href="<?php echo htmlspecialchars($p['website_url']); ?>" target="_blank" rel="noopener" 
+                                   class="trending-card bg-zinc-950 border border-zinc-900 rounded-xl block group" 
+                                   style="animation-delay: <?php echo $i * 60; ?>ms"
+                                   title="View on website: <?php echo htmlspecialchars($p['product_name']); ?>">
+                                    
+                                    <!-- Rank Badge -->
+                                    <span class="rank-badge <?php echo $rankClass; ?> text-white text-[10px] font-extrabold w-6 h-6 rounded-lg flex items-center justify-center shadow-lg">
+                                        <?php echo $rank; ?>
+                                    </span>
+
+                                    <!-- Product Image -->
+                                    <div class="relative overflow-hidden rounded-t-xl bg-zinc-900">
+                                        <img src="<?php echo htmlspecialchars($p['image_url']); ?>" 
+                                             alt="<?php echo htmlspecialchars($p['product_name']); ?>" 
+                                             class="product-img"
+                                             loading="lazy"
+                                             onerror="this.src='https://srishringarr.com/static/images/default.jpg'">
+                                        
+                                        <!-- Hover overlay button -->
+                                        <div class="visit-site-btn absolute bottom-2 left-2 right-2">
+                                            <span class="flex items-center justify-center gap-1.5 bg-indigo-600/90 backdrop-blur-sm text-white text-[10px] font-bold py-1.5 rounded-lg w-full">
+                                                <i class="fas fa-external-link-alt text-[9px]"></i> View on Website
+                                            </span>
+                                        </div>
+                                    </div>
+
+                                    <!-- Product Info -->
+                                    <div class="p-3">
+                                        <h4 class="text-xs font-semibold text-white leading-tight line-clamp-2 mb-1.5 group-hover:text-indigo-300 transition-colors">
+                                            <?php echo htmlspecialchars($p['product_name']); ?>
+                                        </h4>
+                                        
+                                        <?php if (!empty($p['product_sku'])): ?>
+                                            <p class="text-[10px] text-zinc-600 font-mono mb-2"><?php echo htmlspecialchars($p['product_sku']); ?></p>
+                                        <?php endif; ?>
+
+                                        <!-- Mini Stats -->
+                                        <div class="flex items-center gap-3 text-[10px] text-zinc-500 mb-2">
+                                            <span class="flex items-center gap-1" title="Total Views">
+                                                <i class="fas fa-eye text-indigo-400/60"></i>
+                                                <span class="font-bold text-zinc-300"><?php echo number_format($p['view_count']); ?></span>
+                                            </span>
+                                            <span class="flex items-center gap-1" title="Unique Visitors">
+                                                <i class="fas fa-user text-emerald-400/60"></i>
+                                                <span class="font-bold text-zinc-300"><?php echo number_format($p['unique_visitors']); ?></span>
+                                            </span>
+                                            <span class="flex items-center gap-1" title="Added to Cart">
+                                                <i class="fas fa-cart-plus text-pink-400/60"></i>
+                                                <span class="font-bold text-zinc-300"><?php echo number_format($p['cart_adds']); ?></span>
+                                            </span>
+                                        </div>
+
+                                        <!-- View-to-Cart Conversion Bar -->
+                                        <div class="w-full bg-zinc-900 rounded-full overflow-hidden h-1 mb-1">
+                                            <div class="mini-bar <?php echo $convRate > 5 ? 'bg-emerald-500' : ($convRate > 0 ? 'bg-amber-500' : 'bg-zinc-800'); ?>" 
+                                                 style="width: <?php echo min($convRate, 100); ?>%"></div>
+                                        </div>
+                                        <div class="flex justify-between text-[9px]">
+                                            <span class="text-zinc-600">View → Cart</span>
+                                            <span class="font-bold <?php echo $convRate > 5 ? 'text-emerald-400' : ($convRate > 0 ? 'text-amber-400' : 'text-zinc-600'); ?>"><?php echo $convRate; ?>%</span>
+                                        </div>
+                                    </div>
+
+                                    <!-- Type badge -->
+                                    <div class="absolute top-3 right-3 z-10">
+                                        <span class="text-[8px] font-bold uppercase px-1.5 py-0.5 rounded bg-black/50 backdrop-blur-sm text-zinc-300 border border-zinc-700/50">
+                                            <?php echo htmlspecialchars($p['product_type']); ?>
+                                        </span>
+                                    </div>
+                                </a>
+                                <?php endforeach; ?>
+                            </div>
+                        <?php endif; ?>
+                    </div>
+
+                    <!-- Middle Row: Funnel + Categories + Searches -->
+                    <div class="grid grid-cols-1 lg:grid-cols-3 gap-5 mb-8">
+                        
+                        <!-- Conversion Funnel -->
+                        <div class="bg-zinc-950 border border-zinc-900 rounded-xl p-5 lg:col-span-1">
                             <h3 class="text-sm font-bold text-white uppercase tracking-wider mb-5 flex items-center">
                                 <i class="fas fa-filter text-indigo-400 mr-2 text-xs"></i>
-                                Checkout Conversion Funnel
+                                Conversion Funnel
                             </h3>
                             
                             <div class="space-y-4">
                                 <?php 
                                 $stages = [
-                                    ['name' => '1. Product Views', 'count' => $funnel['product_views'], 'color' => 'bg-indigo-500'],
-                                    ['name' => '2. Cart Additions', 'count' => $funnel['cart_adds'], 'color' => 'bg-violet-500'],
-                                    ['name' => '3. Checkout Started', 'count' => $funnel['checkout_starts'], 'color' => 'bg-purple-500'],
-                                    ['name' => '4. Orders Placed', 'count' => $funnel['purchases'], 'color' => 'bg-emerald-500']
+                                    ['name' => 'Product Views', 'count' => $funnel['product_views'], 'color' => 'bg-indigo-500', 'icon' => 'fa-eye'],
+                                    ['name' => 'Cart Additions', 'count' => $funnel['cart_adds'], 'color' => 'bg-violet-500', 'icon' => 'fa-cart-plus'],
+                                    ['name' => 'Checkout Started', 'count' => $funnel['checkout_starts'], 'color' => 'bg-purple-500', 'icon' => 'fa-credit-card'],
+                                    ['name' => 'Orders Placed', 'count' => $funnel['purchases'], 'color' => 'bg-emerald-500', 'icon' => 'fa-check-circle']
                                 ];
                                 $maxCount = max(1, $funnel['product_views']);
-                                foreach ($stages as $stage): 
+                                foreach ($stages as $si => $stage): 
                                     $pct = round(($stage['count'] / $maxCount) * 100);
                                 ?>
                                     <div>
-                                        <div class="flex justify-between text-xs font-medium mb-1">
-                                            <span class="text-zinc-400"><?php echo $stage['name']; ?></span>
-                                            <span class="text-white"><?php echo number_format($stage['count']); ?> (<?php echo $pct; ?>%)</span>
+                                        <div class="flex justify-between text-xs font-medium mb-1.5">
+                                            <span class="text-zinc-400 flex items-center gap-1.5">
+                                                <i class="fas <?php echo $stage['icon']; ?> text-[10px] opacity-50"></i>
+                                                <?php echo $stage['name']; ?>
+                                            </span>
+                                            <span class="text-white font-bold"><?php echo number_format($stage['count']); ?> <span class="text-zinc-600 font-normal">(<?php echo $pct; ?>%)</span></span>
                                         </div>
                                         <div class="w-full bg-zinc-900 h-2 rounded-full overflow-hidden border border-zinc-900">
-                                            <div class="<?php echo $stage['color']; ?> h-full" style="width: <?php echo $pct; ?>%"></div>
+                                            <div class="<?php echo $stage['color']; ?> h-full rounded-full transition-all duration-700" style="width: <?php echo $pct; ?>%"></div>
                                         </div>
+                                        <?php if ($si < count($stages) - 1): ?>
+                                            <div class="flex justify-center my-1">
+                                                <i class="fas fa-chevron-down text-zinc-800 text-[8px]"></i>
+                                            </div>
+                                        <?php endif; ?>
                                     </div>
                                 <?php endforeach; ?>
                             </div>
                         </div>
 
-                        <!-- Top Categories List -->
+                        <!-- Popular Categories -->
                         <div class="bg-zinc-950 border border-zinc-900 rounded-xl p-5">
                             <h3 class="text-sm font-bold text-white uppercase tracking-wider mb-5 flex items-center">
                                 <i class="fas fa-tags text-emerald-400 mr-2 text-xs"></i>
-                                Popular Categories
+                                Trending Categories
                             </h3>
                             
                             <?php if (empty($topCategories)): ?>
-                                <p class="text-xs text-zinc-550 py-8 text-center">No category filter events logged yet.</p>
+                                <p class="text-xs text-zinc-550 py-8 text-center">No category views logged yet.</p>
                             <?php else: ?>
-                                <div class="space-y-3">
-                                    <?php foreach ($topCategories as $cat): ?>
-                                        <div class="flex justify-between items-center py-2 border-b border-zinc-900 last:border-0 text-xs">
-                                            <span class="text-zinc-300 font-medium"><?php echo htmlspecialchars($cat['label']); ?></span>
-                                            <span class="px-2 py-0.5 bg-zinc-900 border border-zinc-800 text-zinc-400 rounded-md font-semibold text-[10px]"><?php echo $cat['count']; ?> views</span>
+                                <div class="space-y-2">
+                                    <?php 
+                                    $maxCatCount = max(1, $topCategories[0]['count']);
+                                    foreach ($topCategories as $ci => $cat): 
+                                        $catPct = round(($cat['count'] / $maxCatCount) * 100);
+                                    ?>
+                                        <a href="<?php echo htmlspecialchars($cat['website_url']); ?>" target="_blank" rel="noopener" 
+                                           class="flex items-center justify-between py-2.5 px-3 rounded-lg border border-zinc-900 hover:border-zinc-700 hover:bg-zinc-900/50 transition-all group text-xs">
+                                            <div class="flex items-center gap-2 min-w-0">
+                                                <span class="w-5 h-5 rounded bg-emerald-500/10 flex items-center justify-center text-emerald-400 text-[9px] font-bold flex-shrink-0">
+                                                    <?php echo $ci + 1; ?>
+                                                </span>
+                                                <span class="text-zinc-300 font-medium truncate group-hover:text-emerald-300 transition-colors">
+                                                    <?php echo htmlspecialchars($cat['label']); ?>
+                                                </span>
+                                                <i class="fas fa-external-link-alt text-zinc-700 text-[8px] group-hover:text-emerald-400/50 transition-colors"></i>
+                                            </div>
+                                            <div class="flex items-center gap-2 flex-shrink-0 ml-2">
+                                                <div class="w-12 bg-zinc-900 h-1.5 rounded-full overflow-hidden">
+                                                    <div class="bg-emerald-500/60 h-full rounded-full" style="width: <?php echo $catPct; ?>%"></div>
+                                                </div>
+                                                <span class="px-2 py-0.5 bg-zinc-900 border border-zinc-800 text-zinc-400 rounded-md font-bold text-[10px]">
+                                                    <?php echo number_format($cat['count']); ?>
+                                                </span>
+                                            </div>
+                                        </a>
+                                    <?php endforeach; ?>
+                                </div>
+                            <?php endif; ?>
+                        </div>
+
+                        <!-- Top Search Intent -->
+                        <div class="bg-zinc-950 border border-zinc-900 rounded-xl p-5">
+                            <h3 class="text-sm font-bold text-white uppercase tracking-wider mb-5 flex items-center">
+                                <i class="fas fa-search text-amber-400 mr-2 text-xs"></i>
+                                Search Intent
+                            </h3>
+
+                            <?php if (empty($topSearches)): ?>
+                                <p class="text-xs text-zinc-550 py-8 text-center">No search queries logged yet.</p>
+                            <?php else: ?>
+                                <div class="space-y-2">
+                                    <?php 
+                                    $maxSearchCount = max(1, $topSearches[0]['search_count']);
+                                    foreach ($topSearches as $si => $s): 
+                                        $sPct = round(($s['search_count'] / $maxSearchCount) * 100);
+                                    ?>
+                                        <div class="flex items-center justify-between py-2 px-3 rounded-lg border border-zinc-900 text-xs hover:border-zinc-800 transition-all">
+                                            <div class="flex items-center gap-2 min-w-0">
+                                                <span class="w-5 h-5 rounded bg-amber-500/10 flex items-center justify-center text-amber-400 text-[9px] font-bold flex-shrink-0">
+                                                    <?php echo $si + 1; ?>
+                                                </span>
+                                                <span class="text-white font-medium truncate">"<?php echo htmlspecialchars($s['query']); ?>"</span>
+                                            </div>
+                                            <div class="flex items-center gap-2 flex-shrink-0 ml-2">
+                                                <div class="w-12 bg-zinc-900 h-1.5 rounded-full overflow-hidden">
+                                                    <div class="bg-amber-500/60 h-full rounded-full" style="width: <?php echo $sPct; ?>%"></div>
+                                                </div>
+                                                <span class="text-zinc-500 font-bold whitespace-nowrap"><?php echo $s['search_count']; ?>×</span>
+                                            </div>
                                         </div>
                                     <?php endforeach; ?>
                                 </div>
@@ -165,82 +448,7 @@
                         </div>
                     </div>
 
-                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-                        <!-- Top Searches Table -->
-                        <div class="bg-zinc-950 border border-zinc-900 rounded-xl p-5 overflow-hidden">
-                            <h3 class="text-sm font-bold text-white uppercase tracking-wider mb-5 flex items-center">
-                                <i class="fas fa-search text-amber-400 mr-2 text-xs animate-pulse"></i>
-                                Top Customer Search Intent
-                            </h3>
-
-                            <?php if (empty($topSearches)): ?>
-                                <p class="text-xs text-zinc-550 py-8 text-center">No customer search queries logged yet.</p>
-                            <?php else: ?>
-                                <div class="overflow-x-auto">
-                                    <table class="w-full text-left text-xs border-collapse">
-                                        <thead>
-                                            <tr class="border-b border-zinc-900 text-zinc-500">
-                                                <th class="pb-3 font-semibold uppercase tracking-wider">Search Keyword</th>
-                                                <th class="pb-3 font-semibold uppercase tracking-wider text-right">Searched</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody class="divide-y divide-zinc-900">
-                                            <?php foreach ($topSearches as $s): ?>
-                                                <tr>
-                                                    <td class="py-3 font-medium text-white"><?php echo htmlspecialchars($s['query']); ?></td>
-                                                    <td class="py-3 text-right text-zinc-400 font-semibold"><?php echo $s['search_count']; ?> times</td>
-                                                </tr>
-                                            <?php endforeach; ?>
-                                        </tbody>
-                                    </table>
-                                </div>
-                            <?php endif; ?>
-                        </div>
-
-                        <!-- Top Products Table -->
-                        <div class="bg-zinc-950 border border-zinc-900 rounded-xl p-5 overflow-hidden">
-                            <h3 class="text-sm font-bold text-white uppercase tracking-wider mb-5 flex items-center">
-                                <i class="fas fa-trophy text-yellow-400 mr-2 text-xs"></i>
-                                Most Popular Products
-                            </h3>
-
-                            <?php if (empty($topProducts)): ?>
-                                <p class="text-xs text-zinc-550 py-8 text-center">No product views logged yet.</p>
-                            <?php else: ?>
-                                <div class="overflow-x-auto">
-                                    <table class="w-full text-left text-xs border-collapse">
-                                        <thead>
-                                            <tr class="border-b border-zinc-900 text-zinc-500">
-                                                <th class="pb-3 font-semibold uppercase tracking-wider">Product Name / ID</th>
-                                                <th class="pb-3 font-semibold uppercase tracking-wider text-center">Type</th>
-                                                <th class="pb-3 font-semibold uppercase tracking-wider text-right">Views</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody class="divide-y divide-zinc-900">
-                                            <?php foreach ($topProducts as $p): ?>
-                                                <tr>
-                                                    <td class="py-3">
-                                                        <a href="index.php?controller=product&action=view_details&id=<?php echo $p['product_id']; ?>&type=<?php echo $p['product_type']; ?>" class="text-white hover:text-indigo-400 font-medium transition-colors">
-                                                            <?php echo htmlspecialchars($p['product_name']); ?>
-                                                        </a>
-                                                        <span class="block text-[10px] text-zinc-500 mt-0.5">ID: <?php echo $p['product_id']; ?></span>
-                                                    </td>
-                                                    <td class="py-3 text-center capitalize">
-                                                        <span class="inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-semibold bg-zinc-900 text-zinc-500 border border-zinc-800">
-                                                            <?php echo htmlspecialchars($p['product_type']); ?>
-                                                        </span>
-                                                    </td>
-                                                    <td class="py-3 text-right text-zinc-400 font-semibold"><?php echo htmlspecialchars($p['view_count'] ?? 0); ?> views</td>
-                                                </tr>
-                                            <?php endforeach; ?>
-                                        </tbody>
-                                    </table>
-                                </div>
-                            <?php endif; ?>
-                        </div>
-                    </div>
-
-                    <!-- User Session Activity Timeline -->
+                    <!-- User Session Journeys -->
                     <div class="bg-zinc-950 border border-zinc-900 rounded-xl p-5 mb-8">
                         <h3 class="text-sm font-bold text-white uppercase tracking-wider mb-6 flex items-center">
                             <i class="fas fa-route text-violet-400 mr-2 text-xs"></i>
@@ -279,7 +487,7 @@
                                             </div>
                                         </button>
 
-                                        <!-- Session Timeline (collapsible) -->
+                                        <!-- Session Timeline -->
                                         <div id="sess-<?php echo $i; ?>" class="<?php echo $i === 0 ? '' : 'hidden'; ?> px-4 pb-4">
                                             <div class="timeline-line pl-10 space-y-0">
                                                 <?php foreach ($sess['events'] as $ev): 

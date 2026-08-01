@@ -294,6 +294,25 @@ class ProductModel extends Model
         $type = $product['type'];
         $priceSource = $product['price_source'] ?? 'pos';
 
+        // Resolve website subcategory name from subcat1 table (Antique, Kundan, etc.)
+        // Note: jewel_subcat stores main categories (Necklace Sets), subcat1 stores subcategories
+        $subcategory_id = $product['subcategory_id'] ?? 0;
+        $subcategory_name = '';
+        if ($type === 'jewellery' && $subcategory_id > 0) {
+            $sub_q = "SELECT name FROM subcat1 WHERE subcat_id = " . (int)$subcategory_id . " LIMIT 1";
+            $sub_r = $this->query($this->db, $sub_q);
+            $sub_row = $this->fetchOne($sub_r);
+            if ($sub_row && !empty($sub_row['name'])) {
+                $subcategory_name = $sub_row['name'];
+            } else {
+                // Fallback: try jewel_subcat table
+                $sub_q2 = "SELECT categories_name FROM jewel_subcat WHERE subcat_id = " . (int)$subcategory_id . " LIMIT 1";
+                $sub_r2 = $this->query($this->db, $sub_q2);
+                $sub_row2 = $this->fetchOne($sub_r2);
+                if ($sub_row2) $subcategory_name = $sub_row2['categories_name'];
+            }
+        }
+
         // POS Data
         $pos_query = "SELECT category, category_type, unit_price, quantity, cost_price FROM phppos_items WHERE name LIKE '$sku'";
         $pos_result = $this->query($this->db3, $pos_query);
@@ -351,6 +370,8 @@ class ProductModel extends Model
 
             return [
                 'category_name' => $category_name,
+                'subcategory_id' => $subcategory_id,
+                'subcategory_name' => $subcategory_name,
                 'product_type_label' => $product_type_label,
                 'quantity' => $quantity,
                 'sale_price' => $lastSellingPrice,
@@ -478,6 +499,8 @@ class ProductModel extends Model
 
         return [
             'category_name' => $category_name,
+            'subcategory_id' => $subcategory_id,
+            'subcategory_name' => $subcategory_name,
             'product_type_label' => $product_type_label,
             'quantity' => $quantity,
             'sale_price' => $lastSellingPrice,
@@ -533,6 +556,166 @@ class ProductModel extends Model
         $query = "SELECT subcat_id, name FROM jewel_subcat WHERE parent_id = $parentId ORDER BY name";
         $result = $this->query($this->db, $query);
         return $this->fetchAll($result);
+    }
+
+    public function getAllCategoriesWithSubcategories($type = 'jewellery')
+    {
+        if ($type === 'jewellery') {
+            $sql = "SELECT subcat_id as id, categories_name as name FROM jewel_subcat WHERE mcat_id=1 OR mcat_id=3 ORDER BY categories_name ASC";
+            $res = $this->query($this->db, $sql);
+            $categories = $this->fetchAll($res);
+
+            foreach ($categories as &$cat) {
+                $subSql = "SELECT subcat_id as id, name FROM subcat1 WHERE maincat_id = " . (int)$cat['id'] . " AND status = 1 ORDER BY name ASC";
+                $subRes = $this->query($this->db, $subSql);
+                $subcats = $this->fetchAll($subRes);
+
+                // Filter out dummy self-named subcategories if identical to main category name
+                $realSubcats = [];
+                $cleanMain = strtolower(trim(preg_replace('/[^a-z0-9]+/i', '', $cat['name'])));
+                foreach ($subcats as $s) {
+                    $cleanSub = strtolower(trim(preg_replace('/[^a-z0-9]+/i', '', $s['name'])));
+                    if ($cleanSub !== $cleanMain && $cleanSub !== $cleanMain . 's' && $cleanMain !== $cleanSub . 's') {
+                        $realSubcats[] = $s;
+                    }
+                }
+                $cat['subcategories'] = $realSubcats;
+            }
+            return $categories;
+        } else {
+            $sql = "SELECT garment_id as id, name FROM garments WHERE Main_id=1 OR Main_id=3 ORDER BY name ASC";
+            $res = $this->query($this->db, $sql);
+            $categories = $this->fetchAll($res);
+
+            foreach ($categories as &$cat) {
+                $subSql = "SELECT sub_id as id, sub_name as name FROM garment_subcat WHERE gmain_id = " . (int)$cat['id'] . " ORDER BY sub_name ASC";
+                $subRes = $this->query($this->db, $subSql);
+                $subcats = $this->fetchAll($subRes);
+
+                $realSubcats = [];
+                $cleanMain = strtolower(trim(preg_replace('/[^a-z0-9]+/i', '', $cat['name'])));
+                foreach ($subcats as $s) {
+                    $cleanSub = strtolower(trim(preg_replace('/[^a-z0-9]+/i', '', $s['name'])));
+                    if ($cleanSub !== $cleanMain && $cleanSub !== $cleanMain . 's' && $cleanMain !== $cleanSub . 's') {
+                        $realSubcats[] = $s;
+                    }
+                }
+                $cat['subcategories'] = $realSubcats;
+            }
+            return $categories;
+        }
+    }
+
+    public function getProductAssignedCategories($productId, $type = 'jewellery')
+    {
+        $productId = (int)$productId;
+        $type = mysqli_real_escape_string($this->db, $type);
+
+        $sql = "SELECT category_id, subcategory_id, legacy_category_id, legacy_subcategory_id FROM product_categories WHERE product_id = $productId AND product_type = '$type'";
+        $res = $this->query($this->db, $sql);
+        $rows = $this->fetchAll($res);
+
+        $mainCategories = [];
+        $subcategories = [];
+
+        if (!empty($rows)) {
+            foreach ($rows as $r) {
+                if (!empty($r['category_id'])) $mainCategories[] = (int)$r['category_id'];
+                if (!empty($r['legacy_category_id'])) $mainCategories[] = (int)$r['legacy_category_id'];
+
+                if (!empty($r['subcategory_id'])) $subcategories[] = (int)$r['subcategory_id'];
+                if (!empty($r['legacy_subcategory_id'])) $subcategories[] = (int)$r['legacy_subcategory_id'];
+            }
+        }
+
+        return [
+            'main_categories' => array_values(array_unique($mainCategories)),
+            'subcategories' => array_values(array_unique($subcategories))
+        ];
+    }
+
+    public function saveProductCategories($productId, $type, $mainCategories = [], $subcategories = [])
+    {
+        $productId = (int)$productId;
+        $type = mysqli_real_escape_string($this->db, $type);
+
+        // Delete existing mapping
+        $delSql = "DELETE FROM product_categories WHERE product_id = $productId AND product_type = '$type'";
+        $this->query($this->db, $delSql);
+
+        // Fetch SKU code for product
+        $skuCode = '';
+        if ($type === 'jewellery') {
+            $pRow = $this->fetchOne($this->query($this->db, "SELECT product_code FROM product WHERE product_id = $productId"));
+            $skuCode = mysqli_real_escape_string($this->db, $pRow['product_code'] ?? '');
+        } else {
+            $gpRow = $this->fetchOne($this->query($this->db, "SELECT gproduct_code FROM garment_product WHERE gproduct_id = $productId"));
+            $skuCode = mysqli_real_escape_string($this->db, $gpRow['gproduct_code'] ?? '');
+        }
+
+        // Load lookups between new category IDs and legacy IDs
+        $catLookup = [];
+        $rCat = $this->query($this->db, "SELECT id, legacy_id FROM categories WHERE legacy_id IS NOT NULL");
+        while ($row = $this->fetchOne($rCat)) {
+            $catLookup[(int)$row['id']] = (int)$row['legacy_id'];
+        }
+
+        $subcatLookup = [];
+        $rSub = $this->query($this->db, "SELECT id, legacy_id, category_id FROM subcategories WHERE legacy_id IS NOT NULL");
+        $subcatParentLookup = [];
+        while ($row = $this->fetchOne($rSub)) {
+            $subcatLookup[(int)$row['id']] = (int)$row['legacy_id'];
+            $subcatParentLookup[(int)$row['id']] = (int)$row['category_id'];
+        }
+
+        // Save selected subcategories
+        if (is_array($subcategories) && !empty($subcategories)) {
+            foreach ($subcategories as $subId) {
+                $subId = (int)$subId;
+                if ($subId > 0) {
+                    $legacySubId = $subcatLookup[$subId] ?? $subId;
+                    $parentCatId = $subcatParentLookup[$subId] ?? 0;
+                    $legacyCatId = $catLookup[$parentCatId] ?? $parentCatId;
+
+                    $valCat = $parentCatId > 0 ? $parentCatId : 'NULL';
+                    $valSub = $subId > 0 ? $subId : 'NULL';
+                    $valLegCat = $legacyCatId > 0 ? $legacyCatId : 'NULL';
+                    $valLegSub = $legacySubId > 0 ? $legacySubId : 'NULL';
+
+                    $insSql = "INSERT IGNORE INTO product_categories (product_id, product_code, product_type, category_id, subcategory_id, legacy_category_id, legacy_subcategory_id) 
+                               VALUES ($productId, '$skuCode', '$type', $valCat, $valSub, $valLegCat, $valLegSub)";
+                    $this->query($this->db, $insSql);
+                }
+            }
+        }
+
+        // Save standalone main categories without subcategories
+        if (is_array($mainCategories) && !empty($mainCategories)) {
+            foreach ($mainCategories as $catId) {
+                $catId = (int)$catId;
+                if ($catId > 0) {
+                    $legacyCatId = $catLookup[$catId] ?? $catId;
+                    $valCat = $catId > 0 ? $catId : 'NULL';
+                    $valLegCat = $legacyCatId > 0 ? $legacyCatId : 'NULL';
+
+                    $insSql = "INSERT IGNORE INTO product_categories (product_id, product_code, product_type, category_id, subcategory_id, legacy_category_id, legacy_subcategory_id) 
+                               VALUES ($productId, '$skuCode', '$type', $valCat, NULL, $valLegCat, NULL)";
+                    $this->query($this->db, $insSql);
+                }
+            }
+        }
+
+        // Update primary columns on main product table for backward compatibility
+        $primaryMainLegacy = !empty($mainCategories) ? ($catLookup[(int)$mainCategories[0]] ?? (int)$mainCategories[0]) : 0;
+        $primarySubLegacy = !empty($subcategories) ? ($subcatLookup[(int)$subcategories[0]] ?? (int)$subcategories[0]) : 0;
+
+        if ($type === 'jewellery') {
+            $upSql = "UPDATE product SET categories_id = $primaryMainLegacy, subcat_id = $primarySubLegacy WHERE product_id = $productId";
+            $this->query($this->db, $upSql);
+        } else {
+            $upSql = "UPDATE garment_product SET garment_id = $primaryMainLegacy, product_for = $primarySubLegacy WHERE gproduct_id = $productId";
+            $this->query($this->db, $upSql);
+        }
     }
 
     public function saveProduct($type, $data, $images = [])

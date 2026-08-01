@@ -108,11 +108,13 @@
 
                     <!-- Products Table -->
                     <div class="product-table-wrap">
+                        <div id="duplicateNoticeContainer"></div>
                         <div class="table-responsive">
                             <table class="w-full text-left">
                                 <thead>
                                     <tr>
-                                        <th style="width: 48px;">#</th>
+                                        <th style="width: 44px;">#</th>
+                                        <th style="width: 80px;">ID</th>
                                         <th style="min-width: 320px;">Product</th>
                                         <th>Code</th>
                                         <th>Category</th>
@@ -152,6 +154,7 @@
         for (let i = 0; i < count; i++) {
             html += `
                 <tr>
+                    <td><div class="skeleton skeleton-text skeleton-text--tiny" style="height: 10px;">&nbsp;</div></td>
                     <td><div class="skeleton skeleton-text skeleton-text--tiny" style="height: 10px;">&nbsp;</div></td>
                     <td>
                         <div style="display: flex; align-items: center; gap: 1rem;">
@@ -256,7 +259,7 @@
             if (!data.products || data.products.length === 0) {
                 tbody.innerHTML = `
                     <tr>
-                        <td colspan="11" style="text-align: center; padding: 3rem 1rem !important;">
+                        <td colspan="12" style="text-align: center; padding: 3rem 1rem !important;">
                             <div style="display: flex; flex-direction: column; align-items: center; gap: 0.75rem;">
                                 <i class="fas fa-box-open" style="font-size: 2.5rem; color: #222;"></i>
                                 <p style="color: #555; font-size: 0.85rem;">No products found matching your criteria.</p>
@@ -268,7 +271,67 @@
                     </tr>
                 `;
                 pagination.innerHTML = '';
+                const noticeContainer = document.getElementById('duplicateNoticeContainer');
+                if (noticeContainer) noticeContainer.innerHTML = '';
                 return;
+            }
+
+            // Calculate duplicate SKUs across products on page
+            const skuMap = {};
+            data.products.forEach(p => {
+                const key = (p.code || '').trim().toUpperCase() + '_' + (p.type || 'jewellery').toLowerCase();
+                if (!skuMap[key]) {
+                    skuMap[key] = { count: 0, minId: Infinity };
+                }
+                skuMap[key].count++;
+                const pid = parseInt(p.id, 10);
+                if (!isNaN(pid) && pid < skuMap[key].minId) {
+                    skuMap[key].minId = pid;
+                }
+            });
+
+            // Render Multi-Category SKU Banner if SKU appears in multiple subcategories
+            const noticeContainer = document.getElementById('duplicateNoticeContainer');
+            if (noticeContainer) {
+                const dupKeys = Object.keys(skuMap).filter(k => skuMap[k].count > 1);
+                if (dupKeys.length > 0) {
+                    noticeContainer.innerHTML = `
+                        <div style="background: rgba(24, 24, 27, 0.95); border: 1px solid rgba(234, 179, 8, 0.4); border-radius: 10px; padding: 1rem 1.25rem; margin-bottom: 1.25rem; box-shadow: 0 4px 12px rgba(0,0,0,0.3);">
+                            <div style="display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; margin-bottom: 0.5rem; flex-wrap: wrap;">
+                                <div style="display: flex; align-items: center; gap: 0.6rem; font-weight: 700; font-size: 0.88rem; color: #facc15;">
+                                    <i class="fas fa-layer-group" style="font-size: 1.1rem;"></i>
+                                    <span>Multi-Category SKU Listings Detected</span>
+                                </div>
+                                <span style="background: rgba(234, 179, 8, 0.15); color: #fef08a; font-size: 0.72rem; font-weight: 700; padding: 0.25rem 0.65rem; border-radius: 9999px; border: 1px solid rgba(234, 179, 8, 0.3);">
+                                    ${dupKeys.length} SKU Group(s) across subcategories
+                                </span>
+                            </div>
+                            <div style="font-size: 0.8rem; color: #d4d4d8; line-height: 1.5; margin-bottom: 0.75rem;">
+                                Each row for a given SKU is assigned to a <strong>different subcategory</strong> (e.g. Kundan, Antique, American Diamond, Vilandi). This allows the SKU to appear on its respective website category page:
+                            </div>
+                            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 0.75rem;">
+                                <div style="background: rgba(59, 130, 246, 0.1); border: 1px solid rgba(59, 130, 246, 0.3); border-radius: 8px; padding: 0.65rem 0.85rem;">
+                                    <div style="color: #60a5fa; font-weight: 700; font-size: 0.78rem; display: flex; align-items: center; gap: 0.4rem; margin-bottom: 3px;">
+                                        <i class="fas fa-sitemap"></i> How Category Listings Work
+                                    </div>
+                                    <div style="color: #a1a1aa; font-size: 0.73rem; line-height: 1.4;">
+                                        When a customer browses a category (e.g. Kundan Sets), the website API queries by that subcategory ID (e.g. <code>subcat_id: 3</code>) and returns ID <strong>8988</strong>.
+                                    </div>
+                                </div>
+                                <div style="background: rgba(234, 179, 8, 0.1); border: 1px solid rgba(234, 179, 8, 0.3); border-radius: 8px; padding: 0.65rem 0.85rem;">
+                                    <div style="color: #facc15; font-weight: 700; font-size: 0.78rem; display: flex; align-items: center; gap: 0.4rem; margin-bottom: 3px;">
+                                        <i class="fas fa-exclamation-circle"></i> Deletion Advice
+                                    </div>
+                                    <div style="color: #a1a1aa; font-size: 0.73rem; line-height: 1.4;">
+                                        Do <strong>NOT</strong> delete any row unless you want to remove this SKU from that specific website category page!
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                } else {
+                    noticeContainer.innerHTML = '';
+                }
             }
 
             let html = '';
@@ -312,9 +375,34 @@
                 const typeLabel = (p.details.product_type_label || p.type || '').toLowerCase();
                 const typeBadgeClass = typeLabel === 'jewellery' ? 'badge--blue' : 'badge--zinc';
 
+                // Duplicate & Multi-Category Listing Check
+                const key = (p.code || '').trim().toUpperCase() + '_' + (p.type || 'jewellery').toLowerCase();
+                const skuInfo = skuMap[key];
+                const isDup = skuInfo && skuInfo.count > 1;
+                const subcatName = (p.details.subcategory_name || '').trim();
+                const catDisplay = subcatName ? subcatName : (p.details.category_name || 'N/A');
+                const idFieldName = p.type === 'garments' ? 'gproduct_id' : 'product_id';
+
+                // Subcategory color mapping for visual distinction
+                const subcatColors = {
+                    'Necklace Sets': { bg: 'rgba(168, 85, 247, 0.15)', color: '#c084fc', border: 'rgba(168, 85, 247, 0.4)' },
+                    'Antique': { bg: 'rgba(245, 158, 11, 0.15)', color: '#fbbf24', border: 'rgba(245, 158, 11, 0.4)' },
+                    'Kundan': { bg: 'rgba(34, 197, 94, 0.15)', color: '#4ade80', border: 'rgba(34, 197, 94, 0.4)' },
+                    'Vilandi': { bg: 'rgba(59, 130, 246, 0.15)', color: '#60a5fa', border: 'rgba(59, 130, 246, 0.4)' },
+                    'American Diamond': { bg: 'rgba(236, 72, 153, 0.15)', color: '#f472b6', border: 'rgba(236, 72, 153, 0.4)' },
+                    'Imitation': { bg: 'rgba(20, 184, 166, 0.15)', color: '#2dd4bf', border: 'rgba(20, 184, 166, 0.4)' },
+                };
+                const defaultSubcatColor = { bg: 'rgba(161, 161, 170, 0.15)', color: '#a1a1aa', border: 'rgba(161, 161, 170, 0.4)' };
+                const subcatColor = subcatColors[catDisplay] || defaultSubcatColor;
+
                 html += `
                     <tr class="product-row" style="animation-delay: ${0.02 * (index + 1)}s;">
                         <td style="color: #333; font-variant-numeric: tabular-nums; font-size: 0.75rem; font-weight: 500;">${serialStart + index}</td>
+                        <td style="font-variant-numeric: tabular-nums;">
+                            <span class="badge badge--blue" style="font-family: monospace; font-size: 0.75rem; font-weight: 700; background: rgba(59, 130, 246, 0.12); color: #60a5fa; border: 1px solid rgba(59, 130, 246, 0.3); padding: 0.15rem 0.45rem;" title="${idFieldName}">
+                                ${p.id}
+                            </span>
+                        </td>
                         <td style="min-width: 320px;">
                             <div style="display: flex; align-items: center; gap: 0.85rem;">
                                 <a href="index.php?controller=product&action=view_details&id=${p.id}&type=${p.type}" style="flex-shrink: 0;">
@@ -327,12 +415,23 @@
                                        onmouseover="this.style.color='#fff'" onmouseout="this.style.color='#e5e5e5'">
                                         ${truncatedName}
                                     </a>
-                                    <span class="badge ${typeBadgeClass}" style="margin-top: 4px; font-size: 0.6rem; padding: 0.1rem 0.4rem;">${typeLabel}</span>
+                                    <div style="display: flex; align-items: center; gap: 0.35rem; flex-wrap: wrap; margin-top: 4px;">
+                                        <span class="badge ${typeBadgeClass}" style="font-size: 0.6rem; padding: 0.1rem 0.4rem;">${typeLabel}</span>
+                                        ${isDup && subcatName ? `<span style="font-size: 0.62rem; padding: 0.15rem 0.5rem; border-radius: 4px; font-weight: 700; background: ${subcatColor.bg}; color: ${subcatColor.color}; border: 1px solid ${subcatColor.border};"><i class="fas fa-tag" style="margin-right: 3px; font-size: 0.55rem;"></i>${catDisplay}</span>` : ''}
+                                    </div>
                                 </div>
                             </div>
                         </td>
-                        <td><span class="code-badge">${p.code}</span></td>
-                        <td style="color: #888; font-size: 0.78rem; font-weight: 500;">${(p.details.category_name || 'N/A').toLowerCase().replace(/\b\w/g, l => l.toUpperCase())}</td>
+                        <td>
+                            <span class="code-badge">${p.code}</span>
+                            ${isDup ? `<div style="font-size: 0.62rem; color: #facc15; font-weight: 600; margin-top: 3px;"><i class="fas fa-layer-group"></i> ${skuInfo.count} listings</div>` : ''}
+                        </td>
+                        <td style="font-size: 0.78rem; font-weight: 500;">
+                            ${subcatName 
+                                ? `<span style="display: inline-block; padding: 0.2rem 0.5rem; border-radius: 5px; font-size: 0.72rem; font-weight: 600; background: ${subcatColor.bg}; color: ${subcatColor.color}; border: 1px solid ${subcatColor.border};">${catDisplay}</span>`
+                                : `<span style="color: #555;">${catDisplay}</span>`
+                            }
+                        </td>
                         <td>${qtyHtml}</td>
                         <td>
                             <div class="price-primary">₹${rentPrice.toLocaleString('en-IN', {minimumFractionDigits: 0})}</div>
@@ -367,8 +466,8 @@
                                     <i class="fas fa-pen"></i>
                                 </a>
                                 <a href="index.php?controller=product&action=delete&id=${p.id}&type=${p.type}" 
-                                   title="Delete"
-                                   onclick="return confirm('Are you sure you want to delete this product?')"
+                                   title="Delete listing for ${catDisplay}"
+                                   onclick="return confirm('Are you sure you want to delete product ID ${p.id} (${p.code}) for category ${catDisplay}?')"
                                    class="quick-action-btn quick-action-btn--danger">
                                     <i class="fas fa-trash"></i>
                                 </a>
@@ -384,7 +483,7 @@
             console.error('Error fetching products:', error);
             tbody.innerHTML = `
                 <tr>
-                    <td colspan="11" style="text-align: center; padding: 3rem 1rem !important;">
+                    <td colspan="12" style="text-align: center; padding: 3rem 1rem !important;">
                         <div style="display: flex; flex-direction: column; align-items: center; gap: 0.75rem;">
                             <i class="fas fa-exclamation-triangle" style="font-size: 2rem; color: #ef4444;"></i>
                             <p style="color: #888; font-size: 0.85rem;">Error loading products. Please try again.</p>

@@ -69,6 +69,10 @@
                                 <div class="flex items-center space-x-2 mt-2">
                                     <span class="text-xs text-zinc-500 font-mono">SKU: <?php echo $product['code']; ?></span>
                                     <span class="text-zinc-700">•</span>
+                                    <span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-semibold bg-blue-500/10 text-blue-400 border border-blue-500/20 font-mono">
+                                        <?php echo ($type === 'garments' ? 'gproduct_id: ' : 'product_id: ') . $product['id']; ?>
+                                    </span>
+                                    <span class="text-zinc-700">•</span>
                                     <span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-semibold bg-zinc-900 text-zinc-400 border border-zinc-850 capitalize"><?php echo $type; ?></span>
                                 </div>
                             </div>
