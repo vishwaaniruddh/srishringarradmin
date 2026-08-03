@@ -207,6 +207,14 @@ class ProductSyncService {
             // Target Directories for Child Store (yn/admin/uploads/products/{sku}/)
             $ynAdminDir = null;
             $possiblePaths = [
+                // Hostinger Production Server Paths
+                '/home/u464193275/domains/yosshitaneha.com/public_html/admin/',
+                dirname(__DIR__, 4) . '/yosshitaneha.com/public_html/admin/',
+                dirname(__DIR__, 4) . '/yosshitaneha.com/admin/',
+                dirname(__DIR__, 3) . '/yosshitaneha.com/public_html/admin/',
+                ($_SERVER['DOCUMENT_ROOT'] ?? '') . '/../yosshitaneha.com/public_html/admin/',
+                ($_SERVER['DOCUMENT_ROOT'] ?? '') . '/../domains/yosshitaneha.com/public_html/admin/',
+                // Local XAMPP Paths
                 dirname(__DIR__, 3) . '/yn/admin/',
                 dirname(__DIR__, 2) . '/yn/admin/',
                 ($_SERVER['DOCUMENT_ROOT'] ?? '') . '/yn/admin/',
@@ -256,6 +264,8 @@ class ProductSyncService {
                     // Copy / acquire image if missing or 0 bytes
                     if (!file_exists($destFile) || filesize($destFile) < 100) {
                         $sources = [
+                            '/home/u464193275/domains/srishringarr.com/public_html/yn/uploads/' . ltrim(str_replace(['yn/uploads/', 'uploads/'], '', $cleanName), '/'),
+                            '/home/u464193275/domains/srishringarr.com/public_html/' . $cleanName,
                             $ynAdminDir . '../uploads/' . ltrim(str_replace(['yn/uploads/', 'uploads/'], '', $cleanName), '/'),
                             $ynAdminDir . '../' . $cleanName,
                             dirname(__DIR__, 3) . '/ss/' . $cleanName,
