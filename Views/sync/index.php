@@ -59,6 +59,100 @@
                     </div>
                 </div>
 
+                <!-- Category Sync Configuration Card -->
+                <div class="bg-[#0a0a0a] border border-white/5 rounded-xl p-6 shadow-2xl shrink-0 flex flex-col gap-5">
+                    <div class="flex items-center justify-between border-b border-white/5 pb-4">
+                        <div>
+                            <h2 class="text-base font-bold text-white flex items-center gap-2">
+                                <i class="fas fa-sliders-h text-indigo-400"></i> Category Sync Filter Configuration
+                            </h2>
+                            <p class="text-xs text-zinc-400 mt-0.5">Select which product categories from Srishringarr should auto-sync and bulk-sync to Yosshitaneha.</p>
+                        </div>
+                        <div class="flex items-center gap-3">
+                            <button type="button" onclick="selectAllCategories(true)" class="text-xs text-zinc-400 hover:text-white underline font-medium">Select All</button>
+                            <span class="text-zinc-700">|</span>
+                            <button type="button" onclick="selectAllCategories(false)" class="text-xs text-zinc-400 hover:text-white underline font-medium">Deselect All</button>
+                            <button type="button" id="btnSaveConfig" onclick="saveCategoryConfig()" class="ml-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-xs font-bold transition-all shadow-lg shadow-emerald-600/30 flex items-center gap-2">
+                                <i class="fas fa-save" id="saveIcon"></i>
+                                <span>Save Category Configuration</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <?php
+                        $syncAll = !empty($syncSettings['sync_all']);
+                        $enabledCats = $syncSettings['enabled_categories'] ?? [];
+                    ?>
+
+                    <form id="formCatConfig" class="flex flex-col gap-6">
+                        <div class="flex items-center gap-3 bg-zinc-900/50 p-3 rounded-lg border border-white/5">
+                            <input type="checkbox" id="chkSyncAll" name="sync_all" value="1" <?php echo $syncAll ? 'checked' : ''; ?> onchange="toggleSyncAllMode()" class="w-4 h-4 accent-indigo-500 cursor-pointer">
+                            <label for="chkSyncAll" class="text-xs font-semibold text-zinc-200 cursor-pointer select-none">
+                                Sync All Categories (Unrestricted - Overrides category selections below)
+                            </label>
+                        </div>
+
+                        <div id="catSelectionGrid" class="grid grid-cols-1 lg:grid-cols-2 gap-6 <?php echo $syncAll ? 'opacity-40 pointer-events-none' : ''; ?> transition-all">
+                            <!-- Apparel Categories -->
+                            <div class="bg-black/40 border border-white/5 rounded-xl p-4 flex flex-col gap-3">
+                                <div class="flex items-center justify-between border-b border-white/5 pb-2">
+                                    <h3 class="text-xs font-bold text-indigo-400 uppercase tracking-wider flex items-center gap-2">
+                                        <i class="fas fa-tshirt"></i> Apparel / Garments Categories
+                                    </h3>
+                                    <span class="text-[11px] text-zinc-500"><?php echo count($categories['Apparel']['children'] ?? []); ?> Categories</span>
+                                </div>
+                                <div class="space-y-2 max-h-72 overflow-y-auto custom-scrollbar pr-2">
+                                    <?php if (!empty($categories['Apparel']['children'])): ?>
+                                        <?php foreach ($categories['Apparel']['children'] as $catKey => $catData): ?>
+                                            <?php $isChecked = $syncAll || in_array($catKey, $enabledCats); ?>
+                                            <label class="flex items-center justify-between p-2 rounded hover:bg-white/[0.03] transition-colors cursor-pointer group">
+                                                <div class="flex items-center gap-2.5">
+                                                    <input type="checkbox" name="categories[]" value="<?php echo htmlspecialchars($catKey); ?>" <?php echo $isChecked ? 'checked' : ''; ?> class="cat-checkbox w-4 h-4 accent-indigo-500 cursor-pointer">
+                                                    <span class="text-xs text-zinc-300 group-hover:text-white font-medium"><?php echo htmlspecialchars($catData['name']); ?></span>
+                                                </div>
+                                                <span class="text-[10px] text-zinc-500 bg-zinc-900 px-2 py-0.5 rounded-full font-mono"><?php echo (int)$catData['count']; ?> items</span>
+                                            </label>
+                                        <?php endforeach; ?>
+                                    <?php else: ?>
+                                        <p class="text-xs text-zinc-600">No apparel categories found.</p>
+                                    <?php endif; ?>
+                                </div>
+                            </div>
+
+                            <!-- Jewellery Categories -->
+                            <div class="bg-black/40 border border-white/5 rounded-xl p-4 flex flex-col gap-3">
+                                <div class="flex items-center justify-between border-b border-white/5 pb-2">
+                                    <h3 class="text-xs font-bold text-amber-400 uppercase tracking-wider flex items-center gap-2">
+                                        <i class="fas fa-gem"></i> Jewellery Categories & Subcategories
+                                    </h3>
+                                    <span class="text-[11px] text-zinc-500"><?php echo count($categories['Jewellery']['children'] ?? []); ?> Items</span>
+                                </div>
+                                <div class="space-y-1.5 max-h-72 overflow-y-auto custom-scrollbar pr-2">
+                                    <?php if (!empty($categories['Jewellery']['children'])): ?>
+                                        <?php foreach ($categories['Jewellery']['children'] as $catKey => $catData): ?>
+                                            <?php 
+                                                $isChecked = $syncAll || in_array($catKey, $enabledCats);
+                                                $isSub = str_starts_with($catKey, 'jewel_child:');
+                                            ?>
+                                            <label class="flex items-center justify-between p-2 rounded hover:bg-white/[0.03] transition-colors cursor-pointer group <?php echo $isSub ? 'ml-4 bg-zinc-900/30' : ''; ?>">
+                                                <div class="flex items-center gap-2.5">
+                                                    <input type="checkbox" name="categories[]" value="<?php echo htmlspecialchars($catKey); ?>" <?php echo $isChecked ? 'checked' : ''; ?> class="cat-checkbox w-4 h-4 accent-amber-500 cursor-pointer">
+                                                    <span class="text-xs <?php echo $isSub ? 'text-zinc-400 font-normal' : 'text-zinc-200 font-semibold'; ?> group-hover:text-white">
+                                                        <?php echo htmlspecialchars($catData['name']); ?>
+                                                    </span>
+                                                </div>
+                                                <span class="text-[10px] text-zinc-500 bg-zinc-900 px-2 py-0.5 rounded-full font-mono"><?php echo (int)$catData['count']; ?> items</span>
+                                            </label>
+                                        <?php endforeach; ?>
+                                    <?php else: ?>
+                                        <p class="text-xs text-zinc-600">No jewellery categories found.</p>
+                                    <?php endif; ?>
+                                </div>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+
                 <!-- Sync Audit Logs Table -->
                 <div class="bg-[#0a0a0a] border border-white/5 rounded-xl flex flex-col overflow-hidden shadow-2xl shrink-0" style="max-height: 550px;">
                     <div class="px-6 py-4 border-b border-white/5 bg-[#111] flex items-center justify-between">
@@ -101,6 +195,8 @@
                                             <td class="px-6 py-3 text-xs font-bold">
                                                 <?php if ($log['status'] === 'success'): ?>
                                                     <span class="text-emerald-400 flex items-center gap-1.5"><i class="fas fa-check-circle text-[10px]"></i> Success</span>
+                                                <?php elseif ($log['status'] === 'skipped'): ?>
+                                                    <span class="text-zinc-400 flex items-center gap-1.5"><i class="fas fa-minus-circle text-[10px]"></i> Skipped</span>
                                                 <?php else: ?>
                                                     <span class="text-rose-400 flex items-center gap-1.5"><i class="fas fa-times-circle text-[10px]"></i> Failed</span>
                                                 <?php endif; ?>
@@ -120,18 +216,69 @@
 
     <?php include __DIR__ . '/../partials/scripts.php'; ?>
     <script>
+        function toggleSyncAllMode() {
+            const chkSyncAll = document.getElementById('chkSyncAll');
+            const grid = document.getElementById('catSelectionGrid');
+            if (chkSyncAll.checked) {
+                grid.classList.add('opacity-40', 'pointer-events-none');
+            } else {
+                grid.classList.remove('opacity-40', 'pointer-events-none');
+            }
+        }
+
+        function selectAllCategories(state) {
+            const chkSyncAll = document.getElementById('chkSyncAll');
+            if (chkSyncAll.checked) {
+                chkSyncAll.checked = false;
+                toggleSyncAllMode();
+            }
+            const checkboxes = document.querySelectorAll('.cat-checkbox');
+            checkboxes.forEach(cb => cb.checked = state);
+        }
+
+        function saveCategoryConfig() {
+            const btn = document.getElementById('btnSaveConfig');
+            const icon = document.getElementById('saveIcon');
+            const form = document.getElementById('formCatConfig');
+            const formData = new FormData(form);
+
+            btn.disabled = true;
+            icon.className = 'fas fa-spinner fa-spin';
+
+            fetch('index.php?controller=sync&action=saveSettings', {
+                method: 'POST',
+                body: formData
+            })
+            .then(res => res.json())
+            .then(data => {
+                btn.disabled = false;
+                icon.className = 'fas fa-save';
+
+                if (data.success) {
+                    alert(data.message);
+                } else {
+                    alert('Error saving configuration: ' + data.message);
+                }
+            })
+            .catch(err => {
+                btn.disabled = false;
+                icon.className = 'fas fa-save';
+                alert('Network error while saving settings: ' + err);
+            });
+        }
+
         function startBulkSync() {
-            if (!confirm("Are you sure you want to sync all products from Srishringarr to Yosshitaneha? This may take up to a minute.")) return;
+            if (!confirm("Are you sure you want to sync products from Srishringarr to Yosshitaneha based on your Category Configuration? This may take up to a minute.")) return;
 
             const btn = document.getElementById('btnBulkSync');
             const icon = document.getElementById('syncIcon');
-            const alert = document.getElementById('syncStatusAlert');
+            const alertBox = document.getElementById('syncStatusAlert');
             const msg = document.getElementById('syncStatusMsg');
 
             btn.disabled = true;
             btn.classList.add('opacity-50', 'cursor-not-allowed');
             icon.classList.add('fa-spin');
-            alert.classList.remove('hidden');
+            alertBox.classList.remove('hidden');
             msg.innerText = "Synchronizing products to Yosshitaneha Child DB... Please wait.";
 
             fetch('index.php?controller=sync&action=syncBulk', {
@@ -145,8 +292,8 @@
                 icon.classList.remove('fa-spin');
 
                 if (data.success) {
-                    msg.innerText = `Bulk Sync Complete! Total: ${data.total}, Success: ${data.success_count}, Failed: ${data.failed_count}`;
-                    setTimeout(() => { window.location.reload(); }, 2000);
+                    msg.innerText = `Bulk Sync Complete! Total Processed: ${data.total}, Synced: ${data.success_count}, Skipped: ${data.skipped_count || 0}, Failed: ${data.failed_count}`;
+                    setTimeout(() => { window.location.reload(); }, 2500);
                 } else {
                     msg.innerText = `Sync Failed: ${data.message}`;
                 }

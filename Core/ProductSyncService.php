@@ -108,6 +108,67 @@ class ProductSyncService {
     }
 
     /**
+     * Get Sync Category Settings
+     */
+    public static function getSyncSettings() {
+        $configFile = __DIR__ . '/../Config/sync_settings.json';
+        if (file_exists($configFile)) {
+            $content = file_get_contents($configFile);
+            $data = json_decode($content, true);
+            if (is_array($data)) {
+                return $data;
+            }
+        }
+        return [
+            'sync_all' => true,
+            'enabled_categories' => []
+        ];
+    }
+
+    /**
+     * Save Sync Category Settings
+     */
+    public static function saveSyncSettings($enabledCategories, $syncAll = false) {
+        $configFile = __DIR__ . '/../Config/sync_settings.json';
+        $data = [
+            'sync_all' => (bool)$syncAll,
+            'enabled_categories' => is_array($enabledCategories) ? array_values(array_unique($enabledCategories)) : [],
+            'updated_at' => date('Y-m-d H:i:s')
+        ];
+        return file_put_contents($configFile, json_encode($data, JSON_PRETTY_PRINT)) !== false;
+    }
+
+    /**
+     * Check if a product's category is enabled for sync
+     */
+    public static function isCategoryEnabled($productType, $parentProduct) {
+        $settings = self::getSyncSettings();
+
+        // If sync_all is enabled or no categories are explicitly saved, allow all
+        if (!empty($settings['sync_all']) || empty($settings['enabled_categories'])) {
+            return true;
+        }
+
+        $enabled = $settings['enabled_categories'];
+
+        if ($productType === 'garments' || $productType === 'garment') {
+            $catId = (int)($parentProduct['category'] ?? 0);
+            return in_array("garment:$catId", $enabled);
+        } else {
+            $parentCatId = (int)($parentProduct['category'] ?? 0);
+            $subCatId = (int)($parentProduct['sub_category'] ?? 0);
+
+            if ($subCatId > 0 && in_array("jewel_child:$subCatId", $enabled)) {
+                return true;
+            }
+            if ($parentCatId > 0 && in_array("jewel_parent:$parentCatId", $enabled)) {
+                return true;
+            }
+            return false;
+        }
+    }
+
+    /**
      * Sync a single product from Parent to Child
      * 
      * @param int $productId
@@ -135,6 +196,14 @@ class ProductSyncService {
         if (empty($sku)) {
             self::logSync($productId, $productType, 'N/A', $mode, 'failed', 'Product SKU code is empty');
             return ['success' => false, 'message' => 'Product SKU code is empty', 'sku' => 'N/A'];
+        }
+
+        // Check if product category is enabled in Sync Configuration
+        if (!self::isCategoryEnabled($productType, $parentProduct)) {
+            $catName = $parentProduct['category_name'] ?? 'Category Restricted';
+            $msg = "Skipped SKU $sku ($productType): Category '$catName' is disabled in Sync Configuration";
+            self::logSync($productId, $productType, $sku, $mode, 'skipped', $msg);
+            return ['success' => true, 'skipped' => true, 'message' => $msg, 'sku' => $sku];
         }
 
         $childPdo = self::getChildPdo();

@@ -41,10 +41,33 @@ class SyncController extends Controller {
             }
         }
 
+        $productModel = new \Models\ProductModel();
+        $categories = $productModel->getCategories();
+        $syncSettings = ProductSyncService::getSyncSettings();
+
         $this->view('sync/index', [
             'logs' => $logs,
-            'stats' => $stats
+            'stats' => $stats,
+            'categories' => $categories,
+            'syncSettings' => $syncSettings
         ]);
+    }
+
+    public function saveSettings() {
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            $this->json(['success' => false, 'message' => 'Invalid request method'], 405);
+            return;
+        }
+
+        $syncAll = !empty($_POST['sync_all']);
+        $enabledCategories = $_POST['categories'] ?? [];
+
+        $saved = ProductSyncService::saveSyncSettings($enabledCategories, $syncAll);
+        if ($saved) {
+            $this->json(['success' => true, 'message' => 'Sync Configuration saved successfully!']);
+        } else {
+            $this->json(['success' => false, 'message' => 'Failed to save configuration settings']);
+        }
     }
 
     public function syncSingle() {
