@@ -1,5 +1,29 @@
 {
-    "sync_all": true,
-    "enabled_categories": [],
-    "updated_at": "2026-08-03 21:49:40"
+    "sync_all": false,
+    "enabled_categories": [
+        "jewel_parent:25",
+        "jewel_parent:21",
+        "jewel_parent:11",
+        "jewel_parent:22",
+        "jewel_parent:14",
+        "jewel_parent:17",
+        "jewel_child:77",
+        "jewel_child:80",
+        "jewel_child:74",
+        "jewel_child:78",
+        "jewel_child:75",
+        "jewel_child:76",
+        "jewel_parent:27",
+        "jewel_parent:15",
+        "jewel_parent:26",
+        "jewel_parent:1",
+        "jewel_child:2",
+        "jewel_child:1",
+        "jewel_child:6",
+        "jewel_child:3",
+        "jewel_child:68",
+        "jewel_child:4",
+        "jewel_parent:24"
+    ],
+    "updated_at": "2026-08-03 21:55:20"
 }
