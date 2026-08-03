@@ -72,7 +72,17 @@
                                     <?php foreach ($image_logs as $log): ?>
                                         <tr class="hover:bg-white/[0.02] transition-colors">
                                             <td class="px-6 py-3 text-xs text-zinc-300"><?php echo date('M j, Y g:i A', strtotime($log['created_at'])); ?></td>
-                                            <td class="px-6 py-3 text-xs text-zinc-300">ID: <?php echo htmlspecialchars($log['product_id']); ?> (<?php echo htmlspecialchars($log['product_type']); ?>)</td>
+                                            <td class="px-6 py-3 text-xs text-zinc-300">
+                                                <?php 
+                                                    $skuDisplay = !empty($log['product_sku']) ? $log['product_sku'] : ('ID: ' . $log['product_id']);
+                                                    $editUrl = "index.php?controller=product&action=edit&id=" . urlencode($log['product_id']) . "&type=" . urlencode($log['product_type']);
+                                                ?>
+                                                <a href="<?php echo $editUrl; ?>" class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-400 hover:text-indigo-300 font-mono font-semibold transition-all border border-indigo-500/20 group" title="Click to edit product">
+                                                    <span><?php echo htmlspecialchars($skuDisplay); ?></span>
+                                                    <span class="text-[10px] text-zinc-400 font-sans font-normal">(<?php echo htmlspecialchars($log['product_type']); ?>)</span>
+                                                    <i class="fas fa-external-link-alt text-[9px] opacity-60 group-hover:opacity-100 transition-opacity"></i>
+                                                </a>
+                                            </td>
                                             <td class="px-6 py-3 text-xs font-bold text-pink-400"><?php echo htmlspecialchars($log['num_images']); ?></td>
                                             <td class="px-6 py-3 text-xs text-zinc-500 max-w-xs truncate" title="<?php echo htmlspecialchars($log['prompt_text']); ?>"><?php echo htmlspecialchars($log['prompt_text']); ?></td>
                                             <td class="px-6 py-3 text-xs text-emerald-400"><?php echo number_format($log['total_tokens']); ?></td>

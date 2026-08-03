@@ -63,7 +63,14 @@ class AianalyticsController extends Controller {
                 $image_totals['total_cost'] = ($row['imgs'] ?? 0) * 0.03 * 86; // $0.03/image * ₹86
             }
 
-            $logRes = mysqli_query($con, "SELECT * FROM ai_analytics ORDER BY created_at DESC LIMIT 100");
+            $logSql = "SELECT a.*, 
+                              COALESCE(p.product_code, gp.gproduct_code) AS product_sku
+                       FROM ai_analytics a
+                       LEFT JOIN product p ON (LOWER(a.product_type) LIKE '%jewel%' AND a.product_id = p.product_id)
+                       LEFT JOIN garment_product gp ON ((LOWER(a.product_type) LIKE '%garment%' OR LOWER(a.product_type) LIKE '%apparel%') AND a.product_id = gp.gproduct_id)
+                       ORDER BY a.created_at DESC 
+                       LIMIT 100";
+            $logRes = mysqli_query($con, $logSql);
             if ($logRes) {
                 while ($row = mysqli_fetch_assoc($logRes)) {
                     // Ensure accurate Imagen 3 cost representation (~₹2.58 per image)
