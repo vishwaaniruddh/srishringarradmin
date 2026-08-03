@@ -1,0 +1,533 @@
+<?php
+namespace Core;
+
+use Models\ProductModel;
+use PDO;
+use PDOException;
+
+class ProductSyncService {
+
+    private static $childPdo = null;
+
+    /**
+     * Get PDO connection to Child Database (Yosshitaneha)
+     */
+    public static function getChildPdo() {
+        if (self::$childPdo !== null) {
+            return self::$childPdo;
+        }
+
+        $httpHost = $_SERVER['HTTP_HOST'] ?? $_SERVER['SERVER_NAME'] ?? '';
+        $docRoot = $_SERVER['DOCUMENT_ROOT'] ?? '';
+
+        $isProduction = (
+            str_contains($httpHost, 'srishringarr.com') || 
+            str_contains($httpHost, 'yosshitaneha.com') || 
+            str_contains($docRoot, 'u464193275') ||
+            (!str_contains($httpHost, 'localhost') && !str_contains($httpHost, '127.0.0.1') && !empty($httpHost))
+        );
+
+        if ($isProduction) {
+            $host = 'localhost';
+            $user = 'u464193275_yosshitanehafs';
+            $pass = 'AVav@@2026';
+            $dbname = 'u464193275_yosshitanehafs';
+        } else {
+            $host = 'localhost';
+            $user = 'root';
+            $pass = '';
+            $dbname = 'yosshitaneha_db';
+        }
+
+        try {
+            self::$childPdo = new PDO("mysql:host=$host;dbname=$dbname;charset=utf8mb4", $user, $pass, [
+                PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
+                PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
+                PDO::ATTR_EMULATE_PREPARES => false,
+            ]);
+            return self::$childPdo;
+        } catch (PDOException $e) {
+            error_log("ProductSyncService Child DB Connection Failed: " . $e->getMessage());
+            return null;
+        }
+    }
+
+    /**
+     * Helper to create a URL-friendly slug
+     */
+    private static function createSlug($text, $sku = '') {
+        $slug = preg_replace('~[^\pL\d]+~u', '-', $text);
+        $slug = iconv('utf-8', 'us-ascii//TRANSLIT', $slug);
+        $slug = preg_replace('~[^-\w]+~', '', $slug);
+        $slug = trim($slug, '-');
+        $slug = strtolower($slug);
+
+        if (empty($slug)) {
+            $slug = 'product-' . strtolower($sku);
+        }
+        return $slug;
+    }
+
+    /**
+     * Download or copy image content from local file or remote URL using cURL
+     */
+    private static function fetchImageContent($source) {
+        if (str_starts_with($source, 'http://') || str_starts_with($source, 'https://')) {
+            if (!function_exists('curl_init')) {
+                $ctx = stream_context_create(['http' => ['timeout' => 10]]);
+                $c = @file_get_contents($source, false, $ctx);
+                return ($c && strlen($c) > 100) ? $c : false;
+            }
+
+            $ch = curl_init();
+            curl_setopt_array($ch, [
+                CURLOPT_URL => $source,
+                CURLOPT_RETURNTRANSFER => true,
+                CURLOPT_FOLLOWLOCATION => true,
+                CURLOPT_SSL_VERIFYPEER => false,
+                CURLOPT_SSL_VERIFYHOST => false,
+                CURLOPT_TIMEOUT => 15,
+                CURLOPT_USERAGENT => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+            ]);
+            $content = curl_exec($ch);
+            $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+
+            if ($httpCode === 200 && $content && strlen($content) > 100) {
+                return $content;
+            }
+            return false;
+        } else {
+            if (file_exists($source)) {
+                $content = @file_get_contents($source);
+                if ($content && strlen($content) > 100) {
+                    return $content;
+                }
+            }
+            return false;
+        }
+    }
+
+    /**
+     * Sync a single product from Parent to Child
+     * 
+     * @param int $productId
+     * @param string $productType ('jewellery' or 'garments')
+     * @param string $mode ('auto' or 'manual')
+     * @return array ['success' => bool, 'message' => string, 'sku' => string]
+     */
+    public static function syncProduct($productId, $productType = 'jewellery', $mode = 'auto') {
+        $productId = (int)$productId;
+        $productType = strtolower($productType) === 'garments' ? 'garments' : 'jewellery';
+
+        if (!$productId) {
+            return ['success' => false, 'message' => 'Invalid Product ID', 'sku' => 'N/A'];
+        }
+
+        $productModel = new ProductModel();
+        $parentProduct = $productModel->getProductById($productId, $productType);
+
+        if (!$parentProduct) {
+            self::logSync($productId, $productType, 'N/A', $mode, 'failed', 'Product not found in Parent DB');
+            return ['success' => false, 'message' => 'Product not found in Parent DB', 'sku' => 'N/A'];
+        }
+
+        $sku = trim($parentProduct['code'] ?? '');
+        if (empty($sku)) {
+            self::logSync($productId, $productType, 'N/A', $mode, 'failed', 'Product SKU code is empty');
+            return ['success' => false, 'message' => 'Product SKU code is empty', 'sku' => 'N/A'];
+        }
+
+        $childPdo = self::getChildPdo();
+        if (!$childPdo) {
+            self::logSync($productId, $productType, $sku, $mode, 'failed', 'Could not connect to Child DB');
+            return ['success' => false, 'message' => 'Could not connect to Child DB', 'sku' => $sku];
+        }
+
+        try {
+            $childPdo->beginTransaction();
+
+            // 1. Process Category
+            $categoryId = null;
+            $catName = trim($parentProduct['category_name'] ?? '');
+            if (!empty($catName)) {
+                $catSlug = self::createSlug($catName);
+                $stmtCat = $childPdo->prepare("SELECT id FROM categories WHERE name = :name OR slug = :slug LIMIT 1");
+                $stmtCat->execute([':name' => $catName, ':slug' => $catSlug]);
+                $catRow = $stmtCat->fetch();
+
+                if ($catRow) {
+                    $categoryId = $catRow['id'];
+                } else {
+                    // Create Category in Child DB
+                    $stmtInsCat = $childPdo->prepare("INSERT INTO categories (name, slug, description) VALUES (:name, :slug, :desc)");
+                    $stmtInsCat->execute([
+                        ':name' => $catName,
+                        ':slug' => $catSlug,
+                        ':desc' => 'Auto-synced category from Srishringarr'
+                    ]);
+                    $categoryId = $childPdo->lastInsertId();
+                }
+            }
+
+            // 2. Prepare Product Data
+            $name = trim($parentProduct['name'] ?? 'Product ' . $sku);
+            $slug = self::createSlug($name, $sku);
+            $description = trim($parentProduct['description'] ?? '');
+            $shortDescription = mb_substr(strip_tags($description), 0, 200);
+
+            // Resolved Price Logic: If sales_price in product/garment_product is empty/0, fetch unit_price from phppos_items (DB3)
+            $price = (float)($parentProduct['s_price'] ?? 0);
+            if ($price <= 0) {
+                $db3 = Database::getConnection('con3');
+                if ($db3) {
+                    $stmtPos = mysqli_prepare($db3, "SELECT unit_price FROM phppos_items WHERE name = ? LIMIT 1");
+                    if ($stmtPos) {
+                        mysqli_stmt_bind_param($stmtPos, "s", $sku);
+                        mysqli_stmt_execute($stmtPos);
+                        $resPos = mysqli_stmt_get_result($stmtPos);
+                        if ($rPos = mysqli_fetch_assoc($resPos)) {
+                            $price = (float)($rPos['unit_price'] ?? 0);
+                        }
+                        mysqli_stmt_close($stmtPos);
+                    }
+                }
+            }
+
+            $discountPercent = (float)($parentProduct['discount'] ?? 0);
+            $salePrice = null;
+
+            if ($discountPercent > 0 && $price > 0) {
+                $salePrice = round($price - ($price * ($discountPercent / 100)), 2);
+            }
+
+            $stockQty = (int)($parentProduct['quantity'] ?? 10);
+            $isFeatured = !empty($parentProduct['featured']) ? 1 : 0;
+            $status = (isset($parentProduct['availability']) && $parentProduct['availability'] == 0) ? 'draft' : 'published';
+
+            // Target Directories for Child Store (yn/admin/uploads/products/{sku}/)
+            $ynAdminDir = null;
+            $possiblePaths = [
+                dirname(__DIR__, 3) . '/yn/admin/',
+                dirname(__DIR__, 2) . '/yn/admin/',
+                ($_SERVER['DOCUMENT_ROOT'] ?? '') . '/yn/admin/',
+                'C:/xampp/htdocs/yn/admin/'
+            ];
+            foreach ($possiblePaths as $p) {
+                if (is_dir($p)) {
+                    $ynAdminDir = rtrim($p, '/') . '/';
+                    break;
+                }
+            }
+            if (!$ynAdminDir) {
+                $ynAdminDir = 'C:/xampp/htdocs/yn/admin/';
+            }
+
+            $productUploadDir = $ynAdminDir . 'uploads/products/' . $sku . '/';
+            $thumbUploadDir = $productUploadDir . 'thumbs/';
+
+            if (!is_dir($productUploadDir)) {
+                @mkdir($productUploadDir, 0755, true);
+            }
+            if (!is_dir($thumbUploadDir)) {
+                @mkdir($thumbUploadDir, 0755, true);
+            }
+
+            // Fetch Parent Product Images
+            $parentImages = $productModel->getProductImages($productId, $productType);
+            $mainImage = null;
+            $galleryImages = [];
+
+            if (!empty($parentImages)) {
+                foreach ($parentImages as $idx => $img) {
+                    $rawPath = is_array($img) ? ($img['img_name'] ?? $img['img_path'] ?? $img['image_name'] ?? '') : (string)$img;
+                    if (empty($rawPath)) continue;
+
+                    $cleanName = ltrim($rawPath, '/');
+                    $filename = basename($cleanName);
+
+                    // Destination file paths inside yn/admin/uploads/products/{sku}/
+                    $destFile = $productUploadDir . $filename;
+                    $thumbFile = $thumbUploadDir . $filename;
+
+                    // Relative DB paths for Child DB
+                    $dbImgPath = 'uploads/products/' . $sku . '/' . $filename;
+                    $dbThumbPath = 'uploads/products/' . $sku . '/thumbs/' . $filename;
+
+                    // Copy / acquire image if missing or 0 bytes
+                    if (!file_exists($destFile) || filesize($destFile) < 100) {
+                        $sources = [
+                            $ynAdminDir . '../uploads/' . ltrim(str_replace(['yn/uploads/', 'uploads/'], '', $cleanName), '/'),
+                            $ynAdminDir . '../' . $cleanName,
+                            dirname(__DIR__, 3) . '/ss/' . $cleanName,
+                            dirname(__DIR__, 3) . '/yn/uploads/' . ltrim(str_replace(['yn/uploads/', 'uploads/'], '', $cleanName), '/'),
+                            'https://srishringarr.com/yn/uploads/' . ltrim(str_replace(['yn/uploads/', 'uploads/'], '', $cleanName), '/'),
+                            'https://srishringarr.com/uploads/' . ltrim(str_replace(['yn/uploads/', 'uploads/'], '', $cleanName), '/'),
+                            'https://srishringarr.com/' . $cleanName,
+                            'https://yosshitaneha.com/wp-content/uploads/' . $cleanName
+                        ];
+
+                        $content = null;
+                        foreach ($sources as $src) {
+                            $c = self::fetchImageContent($src);
+                            if ($c && strlen($c) > 100) {
+                                $content = $c;
+                                break;
+                            }
+                        }
+
+                        if ($content) {
+                            @file_put_contents($destFile, $content);
+
+                            // Generate thumbnail via GD if available
+                            $savedThumb = false;
+                            if (function_exists('imagecreatefromstring')) {
+                                $gdImg = @imagecreatefromstring($content);
+                                if ($gdImg) {
+                                    $w = imagesx($gdImg);
+                                    $h = imagesy($gdImg);
+                                    $maxDim = 300;
+                                    if ($w > $maxDim || $h > $maxDim) {
+                                        $ratio = min($maxDim / $w, $maxDim / $h);
+                                        $newW = (int)($w * $ratio);
+                                        $newH = (int)($h * $ratio);
+                                        $thumbGd = imagecreatetruecolor($newW, $newH);
+                                        imagecopyresampled($thumbGd, $gdImg, 0, 0, 0, 0, $newW, $newH, $w, $h);
+                                        @imagejpeg($thumbGd, $thumbFile, 85);
+                                        $savedThumb = true;
+                                    }
+                                }
+                            }
+                            if (!$savedThumb) {
+                                @file_put_contents($thumbFile, $content);
+                            }
+                        }
+                    }
+
+                    if (!$mainImage) {
+                        $mainImage = $dbImgPath;
+                    }
+                    $galleryImages[] = [
+                        'image_path' => $dbImgPath,
+                        'thumb_path' => $dbThumbPath
+                    ];
+                }
+            }
+
+            // 3. UPSERT Product in Child DB
+            $stmtCheck = $childPdo->prepare("SELECT id FROM products WHERE sku = :sku LIMIT 1");
+            $stmtCheck->execute([':sku' => $sku]);
+            $existingProduct = $stmtCheck->fetch();
+
+            if ($existingProduct) {
+                $childProductId = $existingProduct['id'];
+                $stmtUpdate = $childPdo->prepare("UPDATE products SET 
+                    category_id = :category_id,
+                    name = :name,
+                    slug = :slug,
+                    description = :description,
+                    short_description = :short_description,
+                    price = :price,
+                    sale_price = :sale_price,
+                    stock_qty = :stock_qty,
+                    is_featured = :is_featured,
+                    status = :status,
+                    main_image = :main_image,
+                    updated_at = NOW(),
+                    deleted_at = NULL
+                WHERE id = :id");
+
+                $stmtUpdate->execute([
+                    ':category_id' => $categoryId,
+                    ':name' => $name,
+                    ':slug' => $slug,
+                    ':description' => $description,
+                    ':short_description' => $shortDescription,
+                    ':price' => $price,
+                    ':sale_price' => $salePrice,
+                    ':stock_qty' => $stockQty,
+                    ':is_featured' => $isFeatured,
+                    ':status' => $status,
+                    ':main_image' => $mainImage,
+                    ':id' => $childProductId
+                ]);
+                $actionText = 'Updated';
+            } else {
+                $stmtInsert = $childPdo->prepare("INSERT INTO products 
+                    (category_id, name, slug, sku, description, short_description, price, sale_price, stock_qty, is_featured, status, main_image, created_at, updated_at)
+                    VALUES 
+                    (:category_id, :name, :slug, :sku, :description, :short_description, :price, :sale_price, :stock_qty, :is_featured, :status, :main_image, NOW(), NOW())");
+
+                $stmtInsert->execute([
+                    ':category_id' => $categoryId,
+                    ':name' => $name,
+                    ':slug' => $slug,
+                    ':sku' => $sku,
+                    ':description' => $description,
+                    ':short_description' => $shortDescription,
+                    ':price' => $price,
+                    ':sale_price' => $salePrice,
+                    ':stock_qty' => $stockQty,
+                    ':is_featured' => $isFeatured,
+                    ':status' => $status,
+                    ':main_image' => $mainImage
+                ]);
+                $childProductId = $childPdo->lastInsertId();
+                $actionText = 'Inserted';
+            }
+
+            // 4. Sync Gallery Images
+            if ($childProductId) {
+                $childPdo->prepare("DELETE FROM product_images WHERE product_id = :pid")->execute([':pid' => $childProductId]);
+                if (!empty($galleryImages)) {
+                    $stmtImgIns = $childPdo->prepare("INSERT INTO product_images (product_id, image_path, thumb_path, sort_order) VALUES (:pid, :img, :thumb, :sort)");
+                    
+                    $sort = 0;
+                    foreach ($galleryImages as $gImg) {
+                        $stmtImgIns->execute([
+                            ':pid' => $childProductId,
+                            ':img' => $gImg['image_path'],
+                            ':thumb' => $gImg['thumb_path'],
+                            ':sort' => $sort++
+                        ]);
+                    }
+                }
+            }
+
+            // 5. Sync Category Relation in product_categories if categoryId exists
+            if ($childProductId && $categoryId) {
+                $stmtCatRel = $childPdo->prepare("INSERT IGNORE INTO product_categories (product_id, category_id) VALUES (:pid, :cid)");
+                $stmtCatRel->execute([':pid' => $childProductId, ':cid' => $categoryId]);
+            }
+
+            $childPdo->commit();
+
+            // Clear Cache in Child
+            self::clearChildCache();
+
+            // Log Success
+            $msg = "Successfully $actionText SKU $sku ($productType) to Yosshitaneha";
+            self::logSync($productId, $productType, $sku, $mode, 'success', $msg);
+
+            return ['success' => true, 'message' => $msg, 'sku' => $sku];
+
+        } catch (\Exception $e) {
+            if ($childPdo->inTransaction()) {
+                $childPdo->rollBack();
+            }
+            $errMsg = "Sync failed for SKU $sku: " . $e->getMessage();
+            self::logSync($productId, $productType, $sku, $mode, 'failed', $errMsg);
+            return ['success' => false, 'message' => $errMsg, 'sku' => $sku];
+        }
+    }
+
+    /**
+     * Delete / Soft Delete product from Child DB when deleted in Parent
+     */
+    public static function deleteProductFromChild($sku) {
+        $sku = trim($sku);
+        if (empty($sku)) return false;
+
+        $childPdo = self::getChildPdo();
+        if (!$childPdo) return false;
+
+        try {
+            $stmt = $childPdo->prepare("UPDATE products SET status = 'draft', deleted_at = NOW() WHERE sku = :sku");
+            $stmt->execute([':sku' => $sku]);
+            self::clearChildCache();
+            return true;
+        } catch (\Exception $e) {
+            error_log("Failed to soft-delete SKU $sku in Child DB: " . $e->getMessage());
+            return false;
+        }
+    }
+
+    /**
+     * Bulk Sync All Products from Parent to Child DB
+     */
+    public static function syncAllProducts($mode = 'manual') {
+        $con = \Core\Database::getConnection('con');
+        if (!$con) {
+            return ['success' => false, 'message' => 'Parent DB connection failed'];
+        }
+
+        $productsToSync = [];
+        // Fetch Jewellery
+        $resJ = mysqli_query($con, "SELECT product_id as id, 'jewellery' as type FROM product");
+        if ($resJ) {
+            while ($r = mysqli_fetch_assoc($resJ)) {
+                $productsToSync[] = $r;
+            }
+        }
+
+        // Fetch Garments
+        $resG = mysqli_query($con, "SELECT gproduct_id as id, 'garments' as type FROM garment_product");
+        if ($resG) {
+            while ($r = mysqli_fetch_assoc($resG)) {
+                $productsToSync[] = $r;
+            }
+        }
+
+        $total = count($productsToSync);
+        $successCount = 0;
+        $failedCount = 0;
+        $errors = [];
+
+        foreach ($productsToSync as $item) {
+            $res = self::syncProduct($item['id'], $item['type'], $mode);
+            if ($res['success']) {
+                $successCount++;
+            } else {
+                $failedCount++;
+                $errors[] = "ID {$item['id']} ({$item['type']}): " . $res['message'];
+            }
+        }
+
+        return [
+            'success' => true,
+            'total' => $total,
+            'success_count' => $successCount,
+            'failed_count' => $failedCount,
+            'errors' => array_slice($errors, 0, 20)
+        ];
+    }
+
+    /**
+     * Clear Cache directory in Child project
+     */
+    private static function clearChildCache() {
+        $cacheDirs = [
+            __DIR__ . '/../../yn/admin/cache',
+            __DIR__ . '/../../../yn/admin/cache',
+            $_SERVER['DOCUMENT_ROOT'] . '/yn/admin/cache',
+            $_SERVER['DOCUMENT_ROOT'] . '/admin/cache'
+        ];
+
+        foreach ($cacheDirs as $dir) {
+            if (is_dir($dir)) {
+                $files = glob($dir . '/*');
+                if ($files) {
+                    foreach ($files as $file) {
+                        if (is_file($file)) {
+                            @unlink($file);
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    /**
+     * Log sync activity to product_sync_logs table
+     */
+    public static function logSync($productId, $productType, $sku, $mode, $status, $message) {
+        $con = \Core\Database::getConnection('con');
+        if (!$con) return;
+
+        $stmt = mysqli_prepare($con, "INSERT INTO product_sync_logs (product_id, product_type, sku, sync_mode, status, message) VALUES (?, ?, ?, ?, ?, ?)");
+        if ($stmt) {
+            mysqli_stmt_bind_param($stmt, "isssss", $productId, $productType, $sku, $mode, $status, $message);
+            mysqli_stmt_execute($stmt);
+            mysqli_stmt_close($stmt);
+        }
+    }
+}

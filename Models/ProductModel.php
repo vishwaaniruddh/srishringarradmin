@@ -795,6 +795,11 @@ class ProductModel extends Model
             }
 
             mysqli_commit($this->db);
+            try {
+                \Core\ProductSyncService::syncProduct($product_id, $type, 'auto');
+            } catch (\Throwable $th) {
+                error_log("Auto-sync error on saveProduct: " . $th->getMessage());
+            }
             return true;
         } catch (\Exception $e) {
             mysqli_rollback($this->db);
@@ -969,6 +974,11 @@ class ProductModel extends Model
             }
 
             mysqli_commit($this->db);
+            try {
+                \Core\ProductSyncService::syncProduct($id, $type, 'auto');
+            } catch (\Throwable $th) {
+                error_log("Auto-sync error on updateProduct: " . $th->getMessage());
+            }
             return true;
         } catch (\Exception $e) {
             mysqli_rollback($this->db);

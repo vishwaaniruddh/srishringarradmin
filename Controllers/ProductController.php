@@ -711,6 +711,11 @@ class ProductController extends Controller {
         mysqli_stmt_bind_param($stmt, "si", $value, $id);
         if (mysqli_stmt_execute($stmt)) {
             mysqli_stmt_close($stmt);
+            try {
+                \Core\ProductSyncService::syncProduct($id, $type, 'auto');
+            } catch (\Throwable $th) {
+                error_log("Auto-sync error on saveProductField: " . $th->getMessage());
+            }
             $this->json(['success' => true, 'message' => ucfirst($field) . ' updated successfully']);
         } else {
             $err = mysqli_stmt_error($stmt);
@@ -917,7 +922,16 @@ class ProductController extends Controller {
 
         $productModel = new ProductModel();
         try {
+            $product = $productModel->getProductById($id, $type);
             $productModel->deleteProduct($id, $type);
+
+            if ($product && !empty($product['code'])) {
+                try {
+                    \Core\ProductSyncService::deleteProductFromChild($product['code']);
+                } catch (\Throwable $th) {
+                    error_log("Auto-sync delete error: " . $th->getMessage());
+                }
+            }
             $this->redirect('index.php?controller=product&action=index&success=1');
         } catch (\Exception $e) {
             $this->redirect('index.php?controller=product&action=index&error=' . urlencode($e->getMessage()));

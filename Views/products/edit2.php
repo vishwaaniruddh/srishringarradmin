@@ -310,6 +310,16 @@
                     <?php if (isset($_GET['error'])): ?>
                         <div class="alert alert--error"><i class="fas fa-exclamation-circle mr-1"></i> <?php echo htmlspecialchars($_GET['error']); ?></div>
                     <?php endif; ?>
+                    <div class="mb-3 flex items-center justify-between p-3 bg-zinc-900 border border-zinc-800 rounded-xl">
+                        <div class="flex items-center gap-2">
+                            <span class="text-xs font-bold text-white"><i class="fas fa-sync-alt text-teal-400 mr-1.5"></i> Yosshitaneha Store Sync</span>
+                            <span class="text-[11px] text-zinc-400">(Child Buy Store)</span>
+                        </div>
+                        <button type="button" id="btnSyncSingle" onclick="syncSingleProduct(<?php echo $product['id']; ?>, '<?php echo $type; ?>')" class="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold rounded-lg transition-all flex items-center gap-1.5">
+                            <i class="fas fa-paper-plane" id="syncSingleIcon"></i>
+                            <span>Sync to Child Store</span>
+                        </button>
+                    </div>
 
                     <div class="edit-card">
                         <!-- Tabs -->
@@ -1544,6 +1554,37 @@
         document.addEventListener('DOMContentLoaded', () => {
             wpUpdateCatCounter();
         });
+
+        function syncSingleProduct(id, type) {
+            const btn = document.getElementById('btnSyncSingle');
+            const icon = document.getElementById('syncSingleIcon');
+            if (btn) btn.disabled = true;
+            if (icon) icon.className = 'fas fa-spinner fa-spin';
+
+            const formData = new FormData();
+            formData.append('id', id);
+            formData.append('type', type);
+
+            fetch('index.php?controller=sync&action=syncSingle', {
+                method: 'POST',
+                body: formData
+            })
+            .then(r => r.json())
+            .then(res => {
+                if (btn) btn.disabled = false;
+                if (icon) icon.className = 'fas fa-paper-plane';
+                if (res.success) {
+                    alert("✓ " + res.message);
+                } else {
+                    alert("❌ " + res.message);
+                }
+            })
+            .catch(err => {
+                if (btn) btn.disabled = false;
+                if (icon) icon.className = 'fas fa-paper-plane';
+                alert("Sync request failed: " + err);
+            });
+        }
     </script>
 </body>
 </html>

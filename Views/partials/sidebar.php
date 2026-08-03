@@ -63,6 +63,11 @@ function isActive($controller, $action = null) {
                 <span>YN Web Products</span>
                 <span class="ml-auto text-[9px] bg-blue-500/10 text-blue-400 px-1 rounded font-bold uppercase tracking-tighter">Remote</span>
             </a>
+            <a href="index.php?controller=sync" class="flex items-center px-3 py-2 text-xs font-semibold rounded-lg transition-all <?php echo isActive('sync') ? 'text-white bg-zinc-900' : 'text-zinc-400 hover:text-white hover:bg-zinc-900/50'; ?>">
+                <i class="fas fa-sync-alt w-5 mr-2 text-zinc-400"></i>
+                <span>Product Sync</span>
+                <span class="ml-auto text-[9px] bg-teal-500/10 text-teal-400 px-1 rounded font-bold uppercase tracking-tighter">Auto</span>
+            </a>
             <a href="index.php?controller=product&action=add" class="flex items-center px-3 py-2 text-xs font-semibold rounded-lg transition-all <?php echo isActive('product', 'add') ? 'text-white bg-zinc-900' : 'text-zinc-400 hover:text-white hover:bg-zinc-900/50'; ?>">
                 <i class="fas fa-plus w-5 mr-2 text-zinc-400"></i>
                 <span>Add Product</span>
