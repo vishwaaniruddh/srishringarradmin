@@ -31,11 +31,63 @@
 
             <div class="flex-1 p-6 flex flex-col overflow-y-auto custom-scrollbar gap-6">
                 
-                <!-- Status Banner -->
-                <div id="syncStatusAlert" class="hidden p-4 rounded-xl border border-indigo-500/30 bg-indigo-500/10 text-indigo-300 text-xs flex items-center justify-between">
-                    <div class="flex items-center gap-3">
-                        <i class="fas fa-spinner fa-spin text-indigo-400 text-lg" id="statusSpinner"></i>
-                        <span id="syncStatusMsg">Synchronizing products... Please wait.</span>
+                <!-- Real-time Interactive Sync Console -->
+                <div id="syncStatusAlert" class="hidden p-5 rounded-2xl border border-indigo-500/30 bg-gradient-to-b from-[#0d0d15] to-[#08080c] shadow-2xl flex flex-col gap-4">
+                    <!-- Top Status Header & Stop Button -->
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center gap-3">
+                            <div class="w-9 h-9 rounded-xl bg-indigo-500/20 border border-indigo-500/30 flex items-center justify-center text-indigo-400">
+                                <i class="fas fa-sync-alt fa-spin text-sm" id="statusSpinner"></i>
+                            </div>
+                            <div>
+                                <div class="text-sm font-bold text-white flex items-center gap-2">
+                                    <span id="syncStatusTitle">Bulk Syncing Products to Yosshitaneha</span>
+                                    <span id="syncPercentBadge" class="px-2 py-0.5 bg-indigo-500/20 text-indigo-300 text-[11px] font-mono font-bold rounded-full border border-indigo-500/30">0%</span>
+                                </div>
+                                <div id="syncStatusMsg" class="text-xs text-zinc-400 mt-0.5 font-medium">Preparing product sync queue...</div>
+                            </div>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <button type="button" id="btnCancelSync" onclick="cancelBulkSync()" style="display:none;" class="px-3 py-1.5 bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/30 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer">
+                                <i class="fas fa-stop-circle"></i> Stop Sync
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Progress Bar -->
+                    <div class="w-full bg-zinc-900 h-2.5 rounded-full overflow-hidden border border-white/5 relative">
+                        <div id="syncProgressBar" class="bg-gradient-to-r from-indigo-500 via-purple-500 to-emerald-400 h-full w-0 transition-all duration-200 rounded-full shadow-[0_0_12px_rgba(99,102,241,0.6)]"></div>
+                    </div>
+
+                    <!-- Realtime Counter Badges -->
+                    <div class="grid grid-cols-4 gap-3 text-center">
+                        <div class="bg-zinc-900/60 border border-white/5 p-2.5 rounded-xl">
+                            <span class="text-[10px] uppercase font-bold text-zinc-500 block tracking-wider">Processed</span>
+                            <span id="cntProcessed" class="text-base font-bold text-white font-mono">0 / 0</span>
+                        </div>
+                        <div class="bg-emerald-500/10 border border-emerald-500/20 p-2.5 rounded-xl">
+                            <span class="text-[10px] uppercase font-bold text-emerald-400 block tracking-wider">Synced</span>
+                            <span id="cntSynced" class="text-base font-bold text-emerald-300 font-mono">0</span>
+                        </div>
+                        <div class="bg-amber-500/10 border border-amber-500/20 p-2.5 rounded-xl">
+                            <span class="text-[10px] uppercase font-bold text-amber-400 block tracking-wider">Skipped</span>
+                            <span id="cntSkipped" class="text-base font-bold text-amber-300 font-mono">0</span>
+                        </div>
+                        <div class="bg-rose-500/10 border border-rose-500/20 p-2.5 rounded-xl">
+                            <span class="text-[10px] uppercase font-bold text-rose-400 block tracking-wider">Failed</span>
+                            <span id="cntFailed" class="text-base font-bold text-rose-300 font-mono">0</span>
+                        </div>
+                    </div>
+
+                    <!-- Realtime Live Log Terminal Window -->
+                    <div class="mt-1">
+                        <div class="flex items-center justify-between text-[11px] font-bold text-zinc-400 mb-1.5 uppercase tracking-wider">
+                            <span><i class="fas fa-terminal mr-1.5 text-indigo-400"></i> Live Sync Terminal Activity</span>
+                            <span class="text-zinc-500 font-normal">Item-by-item real-time status</span>
+                        </div>
+                        <div id="syncLiveConsole" class="w-full h-44 bg-black/90 border border-zinc-800 rounded-xl p-3 font-mono text-[11px] overflow-y-auto custom-scrollbar flex flex-col gap-1 text-zinc-300">
+                            <div class="text-zinc-500 italic">[System initialized] Click "Sync All Products" to start live synchronization.</div>
+                        </div>
                     </div>
                 </div>
 
@@ -267,43 +319,159 @@
             });
         }
 
-        function startBulkSync() {
-            if (!confirm("Are you sure you want to sync products from Srishringarr to Yosshitaneha based on your Category Configuration? This may take up to a minute.")) return;
+        let isSyncCancelled = false;
+
+        async function startBulkSync() {
+            if (!confirm("Are you sure you want to sync products from Srishringarr to Yosshitaneha? You will see live progress for each product.")) return;
+
+            isSyncCancelled = false;
 
             const btn = document.getElementById('btnBulkSync');
             const icon = document.getElementById('syncIcon');
             const alertBox = document.getElementById('syncStatusAlert');
-            const msg = document.getElementById('syncStatusMsg');
+            const statusMsg = document.getElementById('syncStatusMsg');
+            const statusTitle = document.getElementById('syncStatusTitle');
+            const progressBar = document.getElementById('syncProgressBar');
+            const percentBadge = document.getElementById('syncPercentBadge');
+            const consoleBox = document.getElementById('syncLiveConsole');
+            const btnCancel = document.getElementById('btnCancelSync');
+
+            const cntProcessed = document.getElementById('cntProcessed');
+            const cntSynced = document.getElementById('cntSynced');
+            const cntSkipped = document.getElementById('cntSkipped');
+            const cntFailed = document.getElementById('cntFailed');
 
             btn.disabled = true;
             btn.classList.add('opacity-50', 'cursor-not-allowed');
             icon.classList.add('fa-spin');
             alertBox.classList.remove('hidden');
-            msg.innerText = "Synchronizing products to Yosshitaneha Child DB... Please wait.";
+            btnCancel.style.display = 'inline-flex';
 
-            fetch('index.php?controller=sync&action=syncBulk', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
-            })
-            .then(res => res.json())
-            .then(data => {
-                btn.disabled = false;
-                btn.classList.remove('opacity-50', 'cursor-not-allowed');
-                icon.classList.remove('fa-spin');
+            statusTitle.textContent = "Bulk Syncing Products to Yosshitaneha";
+            statusMsg.textContent = "Fetching product sync queue from database...";
+            progressBar.style.width = '0%';
+            percentBadge.textContent = '0%';
+            consoleBox.innerHTML = `<div class="text-indigo-400 font-bold">[${new Date().toLocaleTimeString()}] Fetching product queue from database...</div>`;
 
-                if (data.success) {
-                    msg.innerText = `Bulk Sync Complete! Total Processed: ${data.total}, Synced: ${data.success_count}, Skipped: ${data.skipped_count || 0}, Failed: ${data.failed_count}`;
-                    setTimeout(() => { window.location.reload(); }, 2500);
-                } else {
-                    msg.innerText = `Sync Failed: ${data.message}`;
+            let queue = [];
+            try {
+                const res = await fetch('index.php?controller=sync&action=getSyncQueue');
+                const data = await res.json();
+                if (!data.success || !data.items) {
+                    statusMsg.textContent = "Failed to fetch sync queue: " + (data.message || "Unknown error");
+                    btn.disabled = false;
+                    btn.classList.remove('opacity-50', 'cursor-not-allowed');
+                    icon.classList.remove('fa-spin');
+                    return;
                 }
-            })
-            .catch(err => {
+                queue = data.items;
+            } catch (err) {
+                statusMsg.textContent = "Network error fetching sync queue: " + err;
                 btn.disabled = false;
                 btn.classList.remove('opacity-50', 'cursor-not-allowed');
                 icon.classList.remove('fa-spin');
-                msg.innerText = "An error occurred during bulk sync: " + err;
-            });
+                return;
+            }
+
+            const total = queue.length;
+            if (total === 0) {
+                statusMsg.textContent = "No products found to sync.";
+                btn.disabled = false;
+                btn.classList.remove('opacity-50', 'cursor-not-allowed');
+                icon.classList.remove('fa-spin');
+                return;
+            }
+
+            let processed = 0;
+            let synced = 0;
+            let skipped = 0;
+            let failed = 0;
+
+            cntProcessed.textContent = `0 / ${total}`;
+            cntSynced.textContent = '0';
+            cntSkipped.textContent = '0';
+            cntFailed.textContent = '0';
+
+            consoleBox.innerHTML += `<div class="text-emerald-400 font-bold">[${new Date().toLocaleTimeString()}] Queue ready. ${total} products to process. Starting live sync...</div>`;
+
+            for (let i = 0; i < total; i++) {
+                if (isSyncCancelled) {
+                    consoleBox.innerHTML += `<div class="text-rose-400 font-bold mt-2">[${new Date().toLocaleTimeString()}] 🛑 Sync process stopped by user. Processed ${processed} of ${total}.</div>`;
+                    statusTitle.textContent = "Sync Cancelled by User";
+                    statusMsg.textContent = `Stopped at ${processed} / ${total} products.`;
+                    break;
+                }
+
+                const item = queue[i];
+                const code = item.code || `ID:${item.id}`;
+                const name = item.name ? (item.name.length > 40 ? item.name.substring(0, 40) + '...' : item.name) : 'Product';
+
+                statusMsg.innerHTML = `<span class="text-indigo-300 font-bold">Syncing ${i + 1} of ${total}:</span> <span class="text-white font-mono">[${code}]</span> ${name} (${item.type})`;
+
+                try {
+                    const formData = new FormData();
+                    formData.append('id', item.id);
+                    formData.append('type', item.type);
+
+                    const syncRes = await fetch('index.php?controller=sync&action=syncSingle', {
+                        method: 'POST',
+                        body: formData
+                    });
+                    const resData = await syncRes.json();
+
+                    processed++;
+                    const pct = Math.round((processed / total) * 100);
+                    progressBar.style.width = pct + '%';
+                    percentBadge.textContent = pct + '%';
+                    cntProcessed.textContent = `${processed} / ${total}`;
+
+                    const timeStr = new Date().toLocaleTimeString();
+
+                    if (resData.success) {
+                        if (resData.skipped) {
+                            skipped++;
+                            cntSkipped.textContent = skipped;
+                            consoleBox.innerHTML += `<div class="text-amber-400"><span class="text-zinc-500">[${timeStr}]</span> ⏭ <span class="font-bold">[${code}]</span> ${name} &rarr; <span class="italic">Skipped (Category disabled)</span></div>`;
+                        } else {
+                            synced++;
+                            cntSynced.textContent = synced;
+                            consoleBox.innerHTML += `<div class="text-emerald-400"><span class="text-zinc-500">[${timeStr}]</span> ✓ <span class="font-bold">[${code}]</span> ${name} &rarr; <span class="font-bold">Synced</span></div>`;
+                        }
+                    } else {
+                        failed++;
+                        cntFailed.textContent = failed;
+                        const err = resData.message || 'Unknown failure';
+                        consoleBox.innerHTML += `<div class="text-rose-400"><span class="text-zinc-500">[${timeStr}]</span> ❌ <span class="font-bold">[${code}]</span> ${name} &rarr; <span>${err}</span></div>`;
+                    }
+
+                    consoleBox.scrollTop = consoleBox.scrollHeight;
+
+                } catch (err) {
+                    processed++;
+                    failed++;
+                    cntFailed.textContent = failed;
+                    cntProcessed.textContent = `${processed} / ${total}`;
+                    consoleBox.innerHTML += `<div class="text-rose-400"><span class="text-zinc-500">[${new Date().toLocaleTimeString()}]</span> ❌ <span class="font-bold">[${code}]</span> Network Error: ${err}</div>`;
+                    consoleBox.scrollTop = consoleBox.scrollHeight;
+                }
+            }
+
+            btn.disabled = false;
+            btn.classList.remove('opacity-50', 'cursor-not-allowed');
+            icon.classList.remove('fa-spin');
+            btnCancel.style.display = 'none';
+
+            if (!isSyncCancelled) {
+                statusTitle.textContent = "🎉 Bulk Synchronization Completed!";
+                statusMsg.textContent = `Finished processing ${total} products. Synced: ${synced}, Skipped: ${skipped}, Failed: ${failed}.`;
+                consoleBox.innerHTML += `<div class="text-emerald-400 font-bold mt-2">[${new Date().toLocaleTimeString()}] 🎉 All done! Processed ${total} products.</div>`;
+                consoleBox.scrollTop = consoleBox.scrollHeight;
+            }
+        }
+
+        function cancelBulkSync() {
+            isSyncCancelled = true;
+            document.getElementById('syncStatusMsg').textContent = "Stopping sync process after current item completes...";
         }
     </script>
 </body>

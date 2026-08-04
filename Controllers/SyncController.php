@@ -100,4 +100,42 @@ class SyncController extends Controller {
         $result = ProductSyncService::syncAllProducts('manual');
         $this->json($result);
     }
+
+    public function getSyncQueue() {
+        $con = Database::getConnection('con');
+        if (!$con) {
+            $this->json(['success' => false, 'message' => 'Parent DB connection failed'], 500);
+            return;
+        }
+
+        $items = [];
+
+        // Fetch Jewellery Products
+        $resJ = mysqli_query($con, "SELECT product_id as id, 'jewellery' as type, product_code as code, product_name as name FROM product ORDER BY product_id DESC");
+        if ($resJ) {
+            while ($r = mysqli_fetch_assoc($resJ)) {
+                $r['id'] = (int)$r['id'];
+                $r['code'] = trim($r['code'] ?? '');
+                $r['name'] = trim($r['name'] ?? '');
+                $items[] = $r;
+            }
+        }
+
+        // Fetch Garment Products
+        $resG = mysqli_query($con, "SELECT gproduct_id as id, 'garments' as type, gcode as code, product_name as name FROM garment_product ORDER BY gproduct_id DESC");
+        if ($resG) {
+            while ($r = mysqli_fetch_assoc($resG)) {
+                $r['id'] = (int)$r['id'];
+                $r['code'] = trim($r['code'] ?? '');
+                $r['name'] = trim($r['name'] ?? '');
+                $items[] = $r;
+            }
+        }
+
+        $this->json([
+            'success' => true,
+            'total' => count($items),
+            'items' => $items
+        ]);
+    }
 }

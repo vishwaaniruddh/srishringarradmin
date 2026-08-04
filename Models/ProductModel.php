@@ -679,7 +679,7 @@ class ProductModel extends Model
         $productId = (int)$productId;
         $type = mysqli_real_escape_string($this->db, $type);
 
-        // Delete existing mapping
+        // Delete existing mapping for this product
         $delSql = "DELETE FROM product_categories WHERE product_id = $productId AND product_type = '$type'";
         $this->query($this->db, $delSql);
 
@@ -693,67 +693,84 @@ class ProductModel extends Model
             $skuCode = mysqli_real_escape_string($this->db, $gpRow['gproduct_code'] ?? '');
         }
 
-        // Load lookups between new category IDs and legacy IDs
-        $catLookup = [];
-        $rCat = $this->query($this->db, "SELECT id, legacy_id FROM categories WHERE legacy_id IS NOT NULL");
-        while ($row = $this->fetchOne($rCat)) {
-            $catLookup[(int)$row['id']] = (int)$row['legacy_id'];
-        }
+        $savedMainLegacy = [];
+        $savedSubLegacy = [];
 
-        $subcatLookup = [];
-        $rSub = $this->query($this->db, "SELECT id, legacy_id, category_id FROM subcategories WHERE legacy_id IS NOT NULL");
-        $subcatParentLookup = [];
-        while ($row = $this->fetchOne($rSub)) {
-            $subcatLookup[(int)$row['id']] = (int)$row['legacy_id'];
-            $subcatParentLookup[(int)$row['id']] = (int)$row['category_id'];
-        }
-
-        // Save selected subcategories
+        // Process selected subcategories (incoming IDs from HTML form are legacy subcategory IDs, e.g. subcat1.subcat_id)
         if (is_array($subcategories) && !empty($subcategories)) {
-            foreach ($subcategories as $subId) {
-                $subId = (int)$subId;
-                if ($subId > 0) {
-                    $legacySubId = $subcatLookup[$subId] ?? $subId;
-                    $parentCatId = $subcatParentLookup[$subId] ?? 0;
-                    $legacyCatId = $catLookup[$parentCatId] ?? $parentCatId;
+            foreach ($subcategories as $legacySubId) {
+                $legacySubId = (int)$legacySubId;
+                if ($legacySubId <= 0) continue;
 
-                    $valCat = $parentCatId > 0 ? $parentCatId : 'NULL';
-                    $valSub = $subId > 0 ? $subId : 'NULL';
-                    $valLegCat = $legacyCatId > 0 ? $legacyCatId : 'NULL';
-                    $valLegSub = $legacySubId > 0 ? $legacySubId : 'NULL';
-
-                    $insSql = "INSERT IGNORE INTO product_categories (product_id, product_code, product_type, category_id, subcategory_id, legacy_category_id, legacy_subcategory_id) 
-                               VALUES ($productId, '$skuCode', '$type', $valCat, $valSub, $valLegCat, $valLegSub)";
-                    $this->query($this->db, $insSql);
+                $legacyCatId = 0;
+                if ($type === 'jewellery') {
+                    $sRow = $this->fetchOne($this->query($this->db, "SELECT maincat_id FROM subcat1 WHERE subcat_id = $legacySubId LIMIT 1"));
+                    if ($sRow && !empty($sRow['maincat_id'])) {
+                        $legacyCatId = (int)$sRow['maincat_id'];
+                    }
+                } else {
+                    $sRow = $this->fetchOne($this->query($this->db, "SELECT gmain_id FROM garment_subcat WHERE sub_id = $legacySubId LIMIT 1"));
+                    if ($sRow && !empty($sRow['gmain_id'])) {
+                        $legacyCatId = (int)$sRow['gmain_id'];
+                    }
                 }
+
+                // Lookup new system categories.id and subcategories.id by legacy_id
+                $catId = 0;
+                if ($legacyCatId > 0) {
+                    $cRow = $this->fetchOne($this->query($this->db, "SELECT id FROM categories WHERE legacy_id = $legacyCatId LIMIT 1"));
+                    if ($cRow && !empty($cRow['id'])) $catId = (int)$cRow['id'];
+                }
+
+                $subId = 0;
+                $sRow2 = $this->fetchOne($this->query($this->db, "SELECT id FROM subcategories WHERE legacy_id = $legacySubId LIMIT 1"));
+                if ($sRow2 && !empty($sRow2['id'])) $subId = (int)$sRow2['id'];
+
+                $valCat = $catId > 0 ? $catId : 'NULL';
+                $valSub = $subId > 0 ? $subId : 'NULL';
+                $valLegCat = $legacyCatId > 0 ? $legacyCatId : 'NULL';
+                $valLegSub = $legacySubId > 0 ? $legacySubId : 'NULL';
+
+                $insSql = "INSERT IGNORE INTO product_categories (product_id, product_code, product_type, category_id, subcategory_id, legacy_category_id, legacy_subcategory_id) 
+                           VALUES ($productId, '$skuCode', '$type', $valCat, $valSub, $valLegCat, $valLegSub)";
+                $this->query($this->db, $insSql);
+
+                if ($legacyCatId > 0) $savedMainLegacy[] = $legacyCatId;
+                if ($legacySubId > 0) $savedSubLegacy[] = $legacySubId;
             }
         }
 
-        // Save standalone main categories without subcategories
+        // Process standalone main categories without subcategories (incoming IDs are legacy main category IDs, e.g. jewel_subcat.subcat_id or garments.garment_id)
         if (is_array($mainCategories) && !empty($mainCategories)) {
-            foreach ($mainCategories as $catId) {
-                $catId = (int)$catId;
-                if ($catId > 0) {
-                    $legacyCatId = $catLookup[$catId] ?? $catId;
-                    $valCat = $catId > 0 ? $catId : 'NULL';
-                    $valLegCat = $legacyCatId > 0 ? $legacyCatId : 'NULL';
+            foreach ($mainCategories as $legacyCatId) {
+                $legacyCatId = (int)$legacyCatId;
+                if ($legacyCatId <= 0) continue;
 
-                    $insSql = "INSERT IGNORE INTO product_categories (product_id, product_code, product_type, category_id, subcategory_id, legacy_category_id, legacy_subcategory_id) 
-                               VALUES ($productId, '$skuCode', '$type', $valCat, NULL, $valLegCat, NULL)";
-                    $this->query($this->db, $insSql);
-                }
+                $savedMainLegacy[] = $legacyCatId;
+
+                // Lookup new system categories.id by legacy_id
+                $catId = 0;
+                $cRow = $this->fetchOne($this->query($this->db, "SELECT id FROM categories WHERE legacy_id = $legacyCatId LIMIT 1"));
+                if ($cRow && !empty($cRow['id'])) $catId = (int)$cRow['id'];
+
+                $valCat = $catId > 0 ? $catId : 'NULL';
+                $valLegCat = $legacyCatId > 0 ? $legacyCatId : 'NULL';
+
+                $insSql = "INSERT IGNORE INTO product_categories (product_id, product_code, product_type, category_id, subcategory_id, legacy_category_id, legacy_subcategory_id) 
+                           VALUES ($productId, '$skuCode', '$type', $valCat, NULL, $valLegCat, NULL)";
+                $this->query($this->db, $insSql);
             }
         }
 
         // Update primary columns on main product table for backward compatibility
-        $primaryMainLegacy = !empty($mainCategories) ? ($catLookup[(int)$mainCategories[0]] ?? (int)$mainCategories[0]) : 0;
-        $primarySubLegacy = !empty($subcategories) ? ($subcatLookup[(int)$subcategories[0]] ?? (int)$subcategories[0]) : 0;
+        $primaryMain = !empty($savedMainLegacy) ? (int)$savedMainLegacy[0] : 0;
+        $primarySub = !empty($savedSubLegacy) ? (int)$savedSubLegacy[0] : 0;
 
         if ($type === 'jewellery') {
-            $upSql = "UPDATE product SET categories_id = $primaryMainLegacy, subcat_id = $primarySubLegacy WHERE product_id = $productId";
+            $upSql = "UPDATE product SET categories_id = $primaryMain, subcat_id = $primarySub WHERE product_id = $productId";
             $this->query($this->db, $upSql);
         } else {
-            $upSql = "UPDATE garment_product SET garment_id = $primaryMainLegacy, product_for = $primarySubLegacy WHERE gproduct_id = $productId";
+            $upSql = "UPDATE garment_product SET garment_id = $primaryMain, product_for = $primarySub WHERE gproduct_id = $productId";
             $this->query($this->db, $upSql);
         }
     }
