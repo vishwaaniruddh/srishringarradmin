@@ -604,33 +604,73 @@ class ProductModel extends Model
             }
             return $categories;
         }
-    }
-
-    public function getProductAssignedCategories($productId, $type = 'jewellery')
+    }    public function getProductAssignedCategories($productId, $type = 'jewellery')
     {
         $productId = (int)$productId;
         $type = mysqli_real_escape_string($this->db, $type);
 
-        $sql = "SELECT category_id, subcategory_id, legacy_category_id, legacy_subcategory_id FROM product_categories WHERE product_id = $productId AND product_type = '$type'";
-        $res = $this->query($this->db, $sql);
-        $rows = $this->fetchAll($res);
-
         $mainCategories = [];
         $subcategories = [];
 
+        // 1. Read product_categories
+        $pcRes = $this->query($this->db, "SELECT category_id, subcategory_id, legacy_category_id, legacy_subcategory_id FROM product_categories WHERE product_id = $productId AND product_type = '$type'");
+        $rows = $this->fetchAll($pcRes);
         if (!empty($rows)) {
             foreach ($rows as $r) {
-                if (!empty($r['category_id'])) $mainCategories[] = (int)$r['category_id'];
-                if (!empty($r['legacy_category_id'])) $mainCategories[] = (int)$r['legacy_category_id'];
+                if (!empty($r['legacy_category_id'])) {
+                    $mainCategories[] = (int)$r['legacy_category_id'];
+                }
+                if (!empty($r['category_id'])) {
+                    $cId = (int)$r['category_id'];
+                    $cRow = $this->fetchOne($this->query($this->db, "SELECT legacy_id FROM categories WHERE id = $cId LIMIT 1"));
+                    if ($cRow && !empty($cRow['legacy_id'])) {
+                        $mainCategories[] = (int)$cRow['legacy_id'];
+                    }
+                }
 
-                if (!empty($r['subcategory_id'])) $subcategories[] = (int)$r['subcategory_id'];
-                if (!empty($r['legacy_subcategory_id'])) $subcategories[] = (int)$r['legacy_subcategory_id'];
+                if (!empty($r['legacy_subcategory_id'])) {
+                    $subcategories[] = (int)$r['legacy_subcategory_id'];
+                }
+                if (!empty($r['subcategory_id'])) {
+                    $sId = (int)$r['subcategory_id'];
+                    $sRow = $this->fetchOne($this->query($this->db, "SELECT legacy_id FROM subcategories WHERE id = $sId LIMIT 1"));
+                    if ($sRow && !empty($sRow['legacy_id'])) {
+                        $subcategories[] = (int)$sRow['legacy_id'];
+                    }
+                }
+            }
+        }
+
+        // 2. Read primary table
+        if ($type === 'jewellery') {
+            $pRes = $this->query($this->db, "SELECT categories_id, subcat_id FROM product WHERE product_id = $productId LIMIT 1");
+            $pRow = $this->fetchOne($pRes);
+            if ($pRow) {
+                if (!empty($pRow['categories_id'])) $mainCategories[] = (int)$pRow['categories_id'];
+                if (!empty($pRow['subcat_id'])) $subcategories[] = (int)$pRow['subcat_id'];
+            }
+        } else {
+            $gRes = $this->query($this->db, "SELECT garment_id, product_for FROM garment_product WHERE gproduct_id = $productId LIMIT 1");
+            $gRow = $this->fetchOne($gRes);
+            if ($gRow) {
+                if (!empty($gRow['garment_id'])) $mainCategories[] = (int)$gRow['garment_id'];
+                if (!empty($gRow['product_for'])) $subcategories[] = (int)$gRow['product_for'];
+            }
+        }
+
+        // 3. For garments where main category is 0 but subcategory (e.g. 10 LEHENGA CHOLI) is a main category in the tree
+        if ($type === 'garments') {
+            foreach ($subcategories as $subId) {
+                $checkG = $this->query($this->db, "SELECT garment_id FROM garments WHERE garment_id = $subId AND (Main_id = 1 OR Main_id = 3) LIMIT 1");
+                if ($this->fetchOne($checkG)) {
+                    $mainCategories[] = $subId;
+                }
             }
         }
 
         return [
-            'main_categories' => array_values(array_unique($mainCategories)),
-            'subcategories' => array_values(array_unique($subcategories))
+            'main_categories' => array_values(array_unique(array_filter($mainCategories))),
+            'subcategories' => array_values(array_unique(array_filter($subcategories)))
         ];
     }
 
@@ -716,6 +756,105 @@ class ProductModel extends Model
             $upSql = "UPDATE garment_product SET garment_id = $primaryMainLegacy, product_for = $primarySubLegacy WHERE gproduct_id = $productId";
             $this->query($this->db, $upSql);
         }
+    }
+
+    public function getCategoryDetailsFromProductCategories($productId, $type)
+    {
+        $productId = (int)$productId;
+        $type = mysqli_real_escape_string($this->db, $type);
+
+        $sql = "SELECT pc.category_id, pc.subcategory_id, pc.legacy_category_id, pc.legacy_subcategory_id
+                FROM product_categories pc
+                WHERE pc.product_id = $productId AND pc.product_type = '$type'
+                LIMIT 1";
+        $res = $this->query($this->db, $sql);
+        $row = $this->fetchOne($res);
+
+        if (!$row) {
+            return null;
+        }
+
+        $categoryName = '';
+        $subcategoryName = '';
+
+        // 1. Check main category table (`categories`)
+        if (!empty($row['category_id'])) {
+            $cId = (int)$row['category_id'];
+            $cRow = $this->fetchOne($this->query($this->db, "SELECT name FROM categories WHERE id = $cId LIMIT 1"));
+            if ($cRow) $categoryName = $cRow['name'];
+        }
+
+        // 2. Check subcategories table (`subcategories`)
+        if (!empty($row['subcategory_id'])) {
+            $sId = (int)$row['subcategory_id'];
+            $sRow = $this->fetchOne($this->query($this->db, "SELECT name, category_id FROM subcategories WHERE id = $sId LIMIT 1"));
+            if ($sRow) {
+                $subcategoryName = $sRow['name'];
+                if (empty($categoryName) && !empty($sRow['category_id'])) {
+                    $parentCId = (int)$sRow['category_id'];
+                    $pcRow = $this->fetchOne($this->query($this->db, "SELECT name FROM categories WHERE id = $parentCId LIMIT 1"));
+                    if ($pcRow) $categoryName = $pcRow['name'];
+                }
+            }
+        }
+
+        // 3. Fallback to legacy_category_id lookup
+        if (empty($categoryName) && !empty($row['legacy_category_id'])) {
+            $legCatId = (int)$row['legacy_category_id'];
+            $cRow = $this->fetchOne($this->query($this->db, "SELECT name FROM categories WHERE legacy_id = $legCatId LIMIT 1"));
+            if ($cRow) {
+                $categoryName = $cRow['name'];
+            } elseif ($type === 'jewellery') {
+                $cRow = $this->fetchOne($this->query($this->db, "SELECT categories_name as name FROM jewel_subcat WHERE subcat_id = $legCatId LIMIT 1"));
+                if ($cRow) $categoryName = $cRow['name'];
+            } else {
+                $cRow = $this->fetchOne($this->query($this->db, "SELECT name FROM garments WHERE garment_id = $legCatId LIMIT 1"));
+                if ($cRow) $categoryName = $cRow['name'];
+            }
+        }
+
+        // 4. Fallback to legacy_subcategory_id lookup
+        if (!empty($row['legacy_subcategory_id'])) {
+            $legSubId = (int)$row['legacy_subcategory_id'];
+
+            if (empty($subcategoryName)) {
+                $sRow = $this->fetchOne($this->query($this->db, "SELECT name FROM subcategories WHERE legacy_id = $legSubId LIMIT 1"));
+                if ($sRow) {
+                    $subcategoryName = $sRow['name'];
+                } elseif ($type === 'jewellery') {
+                    $sRow = $this->fetchOne($this->query($this->db, "SELECT name FROM subcat1 WHERE subcat_id = $legSubId LIMIT 1"));
+                    if ($sRow) $subcategoryName = $sRow['name'];
+                } else {
+                    $sRow = $this->fetchOne($this->query($this->db, "SELECT name FROM garments WHERE garment_id = $legSubId LIMIT 1"));
+                    if ($sRow) $subcategoryName = $sRow['name'];
+                }
+            }
+
+            // If categoryName is still empty, infer from legacy_subcategory_id
+            if (empty($categoryName)) {
+                $cRow = $this->fetchOne($this->query($this->db, "SELECT name FROM categories WHERE legacy_id = $legSubId LIMIT 1"));
+                if ($cRow) {
+                    $categoryName = $cRow['name'];
+                } else {
+                    $gRow = $this->fetchOne($this->query($this->db, "SELECT g2.name FROM garments g1 JOIN garments g2 ON g1.Main_id = g2.garment_id WHERE g1.garment_id = $legSubId LIMIT 1"));
+                    if ($gRow && !empty($gRow['name'])) {
+                        $categoryName = $gRow['name'];
+                    }
+                }
+            }
+        }
+
+        // Fallback if categoryName and subcategoryName are identical
+        if ($categoryName === $subcategoryName && !empty($categoryName)) {
+            if ($type === 'garments') {
+                $categoryName = 'Apparel';
+            }
+        }
+
+        return [
+            'category_name' => $categoryName ?: null,
+            'subcategory_name' => $subcategoryName ?: null
+        ];
     }
 
     public function saveProduct($type, $data, $images = [])
@@ -843,7 +982,53 @@ class ProductModel extends Model
         $result = $this->query($this->db, $sql);
         $product = $this->fetchOne($result);
         if ($product) {
+            $product['type'] = $type;
             $product['quantity'] = $this->getPosQuantity($product['code'] ?? '');
+
+            $details = $this->getProductDetails([
+                'id' => $product['id'],
+                'code' => $product['code'] ?? '',
+                'type' => $type,
+                'price_source' => $product['price_source'] ?? 'pos',
+                'original_sales_price' => $product['s_price'] ?? 0,
+                'db_rent_price' => $product['rental_price'] ?? 0,
+                'db_deposit' => $product['deposit'] ?? 0,
+                'subcategory_id' => $product['sub_category'] ?? 0,
+                'availability' => $product['availability'] ?? 'both'
+            ]);
+
+            if ($details) {
+                if (($product['price_source'] ?? 'pos') === 'pos') {
+                    $product['s_price'] = $details['sale_price'] ?? $product['s_price'];
+                    $product['rental_price'] = $details['rent_price'] ?? $product['rental_price'];
+                    $product['deposit'] = $details['deposit'] ?? $product['deposit'];
+                } else {
+                    if ((float)($product['s_price'] ?? 0) <= 0 && isset($details['sale_price'])) {
+                        $product['s_price'] = $details['sale_price'];
+                    }
+                    if ((float)($product['rental_price'] ?? 0) <= 0 && isset($details['rent_price'])) {
+                        $product['rental_price'] = $details['rent_price'];
+                    }
+                    if ((float)($product['deposit'] ?? 0) <= 0 && isset($details['deposit'])) {
+                        $product['deposit'] = $details['deposit'];
+                    }
+                }
+                if (empty($product['quantity'])) {
+                    $product['quantity'] = $details['quantity'] ?? 0;
+                }
+                $product['details'] = $details;
+            }
+
+            // Lookup category and subcategory names from product_categories table
+            $catData = $this->getCategoryDetailsFromProductCategories($product['id'], $type);
+            if ($catData) {
+                if (!empty($catData['category_name']) && (empty($product['category_name']) || $product['category_name'] === 'N/A')) {
+                    $product['category_name'] = $catData['category_name'];
+                }
+                if (!empty($catData['subcategory_name']) && (empty($product['subcategory_name']) || $product['subcategory_name'] === 'N/A')) {
+                    $product['subcategory_name'] = $catData['subcategory_name'];
+                }
+            }
         }
         return $product;
     }
