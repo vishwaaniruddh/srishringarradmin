@@ -230,6 +230,20 @@ class CategoryController extends Controller {
         }
 
         try {
+            if ($catId <= 0) {
+                $sku = '';
+                if ($type === 'jewellery') {
+                    $r = mysqli_fetch_assoc(mysqli_query($con, "SELECT product_code FROM product WHERE product_id = $id LIMIT 1"));
+                    $sku = $r['product_code'] ?? '';
+                } else {
+                    $r = mysqli_fetch_assoc(mysqli_query($con, "SELECT gproduct_code FROM garment_product WHERE gproduct_id = $id LIMIT 1"));
+                    $sku = $r['gproduct_code'] ?? '';
+                }
+                $inferred = \Core\ProductSyncService::inferCategoryFromSku($sku, $type, 0, 0);
+                $catId = $inferred['category_id'];
+                $subId = $inferred['subcategory_id'];
+            }
+
             // Update primary product table columns
             if ($type === 'jewellery') {
                 $stmt = mysqli_prepare($con, "UPDATE product SET categories_id = ?, subcat_id = ? WHERE product_id = ?");
@@ -244,7 +258,7 @@ class CategoryController extends Controller {
             }
 
             // Save relationship in product_categories
-            $model->saveProductCategories($id, $type, $catId > 0 ? [$catId] : [], $subId > 0 ? [$subId] : []);
+            $model->saveProductCategories($id, $type, [$catId], $subId > 0 ? [$subId] : []);
 
             $this->json(['success' => true, 'message' => "Successfully assigned category for Product #$id"]);
         } catch (\Exception $e) {
@@ -280,25 +294,14 @@ class CategoryController extends Controller {
                     $cat = (int)$r['categories_id'];
                     $sub = (int)$r['subcat_id'];
 
-                    if ($cat <= 0 && $sub <= 0) {
-                        $upperSku = strtoupper($sku);
-                        if (str_starts_with($upperSku, 'BR')) {
-                            $cat = 22; // BRACELET
-                        } elseif (str_starts_with($upperSku, 'JU')) {
-                            $cat = 15; // KAMAR PATTA
-                        } elseif (str_starts_with($upperSku, 'K')) {
-                            $cat = 1;  // Necklace Sets
-                            $sub = 3;  // Kundan
-                        } elseif (str_starts_with($upperSku, 'EAR')) {
-                            $cat = 17; // Earrings
-                        } else {
-                            $cat = 1;  // Default Necklace Sets
-                        }
-                        // Update primary product table
+                    if ($cat <= 0) {
+                        $inferred = \Core\ProductSyncService::inferCategoryFromSku($sku, 'jewellery', $cat, $sub);
+                        $cat = $inferred['category_id'];
+                        $sub = $inferred['subcategory_id'];
                         mysqli_query($con, "UPDATE product SET categories_id = $cat, subcat_id = $sub WHERE product_id = $pid");
                     }
 
-                    $model->saveProductCategories($pid, 'jewellery', $cat > 0 ? [$cat] : [], $sub > 0 ? [$sub] : []);
+                    $model->saveProductCategories($pid, 'jewellery', [$cat], $sub > 0 ? [$sub] : []);
                     $fixedJ++;
                 }
             }
@@ -314,17 +317,14 @@ class CategoryController extends Controller {
                     $cat = (int)$r['garment_id'];
                     $sub = (int)$r['product_for'];
 
-                    if ($cat <= 0 && $sub <= 0) {
-                        $upperSku = strtoupper($sku);
-                        if (str_starts_with($upperSku, 'LEH')) {
-                            $cat = 10; // LEHENGA CHOLI
-                        } else {
-                            $cat = 22; // Evening Gowns / Default
-                        }
+                    if ($cat <= 0) {
+                        $inferred = \Core\ProductSyncService::inferCategoryFromSku($sku, 'garments', $cat, $sub);
+                        $cat = $inferred['category_id'];
+                        $sub = $inferred['subcategory_id'];
                         mysqli_query($con, "UPDATE garment_product SET garment_id = $cat, product_for = $sub WHERE gproduct_id = $gid");
                     }
 
-                    $model->saveProductCategories($gid, 'garments', $cat > 0 ? [$cat] : [], $sub > 0 ? [$sub] : []);
+                    $model->saveProductCategories($gid, 'garments', [$cat], $sub > 0 ? [$sub] : []);
                     $fixedG++;
                 }
             }

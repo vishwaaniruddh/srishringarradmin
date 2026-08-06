@@ -270,7 +270,7 @@ class SyncController extends Controller {
                 return;
             }
 
-            $whereClause = "WHERE p.category_id > 0 AND NOT EXISTS (SELECT 1 FROM product_categories pc WHERE pc.product_id = p.id AND pc.category_id = p.category_id)";
+            $whereClause = "WHERE NOT EXISTS (SELECT 1 FROM product_categories pc WHERE pc.product_id = p.id AND pc.category_id = p.category_id)";
             if (!empty($search)) {
                 $sEsc = "%$search%";
                 $whereClause .= " AND (p.name LIKE " . $pdoChild->quote($sEsc) . " OR p.sku LIKE " . $pdoChild->quote($sEsc) . ")";
@@ -287,12 +287,19 @@ class SyncController extends Controller {
                     LIMIT $offset, $limit";
             $stmt = $pdoChild->query($sql);
             while ($r = $stmt->fetch()) {
+                $catId = (int)$r['category_id'];
+                $catName = $r['category_name'] ?? '';
+                if ($catId <= 0 || empty($catName)) {
+                    $inferred = ProductSyncService::inferCategoryFromSku($r['sku'], 'jewellery', $catId, 0);
+                    $catId = $inferred['category_id'];
+                    $catName = ($catId == 1 ? 'Necklace Sets' : ($catId == 22 ? 'Bracelet' : ($catId == 15 ? 'Kamar Patta' : ($catId == 17 ? 'Earrings' : 'Jewellery'))));
+                }
                 $items[] = [
                     'id' => (int)$r['id'],
                     'sku' => $r['sku'] ?? 'N/A',
                     'name' => $r['name'] ?? 'Product',
-                    'category_id' => (int)$r['category_id'],
-                    'category_name' => $r['category_name'] ?? 'Category #' . $r['category_id'],
+                    'category_id' => $catId,
+                    'category_name' => $catName,
                     'target' => 'child'
                 ];
             }
@@ -316,12 +323,12 @@ class SyncController extends Controller {
             $total = (int)(mysqli_fetch_assoc($resCount)['total'] ?? 0);
 
             $sqlCombined = "
-                (SELECT p.product_id as id, p.product_code as sku, p.product_name as name, 'jewellery' as type, p.categories_id as category_id, c.categories_name as category_name
+                (SELECT p.product_id as id, p.product_code as sku, p.product_name as name, 'jewellery' as type, p.categories_id as category_id, p.subcat_id as subcategory_id, c.categories_name as category_name
                  FROM product p
                  LEFT JOIN jewel_subcat c ON p.categories_id = c.subcat_id
                  WHERE NOT EXISTS (SELECT 1 FROM product_categories pc WHERE pc.product_id = p.product_id AND pc.product_type = 'jewellery') $searchWhereJ)
                 UNION ALL
-                (SELECT gp.gproduct_id as id, gp.gproduct_code as sku, gp.gproduct_name as name, 'garments' as type, gp.garment_id as category_id, c.name as category_name
+                (SELECT gp.gproduct_id as id, gp.gproduct_code as sku, gp.gproduct_name as name, 'garments' as type, gp.garment_id as category_id, gp.product_for as subcategory_id, c.name as category_name
                  FROM garment_product gp
                  LEFT JOIN garments c ON gp.garment_id = c.garment_id
                  WHERE NOT EXISTS (SELECT 1 FROM product_categories pc WHERE pc.product_id = gp.gproduct_id AND pc.product_type = 'garments') $searchWhereG)
@@ -329,13 +336,37 @@ class SyncController extends Controller {
             $resComb = mysqli_query($con, $sqlCombined);
             if ($resComb) {
                 while ($r = mysqli_fetch_assoc($resComb)) {
+                    $catId = (int)$r['category_id'];
+                    $subId = (int)$r['subcategory_id'];
+                    $catName = $r['category_name'] ?? '';
+
+                    if ($catId <= 0 || empty($catName)) {
+                        $inferred = ProductSyncService::inferCategoryFromSku($r['sku'], $r['type'], $catId, $subId);
+                        $catId = $inferred['category_id'];
+                        $subId = $inferred['subcategory_id'];
+                        
+                        if ($r['type'] === 'jewellery') {
+                            if ($catId == 1 && $subId == 2) $catName = "Necklace Sets (American Diamond)";
+                            elseif ($catId == 1 && $subId == 3) $catName = "Necklace Sets (Kundan)";
+                            elseif ($catId == 22) $catName = "Bracelet";
+                            elseif ($catId == 15) $catName = "Kamar Patta";
+                            elseif ($catId == 17) $catName = "Earrings";
+                            else $catName = "Necklace Sets";
+                        } else {
+                            if ($catId == 10) $catName = "Lehenga Choli";
+                            elseif ($catId == 22) $catName = "Evening Gowns";
+                            else $catName = "Apparel";
+                        }
+                    }
+
                     $items[] = [
                         'id' => (int)$r['id'],
                         'sku' => $r['sku'] ?? 'N/A',
                         'name' => $r['name'] ?? 'Product',
                         'type' => $r['type'],
-                        'category_id' => (int)$r['category_id'],
-                        'category_name' => $r['category_name'] ?? 'Category #' . $r['category_id'],
+                        'category_id' => $catId,
+                        'subcategory_id' => $subId,
+                        'category_name' => $catName,
                         'target' => 'parent'
                     ];
                 }
@@ -370,18 +401,36 @@ class SyncController extends Controller {
             }
 
             try {
+                $inserted = 0;
                 if ($singleId > 0) {
-                    $stmt = $pdoChild->prepare("INSERT IGNORE INTO product_categories (product_id, category_id) SELECT id, category_id FROM products WHERE id = :id AND category_id > 0");
-                    $stmt->execute([':id' => $singleId]);
-                    $inserted = $stmt->rowCount();
-                    $msg = $inserted > 0 ? "Successfully inserted category record for Child product ID $singleId" : "No missing record found or already mapped for ID $singleId";
+                    $stmtCheck = $pdoChild->prepare("SELECT id, sku, category_id FROM products WHERE id = :id LIMIT 1");
+                    $stmtCheck->execute([':id' => $singleId]);
+                    if ($r = $stmtCheck->fetch()) {
+                        $catId = (int)$r['category_id'];
+                        if ($catId <= 0) {
+                            $inferred = ProductSyncService::inferCategoryFromSku($r['sku'], 'jewellery', 0, 0);
+                            $catId = $inferred['category_id'];
+                            $pdoChild->prepare("UPDATE products SET category_id = :cat WHERE id = :id")->execute([':cat' => $catId, ':id' => $singleId]);
+                        }
+                        $stmt = $pdoChild->prepare("INSERT IGNORE INTO product_categories (product_id, category_id) VALUES (:pid, :cid)");
+                        $stmt->execute([':pid' => $singleId, ':cid' => $catId]);
+                        $inserted = $stmt->rowCount();
+                    }
+                    $msg = "Successfully inserted category record for Child product ID $singleId";
                 } else {
-                    $stmt = $pdoChild->query("INSERT IGNORE INTO product_categories (product_id, category_id) 
-                        SELECT p.id, p.category_id 
-                        FROM products p 
-                        WHERE p.category_id > 0 
-                        AND NOT EXISTS (SELECT 1 FROM product_categories pc WHERE pc.product_id = p.id AND pc.category_id = p.category_id)");
-                    $inserted = $stmt->rowCount();
+                    $stmtFetch = $pdoChild->query("SELECT id, sku, category_id FROM products p WHERE NOT EXISTS (SELECT 1 FROM product_categories pc WHERE pc.product_id = p.id AND pc.category_id = p.category_id)");
+                    $stmtIns = $pdoChild->prepare("INSERT IGNORE INTO product_categories (product_id, category_id) VALUES (:pid, :cid)");
+                    while ($r = $stmtFetch->fetch()) {
+                        $pid = (int)$r['id'];
+                        $catId = (int)$r['category_id'];
+                        if ($catId <= 0) {
+                            $inferred = ProductSyncService::inferCategoryFromSku($r['sku'], 'jewellery', 0, 0);
+                            $catId = $inferred['category_id'];
+                            $pdoChild->prepare("UPDATE products SET category_id = :cat WHERE id = :id")->execute([':cat' => $catId, ':id' => $pid]);
+                        }
+                        $stmtIns->execute([':pid' => $pid, ':cid' => $catId]);
+                        $inserted++;
+                    }
                     $msg = "Successfully bulk-inserted $inserted category mapping records in Child DB!";
                 }
 
@@ -406,33 +455,67 @@ class SyncController extends Controller {
                     if ($prod) {
                         $cat = (int)($prod['category'] ?? 0);
                         $sub = (int)($prod['sub_category'] ?? 0);
-                        $model->saveProductCategories($singleId, $type, $cat > 0 ? [$cat] : [], $sub > 0 ? [$sub] : []);
+                        $sku = $prod['code'] ?? '';
+
+                        if ($cat <= 0) {
+                            $inferred = ProductSyncService::inferCategoryFromSku($sku, $type, $cat, $sub);
+                            $cat = $inferred['category_id'];
+                            $sub = $inferred['subcategory_id'];
+                            if ($type === 'jewellery') {
+                                mysqli_query($con, "UPDATE product SET categories_id = $cat, subcat_id = $sub WHERE product_id = $singleId");
+                            } else {
+                                mysqli_query($con, "UPDATE garment_product SET garment_id = $cat, product_for = $sub WHERE gproduct_id = $singleId");
+                            }
+                        }
+
+                        $model->saveProductCategories($singleId, $type, [$cat], $sub > 0 ? [$sub] : []);
                         $inserted = 1;
                     }
                     $msg = "Successfully processed category mapping for Parent product ID $singleId";
                 } else {
-                    // Bulk fix parent products
-                    $resJ = mysqli_query($con, "SELECT product_id, categories_id, subcat_id FROM product p WHERE NOT EXISTS (SELECT 1 FROM product_categories pc WHERE pc.product_id = p.product_id AND pc.product_type = 'jewellery')");
+                    // Bulk fix parent jewellery
+                    $resJ = mysqli_query($con, "SELECT product_id, product_code, categories_id, subcat_id FROM product p WHERE NOT EXISTS (SELECT 1 FROM product_categories pc WHERE pc.product_id = p.product_id AND pc.product_type = 'jewellery')");
                     if ($resJ) {
                         while ($r = mysqli_fetch_assoc($resJ)) {
                             $pid = (int)$r['product_id'];
+                            $sku = $r['product_code'];
                             $cat = (int)$r['categories_id'];
                             $sub = (int)$r['subcat_id'];
-                            $model->saveProductCategories($pid, 'jewellery', $cat > 0 ? [$cat] : [], $sub > 0 ? [$sub] : []);
+
+                            if ($cat <= 0) {
+                                $inferred = ProductSyncService::inferCategoryFromSku($sku, 'jewellery', $cat, $sub);
+                                $cat = $inferred['category_id'];
+                                $sub = $inferred['subcategory_id'];
+                                mysqli_query($con, "UPDATE product SET categories_id = $cat, subcat_id = $sub WHERE product_id = $pid");
+                            }
+
+                            $model->saveProductCategories($pid, 'jewellery', [$cat], $sub > 0 ? [$sub] : []);
                             $inserted++;
                         }
                     }
-                    $resG = mysqli_query($con, "SELECT gproduct_id, garment_id, product_for FROM garment_product gp WHERE NOT EXISTS (SELECT 1 FROM product_categories pc WHERE pc.product_id = gp.gproduct_id AND pc.product_type = 'garments')");
+
+                    // Bulk fix parent garments
+                    $resG = mysqli_query($con, "SELECT gproduct_id, gproduct_code, garment_id, product_for FROM garment_product gp WHERE NOT EXISTS (SELECT 1 FROM product_categories pc WHERE pc.product_id = gp.gproduct_id AND pc.product_type = 'garments')");
                     if ($resG) {
                         while ($r = mysqli_fetch_assoc($resG)) {
                             $gid = (int)$r['gproduct_id'];
+                            $sku = $r['gproduct_code'];
                             $cat = (int)$r['garment_id'];
                             $sub = (int)$r['product_for'];
-                            $model->saveProductCategories($gid, 'garments', $cat > 0 ? [$cat] : [], $sub > 0 ? [$sub] : []);
+
+                            if ($cat <= 0) {
+                                $inferred = ProductSyncService::inferCategoryFromSku($sku, 'garments', $cat, $sub);
+                                $cat = $inferred['category_id'];
+                                $sub = $inferred['subcategory_id'];
+                                mysqli_query($con, "UPDATE garment_product SET garment_id = $cat, product_for = $sub WHERE gproduct_id = $gid");
+                            }
+
+                            $model->saveProductCategories($gid, 'garments', [$cat], $sub > 0 ? [$sub] : []);
                             $inserted++;
                         }
                     }
-                    $msg = "Successfully bulk-processed $inserted category mapping records in Parent DB!";
+
+                    $msg = "Successfully bulk-processed and inserted $inserted category mapping records in Parent DB!";
                 }
 
                 $this->json(['success' => true, 'message' => $msg, 'inserted_count' => $inserted]);
