@@ -781,10 +781,14 @@ class ProductController extends Controller {
         $productModel = new ProductModel();
         $jewelCategories = $productModel->getJewelCategories();
         $garments = $productModel->getGarments();
+        $allJewelCategoriesTree = $productModel->getAllCategoriesWithSubcategories('jewellery');
+        $allGarmentCategoriesTree = $productModel->getAllCategoriesWithSubcategories('garments');
         
         $this->view('products/add', [
             'jewelCategories' => $jewelCategories,
-            'garments' => $garments
+            'garments' => $garments,
+            'allJewelCategoriesTree' => $allJewelCategoriesTree,
+            'allGarmentCategoriesTree' => $allGarmentCategoriesTree
         ]);
     }
 
@@ -866,7 +870,15 @@ class ProductController extends Controller {
             // Process Images
             $uploadedImages = $this->handleImageUploads($code);
 
-            $productModel->saveProduct($type, $_POST, $uploadedImages);
+            $productId = $productModel->saveProduct($type, $_POST, $uploadedImages);
+
+            // Process Multi-Category Selection
+            $mainCategories = $_POST['categories'] ?? [];
+            $subcategories = $_POST['sub_categories'] ?? [];
+            if ($productId) {
+                $productModel->saveProductCategories($productId, $type, $mainCategories, $subcategories);
+            }
+
             $this->redirect('index.php?controller=product&action=index&success=1');
         } catch (\Exception $e) {
             $this->redirect('index.php?controller=product&action=add&error=' . urlencode($e->getMessage()));

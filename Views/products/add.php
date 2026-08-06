@@ -100,39 +100,131 @@
                                             <textarea name="description" rows="8" class="w-full bg-gray-50 border border-gray-200 rounded-xl p-3 text-sm focus:ring-primary focus:border-primary"></textarea>
                                         </div>
                                         
-                                        <div id="jewellery_cats" class="md:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-6">
-                                            <div>
-                                                <label class="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Category</label>
-                                                <select name="category" id="jewel_cat" class="w-full bg-gray-50 border border-gray-200 rounded-xl p-3 text-sm focus:ring-primary focus:border-primary">
-                                                    <option value="">Select Category</option>
-                                                    <?php foreach ($jewelCategories as $cat): ?>
-                                                        <option value="<?php echo $cat['subcat_id']; ?>"><?php echo htmlspecialchars($cat['categories_name']); ?></option>
-                                                    <?php endforeach; ?>
-                                                </select>
-                                            </div>
-                                            <div>
-                                                <label class="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Subcategory</label>
-                                                <select name="sub_category" id="jewel_subcat" class="w-full bg-gray-50 border border-gray-200 rounded-xl p-3 text-sm focus:ring-primary focus:border-primary">
-                                                    <option value="">Select Subcategory</option>
-                                                </select>
+                                        <!-- Multi-Select Category Component for Jewellery -->
+                                        <div id="jewellery_cats" class="md:col-span-2">
+                                            <div class="bg-gray-50 border border-gray-200 rounded-xl p-5 mb-2">
+                                                <div class="flex items-center justify-between gap-4 mb-3 flex-wrap">
+                                                    <div>
+                                                        <label class="text-xs font-bold text-gray-700 uppercase tracking-wider flex items-center gap-2">
+                                                            <i class="fas fa-sitemap text-primary"></i> Categories & Subcategories (Multi-Select)
+                                                        </label>
+                                                        <span class="text-xs text-gray-400 block mt-0.5">
+                                                            Select all main categories and subcategories this product belongs to.
+                                                        </span>
+                                                    </div>
+                                                    <div class="flex items-center gap-2 flex-wrap">
+                                                        <span id="wpCategoryCounterJewel" class="bg-primary/10 text-primary text-xs font-bold px-2.5 py-1 rounded-full border border-primary/20">
+                                                            0 Selected
+                                                        </span>
+                                                        <button type="button" onclick="wpToggleAllCategories('jewellery_cats', true)" class="text-xs font-semibold text-gray-500 hover:text-primary underline">Select All</button>
+                                                        <span class="text-gray-300">•</span>
+                                                        <button type="button" onclick="wpToggleAllCategories('jewellery_cats', false)" class="text-xs font-semibold text-gray-500 hover:text-primary underline">Clear</button>
+                                                    </div>
+                                                </div>
+
+                                                <div class="relative mb-3">
+                                                    <i class="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-xs text-gray-400"></i>
+                                                    <input type="text" oninput="wpFilterCategoryTree('jewellery_cats', this.value)" placeholder="Quick filter categories..." class="w-full bg-white border border-gray-200 rounded-lg pl-8 pr-3 py-2 text-xs text-gray-800 outline-none focus:border-primary">
+                                                </div>
+
+                                                <div class="wpCategoryTree max-h-80 overflow-y-auto bg-white border border-gray-200 rounded-lg p-3 flex flex-col gap-2">
+                                                    <?php if (!empty($allJewelCategoriesTree)): ?>
+                                                        <?php foreach ($allJewelCategoriesTree as $catIndex => $mainCat): ?>
+                                                            <?php $subList = $mainCat['subcategories'] ?? []; ?>
+                                                            <div class="wp-cat-node bg-gray-50 border border-gray-200 rounded-lg p-2.5 transition-all" data-cat-name="<?php echo htmlspecialchars(strtolower($mainCat['name'])); ?>">
+                                                                <div class="flex items-center justify-between gap-2">
+                                                                    <label class="flex items-center gap-2 text-xs font-bold text-gray-800 cursor-pointer select-none">
+                                                                        <input type="checkbox" name="categories[]" value="<?php echo $mainCat['id']; ?>" onchange="wpUpdateCatCounter()" class="wp-cat-check w-4 h-4 accent-primary cursor-pointer">
+                                                                        <i class="fas <?php echo !empty($subList) ? 'fa-folder' : 'fa-tag'; ?> wp-cat-icon text-xs text-primary"></i>
+                                                                        <span class="wp-cat-title"><?php echo htmlspecialchars($mainCat['name']); ?></span>
+                                                                    </label>
+                                                                    <?php if (!empty($subList)): ?>
+                                                                        <button type="button" onclick="wpToggleSubTree('jewel_sub_tree_<?php echo $catIndex; ?>', this)" class="bg-gray-100 border border-gray-200 text-gray-500 text-[11px] font-semibold px-2 py-0.5 rounded-full cursor-pointer flex items-center gap-1">
+                                                                            <span><?php echo count($subList); ?> subcategories</span>
+                                                                            <i class="fas fa-chevron-right text-[9px]"></i>
+                                                                        </button>
+                                                                    <?php endif; ?>
+                                                                </div>
+
+                                                                <?php if (!empty($subList)): ?>
+                                                                    <div id="jewel_sub_tree_<?php echo $catIndex; ?>" class="wp-sub-tree hidden mt-2 pt-2 border-t border-dashed border-gray-200 pl-6 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2">
+                                                                        <?php foreach ($subList as $sub): ?>
+                                                                            <label class="wp-sub-node flex items-center gap-2 text-xs font-medium text-gray-600 cursor-pointer p-1.5 rounded hover:bg-gray-100 transition-all" data-sub-name="<?php echo htmlspecialchars(strtolower($sub['name'])); ?>">
+                                                                                <input type="checkbox" name="sub_categories[]" value="<?php echo $sub['id']; ?>" onchange="wpUpdateCatCounter()" class="wp-sub-check w-3.5 h-3.5 accent-primary cursor-pointer">
+                                                                                <i class="fas fa-tag wp-sub-icon text-[10px] text-primary"></i>
+                                                                                <span><?php echo htmlspecialchars($sub['name']); ?></span>
+                                                                            </label>
+                                                                        <?php endforeach; ?>
+                                                                    </div>
+                                                                <?php endif; ?>
+                                                            </div>
+                                                        <?php endforeach; ?>
+                                                    <?php endif; ?>
+                                                </div>
                                             </div>
                                         </div>
 
-                                        <div id="garment_cats" class="hidden md:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-6">
-                                            <div>
-                                                <label class="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Garment Type</label>
-                                                <select name="category" id="garment_cat" class="w-full bg-gray-50 border border-gray-200 rounded-xl p-3 text-sm focus:ring-primary focus:border-primary">
-                                                    <option value="">Select Type</option>
-                                                    <?php foreach ($garments as $g): ?>
-                                                        <option value="<?php echo $g['garment_id']; ?>"><?php echo htmlspecialchars($g['name']); ?></option>
-                                                    <?php endforeach; ?>
-                                                </select>
-                                            </div>
-                                            <div>
-                                                <label class="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Subcategory</label>
-                                                <select name="sub_category" id="garment_subcat" class="w-full bg-gray-50 border border-gray-200 rounded-xl p-3 text-sm focus:ring-primary focus:border-primary">
-                                                    <option value="">Select Subcategory</option>
-                                                </select>
+                                        <!-- Multi-Select Category Component for Garments -->
+                                        <div id="garment_cats" class="hidden md:col-span-2">
+                                            <div class="bg-gray-50 border border-gray-200 rounded-xl p-5 mb-2">
+                                                <div class="flex items-center justify-between gap-4 mb-3 flex-wrap">
+                                                    <div>
+                                                        <label class="text-xs font-bold text-gray-700 uppercase tracking-wider flex items-center gap-2">
+                                                            <i class="fas fa-sitemap text-primary"></i> Apparel Types & Subcategories (Multi-Select)
+                                                        </label>
+                                                        <span class="text-xs text-gray-400 block mt-0.5">
+                                                            Select all garment types and subcategories this product belongs to.
+                                                        </span>
+                                                    </div>
+                                                    <div class="flex items-center gap-2 flex-wrap">
+                                                        <span id="wpCategoryCounterGarment" class="bg-primary/10 text-primary text-xs font-bold px-2.5 py-1 rounded-full border border-primary/20">
+                                                            0 Selected
+                                                        </span>
+                                                        <button type="button" onclick="wpToggleAllCategories('garment_cats', true)" class="text-xs font-semibold text-gray-500 hover:text-primary underline">Select All</button>
+                                                        <span class="text-gray-300">•</span>
+                                                        <button type="button" onclick="wpToggleAllCategories('garment_cats', false)" class="text-xs font-semibold text-gray-500 hover:text-primary underline">Clear</button>
+                                                    </div>
+                                                </div>
+
+                                                <div class="relative mb-3">
+                                                    <i class="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-xs text-gray-400"></i>
+                                                    <input type="text" oninput="wpFilterCategoryTree('garment_cats', this.value)" placeholder="Quick filter apparel types..." class="w-full bg-white border border-gray-200 rounded-lg pl-8 pr-3 py-2 text-xs text-gray-800 outline-none focus:border-primary">
+                                                </div>
+
+                                                <div class="wpCategoryTree max-h-80 overflow-y-auto bg-white border border-gray-200 rounded-lg p-3 flex flex-col gap-2">
+                                                    <?php if (!empty($allGarmentCategoriesTree)): ?>
+                                                        <?php foreach ($allGarmentCategoriesTree as $catIndex => $mainCat): ?>
+                                                            <?php $subList = $mainCat['subcategories'] ?? []; ?>
+                                                            <div class="wp-cat-node bg-gray-50 border border-gray-200 rounded-lg p-2.5 transition-all" data-cat-name="<?php echo htmlspecialchars(strtolower($mainCat['name'])); ?>">
+                                                                <div class="flex items-center justify-between gap-2">
+                                                                    <label class="flex items-center gap-2 text-xs font-bold text-gray-800 cursor-pointer select-none">
+                                                                        <input type="checkbox" name="categories[]" value="<?php echo $mainCat['id']; ?>" onchange="wpUpdateCatCounter()" class="wp-cat-check w-4 h-4 accent-primary cursor-pointer">
+                                                                        <i class="fas <?php echo !empty($subList) ? 'fa-folder' : 'fa-tag'; ?> wp-cat-icon text-xs text-primary"></i>
+                                                                        <span class="wp-cat-title"><?php echo htmlspecialchars($mainCat['name']); ?></span>
+                                                                    </label>
+                                                                    <?php if (!empty($subList)): ?>
+                                                                        <button type="button" onclick="wpToggleSubTree('garment_sub_tree_<?php echo $catIndex; ?>', this)" class="bg-gray-100 border border-gray-200 text-gray-500 text-[11px] font-semibold px-2 py-0.5 rounded-full cursor-pointer flex items-center gap-1">
+                                                                            <span><?php echo count($subList); ?> subcategories</span>
+                                                                            <i class="fas fa-chevron-right text-[9px]"></i>
+                                                                        </button>
+                                                                    <?php endif; ?>
+                                                                </div>
+
+                                                                <?php if (!empty($subList)): ?>
+                                                                    <div id="garment_sub_tree_<?php echo $catIndex; ?>" class="wp-sub-tree hidden mt-2 pt-2 border-t border-dashed border-gray-200 pl-6 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2">
+                                                                        <?php foreach ($subList as $sub): ?>
+                                                                            <label class="wp-sub-node flex items-center gap-2 text-xs font-medium text-gray-600 cursor-pointer p-1.5 rounded hover:bg-gray-100 transition-all" data-sub-name="<?php echo htmlspecialchars(strtolower($sub['name'])); ?>">
+                                                                                <input type="checkbox" name="sub_categories[]" value="<?php echo $sub['id']; ?>" onchange="wpUpdateCatCounter()" class="wp-sub-check w-3.5 h-3.5 accent-primary cursor-pointer">
+                                                                                <i class="fas fa-tag wp-sub-icon text-[10px] text-primary"></i>
+                                                                                <span><?php echo htmlspecialchars($sub['name']); ?></span>
+                                                                            </label>
+                                                                        <?php endforeach; ?>
+                                                                    </div>
+                                                                <?php endif; ?>
+                                                            </div>
+                                                        <?php endforeach; ?>
+                                                    <?php endif; ?>
+                                                </div>
                                             </div>
                                         </div>
 
@@ -249,7 +341,7 @@
                 btn.classList.remove('border-primary', 'text-primary');
                 btn.classList.add('border-transparent', 'text-gray-400');
                 cats.classList.add('hidden');
-                cats.querySelectorAll('select, input').forEach(i => i.required = false);
+                cats.querySelectorAll('select').forEach(i => i.required = false);
             });
 
             const active = document.getElementById(tabs[type].btn);
@@ -257,7 +349,6 @@
             active.classList.remove('border-transparent', 'text-gray-400');
             active.classList.add('border-primary', 'text-primary');
             activeCats.classList.remove('hidden');
-            activeCats.querySelectorAll('select, input').forEach(i => i.required = true);
         }
 
         async function verifySKU() {
@@ -468,6 +559,96 @@ Product Description: [Your suggested description]`;
                 message.textContent = '';
             }
         }
+
+        function wpUpdateCatCounter() {
+            ['jewellery_cats', 'garment_cats'].forEach(containerId => {
+                const container = document.getElementById(containerId);
+                if (!container) return;
+                
+                let mainChecked = 0;
+                let subChecked = 0;
+
+                container.querySelectorAll('.wp-cat-node').forEach(node => {
+                    const mainCb = node.querySelector('.wp-cat-check');
+                    if (mainCb && mainCb.checked) {
+                        mainChecked++;
+                        node.classList.add('bg-amber-50', 'border-amber-300');
+                    } else {
+                        node.classList.remove('bg-amber-50', 'border-amber-300');
+                    }
+
+                    node.querySelectorAll('.wp-sub-node').forEach(subNode => {
+                        const subCb = subNode.querySelector('.wp-sub-check');
+                        if (subCb && subCb.checked) {
+                            subChecked++;
+                            subNode.classList.add('bg-amber-100/60', 'text-amber-900', 'font-bold');
+                        } else {
+                            subNode.classList.remove('bg-amber-100/60', 'text-amber-900', 'font-bold');
+                        }
+                    });
+                });
+
+                const counterId = containerId === 'jewellery_cats' ? 'wpCategoryCounterJewel' : 'wpCategoryCounterGarment';
+                const counter = document.getElementById(counterId);
+                if (counter) {
+                    const total = mainChecked + subChecked;
+                    counter.textContent = `${total} Selected (${mainChecked} Main, ${subChecked} Sub)`;
+                }
+            });
+        }
+
+        function wpToggleSubTree(treeId, btn) {
+            const tree = document.getElementById(treeId);
+            if (!tree) return;
+            const icon = btn.querySelector('i');
+            if (tree.classList.contains('hidden')) {
+                tree.classList.remove('hidden');
+                if (icon) icon.className = 'fas fa-chevron-down text-[9px]';
+            } else {
+                tree.classList.add('hidden');
+                if (icon) icon.className = 'fas fa-chevron-right text-[9px]';
+            }
+        }
+
+        function wpToggleAllCategories(containerId, check) {
+            const container = document.getElementById(containerId);
+            if (container) {
+                container.querySelectorAll('.wp-cat-check, .wp-sub-check').forEach(cb => {
+                    cb.checked = check;
+                });
+                wpUpdateCatCounter();
+            }
+        }
+
+        function wpFilterCategoryTree(containerId, query) {
+            const container = document.getElementById(containerId);
+            if (!container) return;
+            const q = (query || '').trim().toLowerCase();
+
+            container.querySelectorAll('.wp-cat-node').forEach(node => {
+                const catName = node.getAttribute('data-cat-name') || '';
+                let hasMatchingSub = false;
+                node.querySelectorAll('.wp-sub-node').forEach(subNode => {
+                    const subName = subNode.getAttribute('data-sub-name') || '';
+                    if (!q || subName.includes(q) || catName.includes(q)) {
+                        subNode.style.display = 'flex';
+                        hasMatchingSub = true;
+                    } else {
+                        subNode.style.display = 'none';
+                    }
+                });
+
+                if (!q || catName.includes(q) || hasMatchingSub) {
+                    node.style.display = 'block';
+                } else {
+                    node.style.display = 'none';
+                }
+            });
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            wpUpdateCatCounter();
+        });
     </script>
 </body>
 </html>

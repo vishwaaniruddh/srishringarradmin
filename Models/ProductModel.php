@@ -985,7 +985,9 @@ class ProductModel extends Model
             }
 
             // Save product categories mapping
-            $this->saveProductCategories($product_id, $type, $cat > 0 ? [$cat] : [], $sub > 0 ? [$sub] : []);
+            $mainCategories = $data['categories'] ?? ($cat > 0 ? [$cat] : []);
+            $subcategories = $data['sub_categories'] ?? ($sub > 0 ? [$sub] : []);
+            $this->saveProductCategories($product_id, $type, $mainCategories, $subcategories);
 
             mysqli_commit($this->db);
             try {
@@ -993,7 +995,7 @@ class ProductModel extends Model
             } catch (\Throwable $th) {
                 error_log("Auto-sync error on saveProduct: " . $th->getMessage());
             }
-            return true;
+            return $product_id;
         } catch (\Exception $e) {
             mysqli_rollback($this->db);
             throw $e;
