@@ -329,7 +329,7 @@ class ProductSyncService {
         try {
             $childPdo->beginTransaction();
 
-            // 1. Process Category — enforce 2-level hierarchy: Jewellery/Outfit → Subcategory
+            // 1. Process Category — enforce 3-level hierarchy: Jewellery/Outfit → Category → Subcategory
             $categoryId = null;
             $inferred = self::inferCategoryFromSku($sku, $productType, (int)($parentProduct['category'] ?? 0), (int)($parentProduct['sub_category'] ?? 0));
             $mainCatName = ($inferred['main_category'] === 'outfit') ? 'Outfit' : 'Jewellery';
@@ -343,6 +343,15 @@ class ProductSyncService {
             // Fallback if still empty
             if (empty($subCatName)) {
                 $subCatName = $mainCatName;
+            }
+
+            // Resolve 3rd-level subcategory name (e.g., "American Diamond", "Kundan", "Antique")
+            // from parent DB's subcat1 table via subcategory_name field in getProductById()
+            $subSubCatName = trim($parentProduct['subcategory_name'] ?? '');
+            if (empty($subSubCatName) || $subSubCatName === 'N/A' 
+                || strtolower($subSubCatName) === strtolower($subCatName)
+                || strtolower($subSubCatName) === strtolower($mainCatName)) {
+                $subSubCatName = ''; // No distinct 3rd level needed
             }
 
             // Step 1a: Find or create the main parent category (Jewellery / Outfit)
@@ -396,6 +405,42 @@ class ProductSyncService {
                         ':slug' => $slug,
                         ':pid' => $mainCatId,
                         ':desc' => $subCatName . ' - ' . $mainCatName
+                    ]);
+                    $categoryId = (int)$childPdo->lastInsertId();
+                }
+            }
+
+            // Step 1c: If a valid 3rd-level subcategory exists (e.g., "American Diamond" under "Necklace Sets"),
+            // find or create it under the mid-level category and assign the product there
+            if (!empty($subSubCatName) && $categoryId) {
+                $midCatId = $categoryId;
+
+                $stmtSubSub = $childPdo->prepare("SELECT id FROM categories WHERE name = :name AND parent_id = :pid LIMIT 1");
+                $stmtSubSub->execute([':name' => $subSubCatName, ':pid' => $midCatId]);
+                $subSubRow = $stmtSubSub->fetch();
+
+                if ($subSubRow) {
+                    $categoryId = (int)$subSubRow['id'];
+                } else {
+                    $baseSlug = self::createSlug($subSubCatName);
+                    $slug = $baseSlug;
+                    $counter = 1;
+                    while (true) {
+                        $stmtSlugCheck = $childPdo->prepare("SELECT id FROM categories WHERE slug = :slug LIMIT 1");
+                        $stmtSlugCheck->execute([':slug' => $slug]);
+                        if (!$stmtSlugCheck->fetch()) {
+                            break;
+                        }
+                        $counter++;
+                        $slug = $baseSlug . '-' . $counter;
+                    }
+
+                    $stmtInsSubSub = $childPdo->prepare("INSERT INTO categories (name, slug, parent_id, description) VALUES (:name, :slug, :pid, :desc)");
+                    $stmtInsSubSub->execute([
+                        ':name' => $subSubCatName,
+                        ':slug' => $slug,
+                        ':pid' => $midCatId,
+                        ':desc' => $subSubCatName . ' - ' . $subCatName . ' - ' . $mainCatName
                     ]);
                     $categoryId = (int)$childPdo->lastInsertId();
                 }
