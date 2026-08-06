@@ -337,18 +337,22 @@ class ProductSyncService {
             // Resolved Price Logic: If sales_price in product/garment_product is empty/0, fetch unit_price from phppos_items (DB3)
             $price = (float)($parentProduct['s_price'] ?? 0);
             if ($price <= 0) {
-                $db3 = Database::getConnection('con3');
-                if ($db3) {
-                    $stmtPos = mysqli_prepare($db3, "SELECT unit_price FROM phppos_items WHERE name = ? LIMIT 1");
-                    if ($stmtPos) {
-                        mysqli_stmt_bind_param($stmtPos, "s", $sku);
-                        mysqli_stmt_execute($stmtPos);
-                        $resPos = mysqli_stmt_get_result($stmtPos);
-                        if ($rPos = mysqli_fetch_assoc($resPos)) {
-                            $price = (float)($rPos['unit_price'] ?? 0);
+                try {
+                    $db3 = Database::getConnection('con3');
+                    if ($db3) {
+                        $stmtPos = @mysqli_prepare($db3, "SELECT unit_price FROM phppos_items WHERE name = ? LIMIT 1");
+                        if ($stmtPos) {
+                            @mysqli_stmt_bind_param($stmtPos, "s", $sku);
+                            @mysqli_stmt_execute($stmtPos);
+                            $resPos = @mysqli_stmt_get_result($stmtPos);
+                            if ($resPos && $rPos = @mysqli_fetch_assoc($resPos)) {
+                                $price = (float)($rPos['unit_price'] ?? 0);
+                            }
+                            @mysqli_stmt_close($stmtPos);
                         }
-                        mysqli_stmt_close($stmtPos);
                     }
+                } catch (\Throwable $t) {
+                    error_log("Price lookup exception for SKU $sku: " . $t->getMessage());
                 }
             }
 

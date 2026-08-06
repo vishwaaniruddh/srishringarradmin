@@ -84,8 +84,16 @@ class SyncController extends Controller {
             return;
         }
 
-        $result = ProductSyncService::syncProduct($id, $type, 'manual');
-        $this->json($result);
+        try {
+            $result = ProductSyncService::syncProduct($id, $type, 'manual');
+            $this->json($result);
+        } catch (\Throwable $e) {
+            $this->json([
+                'success' => false,
+                'message' => 'Sync exception: ' . $e->getMessage(),
+                'sku' => 'N/A'
+            ]);
+        }
     }
 
     public function syncBulk() {
