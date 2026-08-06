@@ -984,6 +984,9 @@ class ProductModel extends Model
                 mysqli_stmt_close($stmt);
             }
 
+            // Save product categories mapping
+            $this->saveProductCategories($product_id, $type, $cat > 0 ? [$cat] : [], $sub > 0 ? [$sub] : []);
+
             mysqli_commit($this->db);
             try {
                 \Core\ProductSyncService::syncProduct($product_id, $type, 'auto');
@@ -1208,6 +1211,9 @@ class ProductModel extends Model
                     $this->query($this->db, "UPDATE product_images_new SET rank = $wVal WHERE id = $iId");
                 }
             }
+
+            // Save product categories mapping
+            $this->saveProductCategories($id, $type, $cat > 0 ? [$cat] : [], $sub > 0 ? [$sub] : []);
 
             mysqli_commit($this->db);
             try {

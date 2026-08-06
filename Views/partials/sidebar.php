@@ -68,18 +68,14 @@ function isActive($controller, $action = null) {
                 <span>Product Sync</span>
                 <span class="ml-auto text-[9px] bg-teal-500/10 text-teal-400 px-1 rounded font-bold uppercase tracking-tighter">Auto</span>
             </a>
-            <a href="index.php?controller=sync&action=unmappedCategories" class="flex items-center px-3 py-2 text-xs font-semibold rounded-lg transition-all <?php echo isActive('sync', 'unmappedCategories') ? 'text-white bg-zinc-900' : 'text-zinc-400 hover:text-white hover:bg-zinc-900/50'; ?>">
-                <i class="fas fa-link w-5 mr-2 text-zinc-400"></i>
-                <span>Unmapped Category Fixer</span>
-                <span class="ml-auto text-[9px] bg-amber-500/10 text-amber-400 px-1 rounded font-bold uppercase tracking-tighter">Fix</span>
-            </a>
-            <a href="index.php?controller=product&action=add" class="flex items-center px-3 py-2 text-xs font-semibold rounded-lg transition-all <?php echo isActive('product', 'add') ? 'text-white bg-zinc-900' : 'text-zinc-400 hover:text-white hover:bg-zinc-900/50'; ?>">
-                <i class="fas fa-plus w-5 mr-2 text-zinc-400"></i>
-                <span>Add Product</span>
-            </a>
-            <a href="index.php?controller=category&action=index" class="flex items-center px-3 py-2 text-xs font-semibold rounded-lg transition-all <?php echo isActive('category') ? 'text-white bg-zinc-900' : 'text-zinc-400 hover:text-white hover:bg-zinc-900/50'; ?>">
+            <a href="index.php?controller=category&action=index" class="flex items-center px-3 py-2 text-xs font-semibold rounded-lg transition-all <?php echo isActive('category', 'index') ? 'text-white bg-zinc-900' : 'text-zinc-400 hover:text-white hover:bg-zinc-900/50'; ?>">
                 <i class="fas fa-tags w-5 mr-2 text-zinc-400"></i>
                 <span>Categories</span>
+            </a>
+            <a href="index.php?controller=category&action=unmapped" class="flex items-center px-3 py-2 text-xs font-semibold rounded-lg transition-all <?php echo isActive('category', 'unmapped') || isActive('product', 'unmapped') ? 'text-white bg-zinc-900' : 'text-zinc-400 hover:text-white hover:bg-zinc-900/50'; ?>">
+                <i class="fas fa-folder-plus w-5 mr-2 text-zinc-400"></i>
+                <span>Unmapped Products</span>
+                <span class="ml-auto text-[9px] bg-amber-500/10 text-amber-400 px-1 rounded font-bold uppercase tracking-tighter">Fix</span>
             </a>
         </div>
 

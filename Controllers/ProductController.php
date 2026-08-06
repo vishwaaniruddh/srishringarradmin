@@ -19,6 +19,11 @@ class ProductController extends Controller {
         ]);
     }
 
+    public function unmapped() {
+        $categoryController = new CategoryController();
+        $categoryController->unmapped();
+    }
+
     public function view_details() {
         $id = (int)($_GET['id'] ?? 0);
         $type = $_GET['type'] ?? 'jewellery';
