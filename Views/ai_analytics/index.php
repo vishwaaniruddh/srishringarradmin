@@ -45,15 +45,16 @@
                     </div>
                 </div>
 
-                <!-- Image Generation Logs -->
-                <div class="bg-[#0a0a0a] border border-white/5 rounded-xl flex flex-col overflow-hidden shadow-2xl shrink-0" style="max-height: 400px;">
-                    <div class="px-6 py-4 border-b border-white/5 bg-[#111]">
-                        <h2 class="text-sm font-bold text-white uppercase tracking-wider">Image Generation Cost Log</h2>
+                <!-- Gemini Generation Cost & Activity Log -->
+                <div class="bg-[#0a0a0a] border border-white/5 rounded-xl flex flex-col overflow-hidden shadow-2xl shrink-0" style="max-height: 480px;">
+                    <div class="px-6 py-4 border-b border-white/5 bg-[#111] flex items-center justify-between">
+                        <h2 class="text-sm font-bold text-white uppercase tracking-wider">Gemini API Requests & Usage Log</h2>
+                        <span class="text-xs text-zinc-400 font-mono">Live Monitoring</span>
                     </div>
                     <?php if (empty($image_logs)): ?>
                         <div class="flex-1 flex flex-col items-center justify-center py-10">
-                            <i class="fas fa-image text-3xl text-zinc-700 mb-3"></i>
-                            <h2 class="text-md font-medium text-zinc-400">No images generated yet</h2>
+                            <i class="fas fa-magic text-3xl text-zinc-700 mb-3"></i>
+                            <h2 class="text-md font-medium text-zinc-400">No Gemini API calls recorded yet</h2>
                         </div>
                     <?php else: ?>
                         <div class="overflow-x-auto overflow-y-auto flex-1 custom-scrollbar">
@@ -62,14 +63,36 @@
                                     <tr>
                                         <th class="px-6 py-3 font-semibold text-zinc-400 text-xs">Date</th>
                                         <th class="px-6 py-3 font-semibold text-zinc-400 text-xs">Product</th>
-                                        <th class="px-6 py-3 font-semibold text-zinc-400 text-xs">Images</th>
+                                        <th class="px-6 py-3 font-semibold text-zinc-400 text-xs">Type</th>
                                         <th class="px-6 py-3 font-semibold text-zinc-400 text-xs">Prompt</th>
+                                        <th class="px-6 py-3 font-semibold text-zinc-400 text-xs">Generated Output</th>
                                         <th class="px-6 py-3 font-semibold text-zinc-400 text-xs">Tokens</th>
                                         <th class="px-6 py-3 font-semibold text-zinc-400 text-xs">Cost (INR)</th>
                                     </tr>
                                 </thead>
                                 <tbody class="divide-y divide-white/5">
                                     <?php foreach ($image_logs as $log): ?>
+                                        <?php 
+                                            $op = strtolower($log['operation_type'] ?? 'image');
+                                            if ($op === 'title') {
+                                                $badge = '<span class="px-2 py-0.5 rounded bg-indigo-500/20 text-indigo-400 border border-indigo-500/30 text-[10px] font-bold uppercase">TITLE</span>';
+                                            } elseif ($op === 'description') {
+                                                $badge = '<span class="px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 text-[10px] font-bold uppercase">DESCRIPTION</span>';
+                                            } else {
+                                                $badge = '<span class="px-2 py-0.5 rounded bg-pink-500/20 text-pink-400 border border-pink-500/30 text-[10px] font-bold uppercase">IMAGE (' . ($log['num_images'] ?? 1) . ')</span>';
+                                            }
+
+                                            $outputDisplay = $log['generated_output'] ?? '';
+                                            if (!empty($outputDisplay) && str_starts_with($outputDisplay, '[')) {
+                                                $decodedArr = json_decode($outputDisplay, true);
+                                                if (is_array($decodedArr)) {
+                                                    $outputDisplay = implode(' | ', $decodedArr);
+                                                }
+                                            }
+                                            if (empty($outputDisplay) && $op === 'image') {
+                                                $outputDisplay = ($log['num_images'] ?? 1) . " model image(s) generated";
+                                            }
+                                        ?>
                                         <tr class="hover:bg-white/[0.02] transition-colors">
                                             <td class="px-6 py-3 text-xs text-zinc-300"><?php echo date('M j, Y g:i A', strtotime($log['created_at'])); ?></td>
                                             <td class="px-6 py-3 text-xs text-zinc-300">
@@ -77,16 +100,17 @@
                                                     $skuDisplay = !empty($log['product_sku']) ? $log['product_sku'] : ('ID: ' . $log['product_id']);
                                                     $editUrl = "index.php?controller=product&action=edit&id=" . urlencode($log['product_id']) . "&type=" . urlencode($log['product_type']);
                                                 ?>
-                                                <a href="<?php echo $editUrl; ?>" class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-400 hover:text-indigo-300 font-mono font-semibold transition-all border border-indigo-500/20 group" title="Click to edit product">
+                                                <a href="<?php echo $editUrl; ?>" class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded bg-zinc-900 hover:bg-zinc-800 text-zinc-300 hover:text-white font-mono text-xs transition-all border border-white/10 group" title="Click to edit product">
                                                     <span><?php echo htmlspecialchars($skuDisplay); ?></span>
-                                                    <span class="text-[10px] text-zinc-400 font-sans font-normal">(<?php echo htmlspecialchars($log['product_type']); ?>)</span>
+                                                    <span class="text-[10px] text-zinc-500 font-sans font-normal">(<?php echo htmlspecialchars($log['product_type']); ?>)</span>
                                                     <i class="fas fa-external-link-alt text-[9px] opacity-60 group-hover:opacity-100 transition-opacity"></i>
                                                 </a>
                                             </td>
-                                            <td class="px-6 py-3 text-xs font-bold text-pink-400"><?php echo htmlspecialchars($log['num_images']); ?></td>
+                                            <td class="px-6 py-3 text-xs"><?php echo $badge; ?></td>
                                             <td class="px-6 py-3 text-xs text-zinc-500 max-w-xs truncate" title="<?php echo htmlspecialchars($log['prompt_text']); ?>"><?php echo htmlspecialchars($log['prompt_text']); ?></td>
-                                            <td class="px-6 py-3 text-xs text-emerald-400"><?php echo number_format($log['total_tokens']); ?></td>
-                                            <td class="px-6 py-3 text-xs font-mono text-amber-400">₹<?php echo number_format($log['cost_estimate'], 4); ?></td>
+                                            <td class="px-6 py-3 text-xs text-zinc-300 max-w-xs truncate font-mono" title="<?php echo htmlspecialchars($outputDisplay); ?>"><?php echo htmlspecialchars($outputDisplay); ?></td>
+                                            <td class="px-6 py-3 text-xs text-emerald-400 font-mono"><?php echo number_format($log['total_tokens']); ?></td>
+                                            <td class="px-6 py-3 text-xs font-mono text-amber-400 font-bold">₹<?php echo number_format($log['cost_estimate'], 4); ?></td>
                                         </tr>
                                     <?php endforeach; ?>
                                 </tbody>

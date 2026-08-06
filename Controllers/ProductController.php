@@ -141,6 +141,9 @@ class ProductController extends Controller {
 
         $decoded = json_decode($response, true);
         $text = $decoded['candidates'][0]['content']['parts'][0]['text'] ?? '';
+        $promptTokens = (int)($decoded['usageMetadata']['promptTokenCount'] ?? 0);
+        $candidateTokens = (int)($decoded['usageMetadata']['candidatesTokenCount'] ?? 0);
+        $totalTokens = (int)($decoded['usageMetadata']['totalTokenCount'] ?? 0);
         
         $text = trim(preg_replace('/^```json|```$/', '', trim($text)));
         $names = json_decode($text, true);
@@ -148,6 +151,25 @@ class ProductController extends Controller {
         if (!is_array($names)) {
             preg_match_all('/"(.*?)"/', $text, $matches);
             $names = !empty($matches[1]) ? array_slice($matches[1], 0, 5) : [];
+        }
+
+        // Log Title Generation to ai_analytics DB
+        $db = \Core\Database::getConnection('con');
+        if ($db) {
+            $costEstimate = max(0.01, (($promptTokens * 0.000000075) + ($candidateTokens * 0.0000003)) * 86);
+            $genOutput = json_encode($names);
+            $opType = 'title';
+            $numImg = 0;
+
+            @mysqli_query($db, "ALTER TABLE ai_analytics ADD COLUMN operation_type VARCHAR(50) DEFAULT 'image'");
+            @mysqli_query($db, "ALTER TABLE ai_analytics ADD COLUMN generated_output TEXT NULL");
+
+            $stmt = $db->prepare("INSERT INTO ai_analytics (product_id, product_type, operation_type, prompt_text, generated_output, num_images, prompt_tokens, candidate_tokens, total_tokens, cost_estimate) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+            if ($stmt) {
+                $stmt->bind_param("issssiiiid", $id, $type, $opType, $prompt, $genOutput, $numImg, $promptTokens, $candidateTokens, $totalTokens, $costEstimate);
+                $stmt->execute();
+                $stmt->close();
+            }
         }
 
         $this->json(['success' => true, 'names' => $names]);
@@ -254,9 +276,30 @@ class ProductController extends Controller {
         }
 
         $decoded = json_decode($response, true);
-        $description = $decoded['candidates'][0]['content']['parts'][0]['text'] ?? '';
-        
-        $this->json(['success' => true, 'description' => trim($description)]);
+        $description = trim($decoded['candidates'][0]['content']['parts'][0]['text'] ?? '');
+        $promptTokens = (int)($decoded['usageMetadata']['promptTokenCount'] ?? 0);
+        $candidateTokens = (int)($decoded['usageMetadata']['candidatesTokenCount'] ?? 0);
+        $totalTokens = (int)($decoded['usageMetadata']['totalTokenCount'] ?? 0);
+
+        // Log Description Generation to ai_analytics DB
+        $db = \Core\Database::getConnection('con');
+        if ($db) {
+            $costEstimate = max(0.01, (($promptTokens * 0.000000075) + ($candidateTokens * 0.0000003)) * 86);
+            $opType = 'description';
+            $numImg = 0;
+
+            @mysqli_query($db, "ALTER TABLE ai_analytics ADD COLUMN operation_type VARCHAR(50) DEFAULT 'image'");
+            @mysqli_query($db, "ALTER TABLE ai_analytics ADD COLUMN generated_output TEXT NULL");
+
+            $stmt = $db->prepare("INSERT INTO ai_analytics (product_id, product_type, operation_type, prompt_text, generated_output, num_images, prompt_tokens, candidate_tokens, total_tokens, cost_estimate) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+            if ($stmt) {
+                $stmt->bind_param("issssiiiid", $id, $type, $opType, $prompt, $description, $numImg, $promptTokens, $candidateTokens, $totalTokens, $costEstimate);
+                $stmt->execute();
+                $stmt->close();
+            }
+        }
+
+        $this->json(['success' => true, 'description' => $description]);
     }
 
     public function aiGenerateModelImage() {
@@ -411,12 +454,17 @@ class ProductController extends Controller {
         // Log Analytics to DB (Imagen 3 rate: $0.03 per image = ~₹2.58 per image at 86 INR/USD)
         $actualGeneratedCount = count($generatedImages);
         $costEstimate = $actualGeneratedCount * 0.03 * 86;
+        $opType = 'image';
+        $genOutput = $actualGeneratedCount . " image(s) generated";
         
         $db = \Core\Database::getConnection('con');
         if ($db) {
-            $stmt = $db->prepare("INSERT INTO ai_analytics (product_id, product_type, prompt_text, num_images, prompt_tokens, candidate_tokens, total_tokens, cost_estimate) VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
+            @mysqli_query($db, "ALTER TABLE ai_analytics ADD COLUMN operation_type VARCHAR(50) DEFAULT 'image'");
+            @mysqli_query($db, "ALTER TABLE ai_analytics ADD COLUMN generated_output TEXT NULL");
+
+            $stmt = $db->prepare("INSERT INTO ai_analytics (product_id, product_type, operation_type, prompt_text, generated_output, num_images, prompt_tokens, candidate_tokens, total_tokens, cost_estimate) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
             if ($stmt) {
-                $stmt->bind_param("issiiiid", $id, $type, $basePrompt, $numImages, $totalPromptTokens, $totalCandidateTokens, $totalTokensSum, $costEstimate);
+                $stmt->bind_param("issssiiiid", $id, $type, $opType, $basePrompt, $genOutput, $numImages, $totalPromptTokens, $totalCandidateTokens, $totalTokensSum, $costEstimate);
                 $stmt->execute();
                 $stmt->close();
             }

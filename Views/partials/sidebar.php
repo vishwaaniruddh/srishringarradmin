@@ -35,11 +35,6 @@ function isActive($controller, $action = null) {
         <!-- AI Section -->
         <div class="space-y-1">
             <p class="px-3 text-[10px] font-bold text-zinc-500 uppercase tracking-widest mb-2">AI Studio</p>
-            <a href="index.php?controller=aiPlayground" class="flex items-center px-3 py-2 text-xs font-semibold rounded-lg transition-all <?php echo isActive('aiplayground') ? 'text-white bg-zinc-900' : 'text-zinc-400 hover:text-white hover:bg-zinc-900/50'; ?>">
-                <i class="fas fa-magic w-5 mr-2 text-zinc-400"></i>
-                <span>AI Playground</span>
-                <span class="ml-auto text-[9px] bg-pink-500/10 text-pink-400 px-1 rounded font-bold uppercase tracking-tighter">New</span>
-            </a>
             <a href="index.php?controller=aianalytics" class="flex items-center px-3 py-2 text-xs font-semibold rounded-lg transition-all <?php echo isActive('aianalytics') ? 'text-white bg-zinc-900' : 'text-zinc-400 hover:text-white hover:bg-zinc-900/50'; ?>">
                 <i class="fas fa-chart-area w-5 mr-2 text-zinc-400"></i>
                 <span>AI Analytics</span>

@@ -55,12 +55,12 @@ class AianalyticsController extends Controller {
             ];
             $image_logs = [];
 
-            $res = mysqli_query($con, "SELECT COUNT(*) as gens, SUM(num_images) as imgs, SUM(total_tokens) as tokens FROM ai_analytics");
+            $res = mysqli_query($con, "SELECT COUNT(*) as gens, SUM(num_images) as imgs, SUM(total_tokens) as tokens, SUM(cost_estimate) as cost FROM ai_analytics");
             if ($res && $row = mysqli_fetch_assoc($res)) {
                 $image_totals['total_generations'] = $row['gens'] ?? 0;
                 $image_totals['total_images'] = $row['imgs'] ?? 0;
                 $image_totals['total_tokens'] = $row['tokens'] ?? 0;
-                $image_totals['total_cost'] = ($row['imgs'] ?? 0) * 0.03 * 86; // $0.03/image * ₹86
+                $image_totals['total_cost'] = (float)($row['cost'] ?? 0.00);
             }
 
             $logSql = "SELECT a.*, 
@@ -69,13 +69,16 @@ class AianalyticsController extends Controller {
                        LEFT JOIN product p ON (LOWER(a.product_type) LIKE '%jewel%' AND a.product_id = p.product_id)
                        LEFT JOIN garment_product gp ON ((LOWER(a.product_type) LIKE '%garment%' OR LOWER(a.product_type) LIKE '%apparel%') AND a.product_id = gp.gproduct_id)
                        ORDER BY a.created_at DESC 
-                       LIMIT 100";
+                       LIMIT 200";
             $logRes = mysqli_query($con, $logSql);
             if ($logRes) {
                 while ($row = mysqli_fetch_assoc($logRes)) {
-                    // Ensure accurate Imagen 3 cost representation (~₹2.58 per image)
-                    if ($row['cost_estimate'] < 0.1) {
-                        $row['cost_estimate'] = ($row['num_images'] ?? 1) * 0.03 * 86;
+                    $numImgs = (int)($row['num_images'] ?? 0);
+                    $opType = $row['operation_type'] ?? ($numImgs > 0 ? 'image' : 'text');
+                    $row['operation_type'] = $opType;
+
+                    if ($opType === 'image' && (float)$row['cost_estimate'] < 0.1) {
+                        $row['cost_estimate'] = ($numImgs > 0 ? $numImgs : 1) * 0.03 * 86;
                     }
                     $image_logs[] = $row;
                 }
