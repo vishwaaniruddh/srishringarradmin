@@ -5,43 +5,65 @@ class Database {
     private static $instances = [];
 
     public static function getConnection($type = 'con') {
-        if (isset(self::$instances[$type]) && !@mysqli_ping(self::$instances[$type])) {
-            unset(self::$instances[$type]); // Connection died, clear it so it reconnects
+        $type = ($type === 'conn') ? 'con' : $type;
+
+        if (isset(self::$instances[$type]) && self::$instances[$type]) {
+            if (@mysqli_ping(self::$instances[$type])) {
+                return self::$instances[$type];
+            }
+            @mysqli_close(self::$instances[$type]);
+            unset(self::$instances[$type]);
         }
 
-        if (!isset(self::$instances[$type]) || !self::$instances[$type]) {
-            global $con, $con3;
-            require_once(__DIR__ . '/../../API/config.php');
-            
-            if ($type === 'con' || $type === 'conn') {
-                if (isset($GLOBALS['con']) && $GLOBALS['con']) self::$instances['con'] = $GLOBALS['con'];
-                else if (isset($con) && $con) self::$instances['con'] = $con;
-            } else if ($type === 'con3') {
-                if (isset($GLOBALS['con3']) && $GLOBALS['con3']) {
-                    self::$instances['con3'] = $GLOBALS['con3'];
-                } else if (isset($con3) && $con3) {
-                    self::$instances['con3'] = $con3;
-                } else {
-                    $is_local = isset($_SERVER['HTTP_HOST']) && (in_array($_SERVER['HTTP_HOST'], ['localhost', '127.0.0.1', '::1']) || strpos($_SERVER['HTTP_HOST'], 'localhost:') === 0);
-                    $con3_conn = $is_local ? @mysqli_connect("localhost", "root", "", "u464193275_srishringarr") : @mysqli_connect("localhost", "u464193275_sarmicropos", "Mypos1234", "u464193275_srishringarr");
-                    $GLOBALS['con3'] = $con3_conn;
-                    self::$instances['con3'] = $con3_conn;
-                }
-            }
+        $httpHost = $_SERVER['HTTP_HOST'] ?? $_SERVER['SERVER_NAME'] ?? '';
+        $docRoot = $_SERVER['DOCUMENT_ROOT'] ?? '';
 
-            // Handle lazy loading for remote 'woo' connection
-            if ($type === 'woo') {
-                if (file_exists(__DIR__ . '/../Config/database.php')) {
-                    $creds = include(__DIR__ . '/../Config/database.php');
-                    if (is_array($creds)) {
-                        $con_woo = @mysqli_connect($creds['host'], $creds['user'], $creds['pass'], $creds['db']);
-                        if ($con_woo) {
-                            self::$instances['woo'] = $con_woo;
-                        }
+        $isProduction = (
+            str_contains($httpHost, 'srishringarr.com') || 
+            str_contains($httpHost, 'yosshitaneha.com') || 
+            str_contains($docRoot, 'u464193275') ||
+            (php_sapi_name() !== 'cli' && !str_contains($httpHost, 'localhost') && !str_contains($httpHost, '127.0.0.1') && !empty($httpHost))
+        );
+
+        if ($type === 'con') {
+            if ($isProduction) {
+                $c = @mysqli_connect("localhost", "u464193275_srishrinjuser", "9b@hMgk!=zI", "u464193275_srishrinjewels");
+            } else {
+                $c = @mysqli_connect("localhost", "root", "", "u464193275_srishrinjewels");
+            }
+            if ($c) {
+                mysqli_set_charset($c, 'utf8mb4');
+                self::$instances['con'] = $c;
+                $GLOBALS['con'] = $c;
+                $GLOBALS['conn'] = $c;
+                return $c;
+            }
+        } elseif ($type === 'con3') {
+            if ($isProduction) {
+                $c3 = @mysqli_connect("localhost", "u464193275_sarmicropos", "Mypos1234", "u464193275_srishringarr");
+            } else {
+                $c3 = @mysqli_connect("localhost", "root", "", "u464193275_srishringarr");
+            }
+            if ($c3) {
+                mysqli_set_charset($c3, 'utf8mb4');
+                self::$instances['con3'] = $c3;
+                $GLOBALS['con3'] = $c3;
+                return $c3;
+            }
+        } elseif ($type === 'woo') {
+            if (file_exists(__DIR__ . '/../Config/database.php')) {
+                $creds = include(__DIR__ . '/../Config/database.php');
+                if (is_array($creds)) {
+                    $con_woo = @mysqli_connect($creds['host'], $creds['user'], $creds['pass'], $creds['db']);
+                    if ($con_woo) {
+                        mysqli_set_charset($con_woo, 'utf8mb4');
+                        self::$instances['woo'] = $con_woo;
+                        return $con_woo;
                     }
                 }
             }
         }
+
         return self::$instances[$type] ?? null;
     }
 }

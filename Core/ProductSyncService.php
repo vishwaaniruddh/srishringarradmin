@@ -14,7 +14,12 @@ class ProductSyncService {
      */
     public static function getChildPdo() {
         if (self::$childPdo !== null) {
-            return self::$childPdo;
+            try {
+                self::$childPdo->query("SELECT 1");
+                return self::$childPdo;
+            } catch (\Throwable $t) {
+                self::$childPdo = null;
+            }
         }
 
         $httpHost = $_SERVER['HTTP_HOST'] ?? $_SERVER['SERVER_NAME'] ?? '';
@@ -24,7 +29,7 @@ class ProductSyncService {
             str_contains($httpHost, 'srishringarr.com') || 
             str_contains($httpHost, 'yosshitaneha.com') || 
             str_contains($docRoot, 'u464193275') ||
-            (!str_contains($httpHost, 'localhost') && !str_contains($httpHost, '127.0.0.1') && !empty($httpHost))
+            (php_sapi_name() !== 'cli' && !str_contains($httpHost, 'localhost') && !str_contains($httpHost, '127.0.0.1') && !empty($httpHost))
         );
 
         if ($isProduction) {
@@ -56,15 +61,31 @@ class ProductSyncService {
      * Helper to create a URL-friendly slug
      */
     private static function createSlug($text, $sku = '') {
+        $text = trim((string)$text);
+        $sku = trim((string)$sku);
+
+        if (empty($text) || $text === '1' || is_numeric($text) || mb_strlen($text) < 3) {
+            $text = (!empty($sku) ? $sku : 'product-' . time());
+        }
+
         $slug = preg_replace('~[^\pL\d]+~u', '-', $text);
-        $slug = iconv('utf-8', 'us-ascii//TRANSLIT', $slug);
+        if (function_exists('iconv')) {
+            $slug = @iconv('utf-8', 'us-ascii//TRANSLIT', $slug);
+        }
         $slug = preg_replace('~[^-\w]+~', '', $slug);
         $slug = trim($slug, '-');
         $slug = strtolower($slug);
 
-        if (empty($slug)) {
-            $slug = 'product-' . strtolower($sku);
+        if (empty($slug) || $slug === '1') {
+            $slug = 'product-' . strtolower(preg_replace('~[^\pL\d]+~u', '-', $sku));
         }
+
+        if (is_numeric($slug) || strlen($slug) < 3) {
+            if (!empty($sku) && strtolower($sku) !== $slug) {
+                $slug .= '-' . strtolower(preg_replace('~[^\pL\d]+~u', '-', $sku));
+            }
+        }
+
         return $slug;
     }
 
@@ -465,6 +486,18 @@ class ProductSyncService {
             $stmtCheck = $childPdo->prepare("SELECT id FROM products WHERE sku = :sku LIMIT 1");
             $stmtCheck->execute([':sku' => $sku]);
             $existingProduct = $stmtCheck->fetch();
+
+            // Check for duplicate slug in Child DB and make unique if collision exists
+            $stmtSlugCheck = $childPdo->prepare("SELECT id FROM products WHERE slug = :slug AND sku != :sku LIMIT 1");
+            $stmtSlugCheck->execute([':slug' => $slug, ':sku' => $sku]);
+            if ($stmtSlugCheck->fetch()) {
+                $cleanSkuSlug = strtolower(preg_replace('~[^\pL\d]+~u', '-', $sku));
+                if (!str_contains($slug, $cleanSkuSlug)) {
+                    $slug .= '-' . $cleanSkuSlug;
+                } else {
+                    $slug .= '-' . $productId;
+                }
+            }
 
             if ($existingProduct) {
                 $childProductId = $existingProduct['id'];
