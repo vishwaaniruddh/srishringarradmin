@@ -354,7 +354,7 @@ class ProductSyncService {
             if ($mainCatRow) {
                 $mainCatId = (int)$mainCatRow['id'];
             } else {
-                $stmtInsMain = $childPdo->prepare("INSERT INTO categories (name, slug, parent_id, description) VALUES (:name, :slug, 0, :desc)");
+                $stmtInsMain = $childPdo->prepare("INSERT INTO categories (name, slug, parent_id, description) VALUES (:name, :slug, NULL, :desc)");
                 $stmtInsMain->execute([
                     ':name' => $mainCatName,
                     ':slug' => $mainCatSlug,
