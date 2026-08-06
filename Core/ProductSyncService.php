@@ -364,22 +364,41 @@ class ProductSyncService {
             }
 
             // Step 1b: Find or create the subcategory as child of main category
-            $subCatSlug = self::createSlug($subCatName);
-            $stmtSubCat = $childPdo->prepare("SELECT id FROM categories WHERE slug = :slug AND parent_id = :pid LIMIT 1");
-            $stmtSubCat->execute([':slug' => $subCatSlug, ':pid' => $mainCatId]);
-            $subCatRow = $stmtSubCat->fetch();
-
-            if ($subCatRow) {
-                $categoryId = (int)$subCatRow['id'];
+            // If subcategory name is same as main category, just use the main category directly
+            if (strtolower(trim($subCatName)) === strtolower(trim($mainCatName))) {
+                $categoryId = $mainCatId;
             } else {
-                $stmtInsSub = $childPdo->prepare("INSERT INTO categories (name, slug, parent_id, description) VALUES (:name, :slug, :pid, :desc)");
-                $stmtInsSub->execute([
-                    ':name' => $subCatName,
-                    ':slug' => $subCatSlug,
-                    ':pid' => $mainCatId,
-                    ':desc' => $subCatName . ' - ' . $mainCatName
-                ]);
-                $categoryId = (int)$childPdo->lastInsertId();
+                // First try to find by name under this parent (name is more stable than slug)
+                $stmtSubCat = $childPdo->prepare("SELECT id FROM categories WHERE name = :name AND parent_id = :pid LIMIT 1");
+                $stmtSubCat->execute([':name' => $subCatName, ':pid' => $mainCatId]);
+                $subCatRow = $stmtSubCat->fetch();
+
+                if ($subCatRow) {
+                    $categoryId = (int)$subCatRow['id'];
+                } else {
+                    // Generate a unique slug — auto-increment if collision exists
+                    $baseSlug = self::createSlug($subCatName);
+                    $slug = $baseSlug;
+                    $counter = 1;
+                    while (true) {
+                        $stmtSlugCheck = $childPdo->prepare("SELECT id FROM categories WHERE slug = :slug LIMIT 1");
+                        $stmtSlugCheck->execute([':slug' => $slug]);
+                        if (!$stmtSlugCheck->fetch()) {
+                            break; // slug is unique
+                        }
+                        $counter++;
+                        $slug = $baseSlug . '-' . $counter;
+                    }
+
+                    $stmtInsSub = $childPdo->prepare("INSERT INTO categories (name, slug, parent_id, description) VALUES (:name, :slug, :pid, :desc)");
+                    $stmtInsSub->execute([
+                        ':name' => $subCatName,
+                        ':slug' => $slug,
+                        ':pid' => $mainCatId,
+                        ':desc' => $subCatName . ' - ' . $mainCatName
+                    ]);
+                    $categoryId = (int)$childPdo->lastInsertId();
+                }
             }
 
             // 2. Prepare Product Data
