@@ -25,10 +25,44 @@ class Model {
     }
 
     public function query($db, $sql) {
-        if (!$db || !@mysqli_ping($db)) {
-            $db = Database::getConnection('con');
+        // Determine which connection type this is for proper reconnection
+        $connType = 'con';
+        if ($db === $this->db3) {
+            $connType = 'con3';
         }
-        return mysqli_query($db, $sql);
+
+        // Reconnect if connection is dead or null
+        if (!$db || !($db instanceof \mysqli) || !@mysqli_ping($db)) {
+            $db = Database::getConnection($connType);
+            // Update the instance property so subsequent calls use the fresh connection
+            if ($connType === 'con3') {
+                $this->db3 = $db;
+            } else {
+                $this->db = $db;
+            }
+        }
+
+        if (!$db) {
+            error_log("Model::query() - Failed to get DB connection ($connType) for query: " . substr($sql, 0, 80));
+            return false;
+        }
+
+        $result = @mysqli_query($db, $sql);
+
+        // Retry once on connection-level failure (server has gone away, etc.)
+        if ($result === false && mysqli_errno($db) >= 2000) {
+            $db = Database::getConnection($connType);
+            if ($connType === 'con3') {
+                $this->db3 = $db;
+            } else {
+                $this->db = $db;
+            }
+            if ($db) {
+                $result = @mysqli_query($db, $sql);
+            }
+        }
+
+        return $result;
     }
 
     public function fetchAll($result) {

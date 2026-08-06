@@ -85,11 +85,27 @@ function inferCategoryFromSku($sku, $type = 'auto', $existingCat = 0, $existingS
         }
     }
 
+    // Map category_id to human-readable name for child DB
+    $catNames = [
+        1 => 'Necklace Sets', 17 => 'Earrings', 22 => 'Bracelet',
+        15 => 'Kamar Patta', 18 => 'Bangles', 19 => 'Damini / Mathapatti',
+        20 => 'Tikka', 21 => 'Hath Phool', 23 => 'Payal / Pag Pan',
+        24 => 'Pendant Set', 25 => 'Mala', 26 => 'Borlas',
+        10 => 'Lehenga Choli', 28 => 'Indo Western Outfits',
+        29 => 'Anarkalis / Kurtis', 30 => 'Sarees'
+    ];
+    if ($mainCategory === 'outfit' && $cat === 22) {
+        $categoryName = 'Evening Gowns';
+    } else {
+        $categoryName = $catNames[$cat] ?? ($mainCategory === 'outfit' ? 'Outfit' : 'Jewellery');
+    }
+
     return [
         'main_category' => $mainCategory,
         'type'          => $mainCategory === 'outfit' ? 'garments' : 'jewellery',
         'category_id'   => $cat,
-        'subcategory_id'=> $sub
+        'subcategory_id'=> $sub,
+        'category_name' => $categoryName
     ];
 }
 
@@ -97,14 +113,15 @@ function inferCategoryFromSku($sku, $type = 'auto', $existingCat = 0, $existingS
 $testSkus = [
     'set824', 'set500on', 'k196', 'K2049', 'BR41CS', 'JU29', 'EAR940C', 
     'BANG102', 'DAM15', 'TIK44', 'HATH09', 'PAY88', 'PEND33',
-    'LEH101', 'GW202', 'INDO55', 'ANAR77', 'SAREE12'
+    'LEH101', 'GW202', 'INDO55', 'ANAR77', 'SAREE12', 'B206ON22.4', 'D544ON'
 ];
 
-echo "=========================================================================================\n";
-echo " SKU         | Main Category     | Type       | Category ID | Subcategory ID \n";
-echo "=========================================================================================\n";
+echo "==========================================================================================================\n";
+echo " SKU            | Main Category  | Child Category Name       | Cat ID | Sub ID \n";
+echo "==========================================================================================================\n";
 foreach ($testSkus as $s) {
     $res = inferCategoryFromSku($s, 'auto', 0, 0);
-    echo " " . str_pad($s, 11) . " | " . str_pad($res['main_category'], 17) . " | " . str_pad($res['type'], 10) . " | " . str_pad($res['category_id'], 11) . " | " . str_pad($res['subcategory_id'], 14) . "\n";
+    echo " " . str_pad($s, 14) . " | " . str_pad($res['main_category'], 14) . " | " . str_pad($res['category_name'], 25) . " | " . str_pad($res['category_id'], 6) . " | " . str_pad($res['subcategory_id'], 6) . "\n";
 }
-echo "=========================================================================================\n";
+echo "==========================================================================================================\n";
+

@@ -394,6 +394,9 @@
 
             consoleBox.innerHTML += `<div class="text-emerald-400 font-bold">[${new Date().toLocaleTimeString()}] Queue ready. ${total} products to process. Starting live sync...</div>`;
 
+            // Throttle helper — prevents MySQL connection pool exhaustion on shared hosting
+            const throttleDelay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+
             for (let i = 0; i < total; i++) {
                 if (isSyncCancelled) {
                     consoleBox.innerHTML += `<div class="text-rose-400 font-bold mt-2">[${new Date().toLocaleTimeString()}] 🛑 Sync process stopped by user. Processed ${processed} of ${total}.</div>`;
@@ -454,6 +457,9 @@
                     consoleBox.innerHTML += `<div class="text-rose-400"><span class="text-zinc-500">[${new Date().toLocaleTimeString()}]</span> ❌ <span class="font-bold">[${code}]</span> Network Error: ${err}</div>`;
                     consoleBox.scrollTop = consoleBox.scrollHeight;
                 }
+
+                // Throttle: wait 150ms between requests to avoid connection pool exhaustion
+                await throttleDelay(150);
             }
 
             btn.disabled = false;

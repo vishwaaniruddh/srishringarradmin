@@ -274,8 +274,26 @@ class ProductSyncService {
             return ['success' => false, 'message' => 'Invalid Product ID', 'sku' => 'N/A'];
         }
 
+        // Ensure parent DB connection is alive before creating ProductModel
+        $conCheck = Database::getConnection('con');
+        if (!$conCheck) {
+            // Retry once after a brief pause (shared hosting connection pool exhaustion)
+            usleep(200000); // 200ms
+            $conCheck = Database::getConnection('con');
+            if (!$conCheck) {
+                return ['success' => false, 'message' => 'Parent DB connection unavailable', 'sku' => 'N/A'];
+            }
+        }
+
         $productModel = new ProductModel();
         $parentProduct = $productModel->getProductById($productId, $productType);
+
+        // Retry once if parent product fetch failed (connection may have dropped mid-query)
+        if (!$parentProduct) {
+            usleep(100000); // 100ms
+            $productModel = new ProductModel();
+            $parentProduct = $productModel->getProductById($productId, $productType);
+        }
 
         if (!$parentProduct) {
             self::logSync($productId, $productType, 'N/A', $mode, 'failed', 'Product not found in Parent DB');
@@ -298,34 +316,70 @@ class ProductSyncService {
 
         $childPdo = self::getChildPdo();
         if (!$childPdo) {
-            self::logSync($productId, $productType, $sku, $mode, 'failed', 'Could not connect to Child DB');
-            return ['success' => false, 'message' => 'Could not connect to Child DB', 'sku' => $sku];
+            // Retry child DB connection once
+            usleep(200000);
+            self::$childPdo = null;
+            $childPdo = self::getChildPdo();
+            if (!$childPdo) {
+                self::logSync($productId, $productType, $sku, $mode, 'failed', 'Could not connect to Child DB');
+                return ['success' => false, 'message' => 'Could not connect to Child DB', 'sku' => $sku];
+            }
         }
 
         try {
             $childPdo->beginTransaction();
 
-            // 1. Process Category
+            // 1. Process Category — enforce 2-level hierarchy: Jewellery/Outfit → Subcategory
             $categoryId = null;
-            $catName = trim($parentProduct['category_name'] ?? '');
-            if (!empty($catName)) {
-                $catSlug = self::createSlug($catName);
-                $stmtCat = $childPdo->prepare("SELECT id FROM categories WHERE name = :name OR slug = :slug LIMIT 1");
-                $stmtCat->execute([':name' => $catName, ':slug' => $catSlug]);
-                $catRow = $stmtCat->fetch();
+            $inferred = self::inferCategoryFromSku($sku, $productType, (int)($parentProduct['category'] ?? 0), (int)($parentProduct['sub_category'] ?? 0));
+            $mainCatName = ($inferred['main_category'] === 'outfit') ? 'Outfit' : 'Jewellery';
+            $subCatName = $inferred['category_name'] ?? '';
 
-                if ($catRow) {
-                    $categoryId = $catRow['id'];
-                } else {
-                    // Create Category in Child DB
-                    $stmtInsCat = $childPdo->prepare("INSERT INTO categories (name, slug, description) VALUES (:name, :slug, :desc)");
-                    $stmtInsCat->execute([
-                        ':name' => $catName,
-                        ':slug' => $catSlug,
-                        ':desc' => 'Auto-synced category from Srishringarr'
-                    ]);
-                    $categoryId = $childPdo->lastInsertId();
-                }
+            // If parent product has a real category name from DB, prefer it over the inferred one
+            $parentCatName = trim($parentProduct['category_name'] ?? '');
+            if (!empty($parentCatName) && $parentCatName !== 'N/A') {
+                $subCatName = $parentCatName;
+            }
+            // Fallback if still empty
+            if (empty($subCatName)) {
+                $subCatName = $mainCatName;
+            }
+
+            // Step 1a: Find or create the main parent category (Jewellery / Outfit)
+            $mainCatSlug = self::createSlug($mainCatName);
+            $stmtMainCat = $childPdo->prepare("SELECT id FROM categories WHERE slug = :slug AND (parent_id IS NULL OR parent_id = 0) LIMIT 1");
+            $stmtMainCat->execute([':slug' => $mainCatSlug]);
+            $mainCatRow = $stmtMainCat->fetch();
+
+            if ($mainCatRow) {
+                $mainCatId = (int)$mainCatRow['id'];
+            } else {
+                $stmtInsMain = $childPdo->prepare("INSERT INTO categories (name, slug, parent_id, description) VALUES (:name, :slug, 0, :desc)");
+                $stmtInsMain->execute([
+                    ':name' => $mainCatName,
+                    ':slug' => $mainCatSlug,
+                    ':desc' => $mainCatName . ' collection from Srishringarr'
+                ]);
+                $mainCatId = (int)$childPdo->lastInsertId();
+            }
+
+            // Step 1b: Find or create the subcategory as child of main category
+            $subCatSlug = self::createSlug($subCatName);
+            $stmtSubCat = $childPdo->prepare("SELECT id FROM categories WHERE slug = :slug AND parent_id = :pid LIMIT 1");
+            $stmtSubCat->execute([':slug' => $subCatSlug, ':pid' => $mainCatId]);
+            $subCatRow = $stmtSubCat->fetch();
+
+            if ($subCatRow) {
+                $categoryId = (int)$subCatRow['id'];
+            } else {
+                $stmtInsSub = $childPdo->prepare("INSERT INTO categories (name, slug, parent_id, description) VALUES (:name, :slug, :pid, :desc)");
+                $stmtInsSub->execute([
+                    ':name' => $subCatName,
+                    ':slug' => $subCatSlug,
+                    ':pid' => $mainCatId,
+                    ':desc' => $subCatName . ' - ' . $mainCatName
+                ]);
+                $categoryId = (int)$childPdo->lastInsertId();
             }
 
             // 2. Prepare Product Data
@@ -339,6 +393,10 @@ class ProductSyncService {
             if ($price <= 0) {
                 try {
                     $db3 = Database::getConnection('con3');
+                    if (!$db3) {
+                        usleep(100000);
+                        $db3 = Database::getConnection('con3');
+                    }
                     if ($db3) {
                         $stmtPos = @mysqli_prepare($db3, "SELECT unit_price FROM phppos_items WHERE name = ? LIMIT 1");
                         if ($stmtPos) {
@@ -705,14 +763,22 @@ class ProductSyncService {
      * Log sync activity to product_sync_logs table
      */
     public static function logSync($productId, $productType, $sku, $mode, $status, $message) {
-        $con = \Core\Database::getConnection('con');
-        if (!$con) return;
+        try {
+            $con = \Core\Database::getConnection('con');
+            if (!$con) {
+                usleep(50000);
+                $con = \Core\Database::getConnection('con');
+            }
+            if (!$con) return;
 
-        $stmt = mysqli_prepare($con, "INSERT INTO product_sync_logs (product_id, product_type, sku, sync_mode, status, message) VALUES (?, ?, ?, ?, ?, ?)");
-        if ($stmt) {
-            mysqli_stmt_bind_param($stmt, "isssss", $productId, $productType, $sku, $mode, $status, $message);
-            mysqli_stmt_execute($stmt);
-            mysqli_stmt_close($stmt);
+            $stmt = @mysqli_prepare($con, "INSERT INTO product_sync_logs (product_id, product_type, sku, sync_mode, status, message) VALUES (?, ?, ?, ?, ?, ?)");
+            if ($stmt) {
+                @mysqli_stmt_bind_param($stmt, "isssss", $productId, $productType, $sku, $mode, $status, $message);
+                @mysqli_stmt_execute($stmt);
+                @mysqli_stmt_close($stmt);
+            }
+        } catch (\Throwable $t) {
+            error_log("logSync error for SKU $sku: " . $t->getMessage());
         }
     }
 
@@ -798,11 +864,30 @@ class ProductSyncService {
             }
         }
 
+        // Map category_id to human-readable name for child DB
+        $catNames = [
+            // Jewellery
+            1 => 'Necklace Sets', 17 => 'Earrings', 22 => 'Bracelet',
+            15 => 'Kamar Patta', 18 => 'Bangles', 19 => 'Damini / Mathapatti',
+            20 => 'Tikka', 21 => 'Hath Phool', 23 => 'Payal / Pag Pan',
+            24 => 'Pendant Set', 25 => 'Mala', 26 => 'Borlas',
+            // Outfit
+            10 => 'Lehenga Choli', 28 => 'Indo Western Outfits',
+            29 => 'Anarkalis / Kurtis', 30 => 'Sarees'
+        ];
+        // For outfit cat=22, use 'Evening Gowns' instead of the jewellery 'Bracelet'
+        if ($mainCategory === 'outfit' && $cat === 22) {
+            $categoryName = 'Evening Gowns';
+        } else {
+            $categoryName = $catNames[$cat] ?? ($mainCategory === 'outfit' ? 'Outfit' : 'Jewellery');
+        }
+
         return [
             'main_category' => $mainCategory,
             'type'          => $mainCategory === 'outfit' ? 'garments' : 'jewellery',
             'category_id'   => $cat,
-            'subcategory_id'=> $sub
+            'subcategory_id'=> $sub,
+            'category_name' => $categoryName
         ];
     }
 }
