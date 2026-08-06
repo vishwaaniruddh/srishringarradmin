@@ -150,19 +150,88 @@ class ProductSyncService {
         }
 
         $enabled = $settings['enabled_categories'];
+        $con = Database::getConnection('con');
 
         if ($productType === 'garments' || $productType === 'garment') {
-            $catId = (int)($parentProduct['category'] ?? 0);
-            return in_array("garment:$catId", $enabled);
-        } else {
-            $parentCatId = (int)($parentProduct['category'] ?? 0);
-            $subCatId = (int)($parentProduct['sub_category'] ?? 0);
+            $catIds = [];
+            if (!empty($parentProduct['category'])) $catIds[] = (int)$parentProduct['category'];
+            if (!empty($parentProduct['sub_category'])) $catIds[] = (int)$parentProduct['sub_category'];
 
-            if ($subCatId > 0 && in_array("jewel_child:$subCatId", $enabled)) {
-                return true;
+            $pid = (int)($parentProduct['id'] ?? 0);
+            if ($con && $pid > 0) {
+                $pcRes = mysqli_query($con, "SELECT legacy_category_id, legacy_subcategory_id FROM product_categories WHERE product_id = $pid AND product_type = 'garments'");
+                if ($pcRes) {
+                    while ($pcRow = mysqli_fetch_assoc($pcRes)) {
+                        if (!empty($pcRow['legacy_category_id'])) $catIds[] = (int)$pcRow['legacy_category_id'];
+                        if (!empty($pcRow['legacy_subcategory_id'])) $catIds[] = (int)$pcRow['legacy_subcategory_id'];
+                    }
+                }
             }
-            if ($parentCatId > 0 && in_array("jewel_parent:$parentCatId", $enabled)) {
-                return true;
+            $catIds = array_unique(array_filter($catIds));
+
+            foreach ($catIds as $cId) {
+                if (in_array("garment:$cId", $enabled)) return true;
+                if ($con) {
+                    $gRes = mysqli_query($con, "SELECT gmain_id FROM garment_subcat WHERE sub_id = $cId LIMIT 1");
+                    if ($gRes && $gRow = mysqli_fetch_assoc($gRes)) {
+                        $gMain = (int)$gRow['gmain_id'];
+                        if (in_array("garment:$gMain", $enabled)) return true;
+                    }
+                }
+            }
+            return false;
+        } else {
+            $parentCatIds = [];
+            $subCatIds = [];
+
+            $pCat = (int)($parentProduct['category'] ?? 0);
+            $sCat = (int)($parentProduct['sub_category'] ?? 0);
+
+            if ($pCat > 0) $parentCatIds[] = $pCat;
+            if ($sCat > 0) $subCatIds[] = $sCat;
+
+            $pid = (int)($parentProduct['id'] ?? 0);
+            if ($con && $pid > 0) {
+                $pcRes = mysqli_query($con, "SELECT legacy_category_id, legacy_subcategory_id FROM product_categories WHERE product_id = $pid AND product_type = 'jewellery'");
+                if ($pcRes) {
+                    while ($pcRow = mysqli_fetch_assoc($pcRes)) {
+                        if (!empty($pcRow['legacy_category_id'])) $parentCatIds[] = (int)$pcRow['legacy_category_id'];
+                        if (!empty($pcRow['legacy_subcategory_id'])) $subCatIds[] = (int)$pcRow['legacy_subcategory_id'];
+                    }
+                }
+            }
+
+            if ($con) {
+                // If a parentCatId is actually in subcat1, move it to subCatIds and resolve its maincat_id
+                foreach ($parentCatIds as $pId) {
+                    $checkSub1 = mysqli_query($con, "SELECT subcat_id, maincat_id FROM subcat1 WHERE subcat_id = $pId LIMIT 1");
+                    if ($checkSub1 && $subRow = mysqli_fetch_assoc($checkSub1)) {
+                        $subCatIds[] = $pId;
+                        if (!empty($subRow['maincat_id'])) {
+                            $parentCatIds[] = (int)$subRow['maincat_id'];
+                        }
+                    }
+                }
+
+                // For any subCatId, find its maincat_id in subcat1
+                foreach ($subCatIds as $sId) {
+                    $checkSub1 = mysqli_query($con, "SELECT maincat_id FROM subcat1 WHERE subcat_id = $sId LIMIT 1");
+                    if ($checkSub1 && $subRow = mysqli_fetch_assoc($checkSub1)) {
+                        if (!empty($subRow['maincat_id'])) {
+                            $parentCatIds[] = (int)$subRow['maincat_id'];
+                        }
+                    }
+                }
+            }
+
+            $parentCatIds = array_unique(array_filter($parentCatIds));
+            $subCatIds = array_unique(array_filter($subCatIds));
+
+            foreach ($subCatIds as $sId) {
+                if (in_array("jewel_child:$sId", $enabled)) return true;
+            }
+            foreach ($parentCatIds as $pId) {
+                if (in_array("jewel_parent:$pId", $enabled)) return true;
             }
             return false;
         }

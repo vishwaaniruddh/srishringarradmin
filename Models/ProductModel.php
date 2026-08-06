@@ -216,13 +216,27 @@ class ProductModel extends Model
         $apparel_data = ['children' => [], 'count' => 0];
 
         while ($row = $this->fetchOne($apparel_res)) {
-            $id = $row['garment_id'];
+            $id = (int)$row['garment_id'];
             $name = ucwords(strtolower($row['name']));
 
-            $count_qry = "SELECT COUNT(*) as cnt FROM garment_product WHERE garment_id = $id OR product_for = $id";
+            // Get subcategories in garment_subcat if any
+            $subIds = [$id];
+            $subQ = $this->query($this->db, "SELECT sub_id FROM garment_subcat WHERE gmain_id = $id");
+            while ($subR = $this->fetchOne($subQ)) {
+                $subIds[] = (int)$subR['sub_id'];
+            }
+            $subListStr = implode(',', array_unique($subIds));
+
+            $count_qry = "SELECT COUNT(DISTINCT gp.gproduct_id) as cnt 
+                          FROM garment_product gp
+                          LEFT JOIN product_categories pc ON (gp.gproduct_id = pc.product_id AND pc.product_type = 'garments')
+                          WHERE gp.garment_id IN ($subListStr) 
+                             OR gp.product_for IN ($subListStr)
+                             OR pc.legacy_category_id IN ($subListStr)
+                             OR pc.legacy_subcategory_id IN ($subListStr)";
             $count_res = $this->query($this->db, $count_qry);
             $count_row = $this->fetchOne($count_res);
-            $count = (int) $count_row['cnt'];
+            $count = (int) ($count_row['cnt'] ?? 0);
 
             if ($count > 0) {
                 $apparel_data['children']["garment:$id"] = [
@@ -242,36 +256,56 @@ class ProductModel extends Model
         $jewel_data = ['children' => [], 'count' => 0];
 
         while ($row = $this->fetchOne($jewel_res)) {
-            $parent_id = $row['subcat_id'];
+            $parent_id = (int)$row['subcat_id'];
             $parent_name = ucwords(strtolower($row['categories_name']));
 
-            // Count products for this parent
-            $parent_count_qry = "SELECT COUNT(*) as cnt FROM product WHERE categories_id = $parent_id";
+            // Get subcategory IDs in subcat1
+            $subcat1Ids = [];
+            $sub_qry = "SELECT subcat_id, name FROM subcat1 WHERE maincat_id = $parent_id AND status=1 ORDER BY name";
+            $sub_res = $this->query($this->db, $sub_qry);
+            $subRows = [];
+            while ($sub_row = $this->fetchOne($sub_res)) {
+                $subRows[] = $sub_row;
+                $subcat1Ids[] = (int)$sub_row['subcat_id'];
+            }
+
+            $allCatIds = array_unique(array_merge([$parent_id], $subcat1Ids));
+            $allIdsStr = implode(',', $allCatIds);
+
+            // Count all products belonging to this parent category or any of its subcategories
+            $parent_count_qry = "SELECT COUNT(DISTINCT p.product_id) as cnt 
+                                FROM product p
+                                LEFT JOIN product_categories pc ON (p.product_id = pc.product_id AND pc.product_type = 'jewellery')
+                                WHERE p.categories_id IN ($allIdsStr) 
+                                   OR p.subcat_id IN ($allIdsStr)
+                                   OR pc.legacy_category_id IN ($allIdsStr)
+                                   OR pc.legacy_subcategory_id IN ($allIdsStr)";
             $parent_count_res = $this->query($this->db, $parent_count_qry);
             $parent_count_row = $this->fetchOne($parent_count_res);
-            $parent_count = (int) $parent_count_row['cnt'];
+            $parent_count = (int) ($parent_count_row['cnt'] ?? 0);
 
             if ($parent_count > 0) {
-                // Add parent option
                 $jewel_data['children']["jewel_parent:$parent_id"] = [
                     'name' => $parent_name,
                     'count' => $parent_count
                 ];
 
-                // Get subcategories
-                $sub_qry = "SELECT subcat_id, name FROM subcat1 WHERE maincat_id = $parent_id AND status=1 ORDER BY name";
-                $sub_res = $this->query($this->db, $sub_qry);
-
-                while ($sub_row = $this->fetchOne($sub_res)) {
-                    $sub_id = $sub_row['subcat_id'];
+                // Process subcategories
+                foreach ($subRows as $sub_row) {
+                    $sub_id = (int)$sub_row['subcat_id'];
                     $sub_name = ucwords(strtolower($sub_row['name']));
 
-                    $sub_count_qry = "SELECT COUNT(*) as cnt FROM product WHERE subcat_id = $sub_id";
+                    $sub_count_qry = "SELECT COUNT(DISTINCT p.product_id) as cnt 
+                                      FROM product p
+                                      LEFT JOIN product_categories pc ON (p.product_id = pc.product_id AND pc.product_type = 'jewellery')
+                                      WHERE p.subcat_id = $sub_id 
+                                         OR p.categories_id = $sub_id 
+                                         OR pc.legacy_subcategory_id = $sub_id";
                     $sub_count_res = $this->query($this->db, $sub_count_qry);
                     $sub_count_row = $this->fetchOne($sub_count_res);
-                    $sub_count = (int) $sub_count_row['cnt'];
+                    $sub_count = (int) ($sub_count_row['cnt'] ?? 0);
 
-                    if ($sub_count > 0 && $sub_name !== $parent_name) {
+                    if ($sub_count > 0 && strtolower(trim($sub_name)) !== strtolower(trim($parent_name))) {
                         $jewel_data['children']["jewel_child:$sub_id"] = [
                             'name' => "— $sub_name",
                             'count' => $sub_count
