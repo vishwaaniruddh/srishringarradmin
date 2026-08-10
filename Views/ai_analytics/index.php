@@ -11,6 +11,18 @@
     </style>
 </head>
 <body class="bg-black text-white font-sans antialiased overflow-hidden selection:bg-indigo-500/30">
+    <?php 
+        $formatIstDate = function($dateStr, $format = 'M j, Y g:i A') {
+            if (empty($dateStr)) return '';
+            try {
+                $dt = new DateTime($dateStr, new DateTimeZone('UTC'));
+                $dt->setTimezone(new DateTimeZone('Asia/Kolkata'));
+                return $dt->format($format);
+            } catch (\Exception $e) {
+                return date($format, strtotime($dateStr));
+            }
+        };
+    ?>
     <div class="flex h-screen w-full">
         <?php include __DIR__ . '/../partials/sidebar.php'; ?>
         
@@ -61,6 +73,7 @@
                             <table class="w-full text-left text-sm whitespace-nowrap">
                                 <thead class="bg-[#111] sticky top-0 z-10 border-b border-white/5">
                                     <tr>
+                                        <th class="px-6 py-3 font-semibold text-zinc-400 text-xs">Website</th>
                                         <th class="px-6 py-3 font-semibold text-zinc-400 text-xs">Date</th>
                                         <th class="px-6 py-3 font-semibold text-zinc-400 text-xs">Product</th>
                                         <th class="px-6 py-3 font-semibold text-zinc-400 text-xs">Type</th>
@@ -73,6 +86,15 @@
                                 <tbody class="divide-y divide-white/5">
                                     <?php foreach ($image_logs as $log): ?>
                                         <?php 
+                                            $site = strtolower($log['website'] ?? 'srishringarr');
+                                            if ($site === 'yosshitaneha' || $site === 'yn') {
+                                                $siteBadge = '<span class="px-2 py-0.5 rounded bg-purple-500/20 text-purple-400 border border-purple-500/30 text-[10px] font-bold uppercase">yosshitaneha</span>';
+                                                $editUrl = "/yn/admin/product-edit.php?id=" . urlencode($log['product_id']);
+                                            } else {
+                                                $siteBadge = '<span class="px-2 py-0.5 rounded bg-blue-500/20 text-blue-400 border border-blue-500/30 text-[10px] font-bold uppercase">srishringarr</span>';
+                                                $editUrl = "index.php?controller=product&action=edit&id=" . urlencode($log['product_id']) . "&type=" . urlencode($log['product_type']);
+                                            }
+
                                             $op = strtolower($log['operation_type'] ?? 'image');
                                             if ($op === 'title') {
                                                 $badge = '<span class="px-2 py-0.5 rounded bg-indigo-500/20 text-indigo-400 border border-indigo-500/30 text-[10px] font-bold uppercase">TITLE</span>';
@@ -94,13 +116,13 @@
                                             }
                                         ?>
                                         <tr class="hover:bg-white/[0.02] transition-colors">
-                                            <td class="px-6 py-3 text-xs text-zinc-300"><?php echo date('M j, Y g:i A', strtotime($log['created_at'])); ?></td>
+                                            <td class="px-6 py-3 text-xs"><?php echo $siteBadge; ?></td>
+                                            <td class="px-6 py-3 text-xs text-zinc-300"><?php echo $formatIstDate($log['created_at']); ?></td>
                                             <td class="px-6 py-3 text-xs text-zinc-300">
                                                 <?php 
                                                     $skuDisplay = !empty($log['product_sku']) ? $log['product_sku'] : ('ID: ' . $log['product_id']);
-                                                    $editUrl = "index.php?controller=product&action=edit&id=" . urlencode($log['product_id']) . "&type=" . urlencode($log['product_type']);
                                                 ?>
-                                                <a href="<?php echo $editUrl; ?>" class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded bg-zinc-900 hover:bg-zinc-800 text-zinc-300 hover:text-white font-mono text-xs transition-all border border-white/10 group" title="Click to edit product">
+                                                <a href="<?php echo $editUrl; ?>" target="_blank" class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded bg-zinc-900 hover:bg-zinc-800 text-zinc-300 hover:text-white font-mono text-xs transition-all border border-white/10 group" title="Click to edit product">
                                                     <span><?php echo htmlspecialchars($skuDisplay); ?></span>
                                                     <span class="text-[10px] text-zinc-500 font-sans font-normal">(<?php echo htmlspecialchars($log['product_type']); ?>)</span>
                                                     <i class="fas fa-external-link-alt text-[9px] opacity-60 group-hover:opacity-100 transition-opacity"></i>
@@ -167,8 +189,8 @@
                                             
                                             <!-- Date & Session -->
                                             <td class="px-6 py-4 align-top w-48">
-                                                <div class="font-medium text-white mb-1"><?php echo date('M j, Y', strtotime($session['session_date'])); ?></div>
-                                                <div class="text-xs text-zinc-500 mb-2"><?php echo date('g:i A', strtotime($session['session_date'])); ?></div>
+                                                <div class="font-medium text-white mb-1"><?php echo $formatIstDate($session['session_date'], 'M j, Y'); ?></div>
+                                                <div class="text-xs text-zinc-500 mb-2"><?php echo $formatIstDate($session['session_date'], 'g:i A'); ?></div>
                                                 <div class="text-[10px] text-zinc-600 font-mono truncate max-w-[120px]" title="<?php echo htmlspecialchars($session['session_id']); ?>">
                                                     <?php echo htmlspecialchars($session['session_id']); ?>
                                                 </div>

@@ -163,10 +163,12 @@ class ProductController extends Controller {
 
             @mysqli_query($db, "ALTER TABLE ai_analytics ADD COLUMN operation_type VARCHAR(50) DEFAULT 'image'");
             @mysqli_query($db, "ALTER TABLE ai_analytics ADD COLUMN generated_output TEXT NULL");
+            @mysqli_query($db, "ALTER TABLE ai_analytics ADD COLUMN website VARCHAR(100) DEFAULT 'srishringarr'");
 
-            $stmt = $db->prepare("INSERT INTO ai_analytics (product_id, product_type, operation_type, prompt_text, generated_output, num_images, prompt_tokens, candidate_tokens, total_tokens, cost_estimate) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+            $website = 'srishringarr';
+            $stmt = $db->prepare("INSERT INTO ai_analytics (product_id, product_type, operation_type, prompt_text, generated_output, num_images, prompt_tokens, candidate_tokens, total_tokens, cost_estimate, website) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
             if ($stmt) {
-                $stmt->bind_param("issssiiiid", $id, $type, $opType, $prompt, $genOutput, $numImg, $promptTokens, $candidateTokens, $totalTokens, $costEstimate);
+                $stmt->bind_param("issssiiiids", $id, $type, $opType, $prompt, $genOutput, $numImg, $promptTokens, $candidateTokens, $totalTokens, $costEstimate, $website);
                 $stmt->execute();
                 $stmt->close();
             }
@@ -290,10 +292,12 @@ class ProductController extends Controller {
 
             @mysqli_query($db, "ALTER TABLE ai_analytics ADD COLUMN operation_type VARCHAR(50) DEFAULT 'image'");
             @mysqli_query($db, "ALTER TABLE ai_analytics ADD COLUMN generated_output TEXT NULL");
+            @mysqli_query($db, "ALTER TABLE ai_analytics ADD COLUMN website VARCHAR(100) DEFAULT 'srishringarr'");
 
-            $stmt = $db->prepare("INSERT INTO ai_analytics (product_id, product_type, operation_type, prompt_text, generated_output, num_images, prompt_tokens, candidate_tokens, total_tokens, cost_estimate) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+            $website = 'srishringarr';
+            $stmt = $db->prepare("INSERT INTO ai_analytics (product_id, product_type, operation_type, prompt_text, generated_output, num_images, prompt_tokens, candidate_tokens, total_tokens, cost_estimate, website) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
             if ($stmt) {
-                $stmt->bind_param("issssiiiid", $id, $type, $opType, $prompt, $description, $numImg, $promptTokens, $candidateTokens, $totalTokens, $costEstimate);
+                $stmt->bind_param("issssiiiids", $id, $type, $opType, $prompt, $description, $numImg, $promptTokens, $candidateTokens, $totalTokens, $costEstimate, $website);
                 $stmt->execute();
                 $stmt->close();
             }
@@ -461,10 +465,12 @@ class ProductController extends Controller {
         if ($db) {
             @mysqli_query($db, "ALTER TABLE ai_analytics ADD COLUMN operation_type VARCHAR(50) DEFAULT 'image'");
             @mysqli_query($db, "ALTER TABLE ai_analytics ADD COLUMN generated_output TEXT NULL");
+            @mysqli_query($db, "ALTER TABLE ai_analytics ADD COLUMN website VARCHAR(100) DEFAULT 'srishringarr'");
 
-            $stmt = $db->prepare("INSERT INTO ai_analytics (product_id, product_type, operation_type, prompt_text, generated_output, num_images, prompt_tokens, candidate_tokens, total_tokens, cost_estimate) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+            $website = 'srishringarr';
+            $stmt = $db->prepare("INSERT INTO ai_analytics (product_id, product_type, operation_type, prompt_text, generated_output, num_images, prompt_tokens, candidate_tokens, total_tokens, cost_estimate, website) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
             if ($stmt) {
-                $stmt->bind_param("issssiiiid", $id, $type, $opType, $basePrompt, $genOutput, $numImages, $totalPromptTokens, $totalCandidateTokens, $totalTokensSum, $costEstimate);
+                $stmt->bind_param("issssiiiids", $id, $type, $opType, $basePrompt, $genOutput, $numImages, $totalPromptTokens, $totalCandidateTokens, $totalTokensSum, $costEstimate, $website);
                 $stmt->execute();
                 $stmt->close();
             }

@@ -3,16 +3,19 @@ namespace Controllers;
 
 use Core\Controller;
 
-class AianalyticsController extends Controller {
+class AianalyticsController extends Controller
+{
 
-    private function getDbConnection() {
+    private function getDbConnection()
+    {
         return \Core\Database::getConnection('con');
     }
 
-    public function index() {
+    public function index()
+    {
         $con = $this->getDbConnection();
         $sessions = [];
-        
+
         if ($con) {
             // Group by session_id, get latest created_at for sorting
             $sql = "SELECT session_id, MAX(created_at) as session_date, 
@@ -27,7 +30,7 @@ class AianalyticsController extends Controller {
                 while ($row = mysqli_fetch_assoc($res)) {
                     $session_id = $row['session_id'];
                     $row['items'] = [];
-                    
+
                     // Fetch all items for this session
                     $itemSql = "SELECT type, generated_data, created_at FROM ai_playground_history WHERE session_id = ? ORDER BY created_at ASC";
                     $stmt = $con->prepare($itemSql);
@@ -41,7 +44,7 @@ class AianalyticsController extends Controller {
                         $row['items'][] = $item;
                     }
                     $stmt->close();
-                    
+
                     $sessions[] = $row;
                 }
             }
@@ -55,12 +58,13 @@ class AianalyticsController extends Controller {
             ];
             $image_logs = [];
 
+            @mysqli_query($con, "ALTER TABLE ai_analytics ADD COLUMN website VARCHAR(100) DEFAULT 'srishringarr'");
             $res = mysqli_query($con, "SELECT COUNT(*) as gens, SUM(num_images) as imgs, SUM(total_tokens) as tokens, SUM(cost_estimate) as cost FROM ai_analytics");
             if ($res && $row = mysqli_fetch_assoc($res)) {
                 $image_totals['total_generations'] = $row['gens'] ?? 0;
                 $image_totals['total_images'] = $row['imgs'] ?? 0;
                 $image_totals['total_tokens'] = $row['tokens'] ?? 0;
-                $image_totals['total_cost'] = (float)($row['cost'] ?? 0.00);
+                $image_totals['total_cost'] = (float) ($row['cost'] ?? 0.00);
             }
 
             $logSql = "SELECT a.*, 
@@ -73,18 +77,18 @@ class AianalyticsController extends Controller {
             $logRes = mysqli_query($con, $logSql);
             if ($logRes) {
                 while ($row = mysqli_fetch_assoc($logRes)) {
-                    $numImgs = (int)($row['num_images'] ?? 0);
+                    $numImgs = (int) ($row['num_images'] ?? 0);
                     $opType = $row['operation_type'] ?? ($numImgs > 0 ? 'image' : 'text');
                     $row['operation_type'] = $opType;
 
-                    if ($opType === 'image' && (float)$row['cost_estimate'] < 0.1) {
+                    if ($opType === 'image' && (float) $row['cost_estimate'] < 0.1) {
                         $row['cost_estimate'] = ($numImgs > 0 ? $numImgs : 1) * 0.03 * 86;
                     }
                     $image_logs[] = $row;
                 }
             }
         }
-        
+
         $this->view('ai_analytics/index', [
             'sessions' => $sessions,
             'image_totals' => $image_totals,

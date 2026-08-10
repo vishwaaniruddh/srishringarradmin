@@ -1,0 +1,20 @@
+TRUNCATE `categories`;TRUNCATE `products`; TRUNCATE `product_categories`; TRUNCATE `product_images`;
+
+
+Jewellery
+-Necklace Sets
+--American Diamond
+--Antique
+--Imitation
+--Kundan
+--South Indian Set
+--Vilandi / Polki
+
+-Earrings
+--Antique
+--Bugadi
+--Diamond
+--Imitation
+--Kundan
+--Oxidized
+--Vilandi
