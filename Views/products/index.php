@@ -427,9 +427,15 @@
                             ${isDup ? `<div style="font-size: 0.62rem; color: #facc15; font-weight: 600; margin-top: 3px;"><i class="fas fa-layer-group"></i> ${skuInfo.count} listings</div>` : ''}
                         </td>
                         <td style="font-size: 0.78rem; font-weight: 500;">
-                            ${subcatName 
-                                ? `<span style="display: inline-block; padding: 0.2rem 0.5rem; border-radius: 5px; font-size: 0.72rem; font-weight: 600; background: ${subcatColor.bg}; color: ${subcatColor.color}; border: 1px solid ${subcatColor.border};">${catDisplay}</span>`
-                                : `<span style="color: #555;">${catDisplay}</span>`
+                            ${catDisplay && catDisplay !== 'N/A'
+                                ? `<div style="display: flex; flex-wrap: wrap; gap: 4px;">
+                                    ${catDisplay.split(', ').map(name => {
+                                        const cleanTag = name.trim();
+                                        const sc = subcatColors[cleanTag] || defaultSubcatColor;
+                                        return `<span style="display: inline-block; padding: 0.2rem 0.5rem; border-radius: 5px; font-size: 0.72rem; font-weight: 600; background: ${sc.bg}; color: ${sc.color}; border: 1px solid ${sc.border};">${cleanTag}</span>`;
+                                    }).join('')}
+                                   </div>`
+                                : `<span style="color: #555;">N/A</span>`
                             }
                         </td>
                         <td>${qtyHtml}</td>
