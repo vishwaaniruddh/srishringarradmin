@@ -444,12 +444,31 @@
                                                 <i class="fas fa-camera" style="color: #f472b6;"></i>
                                                 <h4>AI Image Studio (Gemini)</h4>
                                             </div>
-                                            <p class="ai-card-desc">Generate an AI fashion model wearing this exact product.</p>
+                                            <p class="ai-card-desc">Generate AI fashion model images or professional studio product photos for this item.</p>
                                             
                                             <div style="display:flex; flex-direction:column; gap:0.8rem; margin-top:0.8rem;">
                                                 
-                                                <!-- Face Reference Models -->
+                                                <!-- Generation Mode Selector (On Model vs Studio Photo) -->
                                                 <div>
+                                                    <label style="font-size:0.65rem; font-weight:700; color:#888; text-transform:uppercase; letter-spacing:0.05em; margin-bottom:0.4rem; display:block;">Generation Mode</label>
+                                                    <div style="display:flex; gap:0.5rem;">
+                                                        <label class="bg-picker-label flex-1 cursor-pointer">
+                                                            <input type="radio" name="ai_gen_mode" value="model" checked class="hidden peer">
+                                                            <div class="peer-checked:bg-pink-600 peer-checked:text-white peer-checked:border-pink-600 border border-zinc-800 bg-zinc-900 text-zinc-400 px-4 py-2 rounded-xl text-xs font-semibold flex items-center justify-center gap-2 transition-all hover:bg-zinc-800">
+                                                                <i class="fas fa-female"></i> On Model
+                                                            </div>
+                                                        </label>
+                                                        <label class="bg-picker-label flex-1 cursor-pointer">
+                                                            <input type="radio" name="ai_gen_mode" value="studio" class="hidden peer">
+                                                            <div class="peer-checked:bg-purple-600 peer-checked:text-white peer-checked:border-purple-600 border border-zinc-800 bg-zinc-900 text-zinc-400 px-4 py-2 rounded-xl text-xs font-semibold flex items-center justify-center gap-2 transition-all hover:bg-zinc-800">
+                                                                <i class="fas fa-box-open"></i> Studio Photo (No Model)
+                                                            </div>
+                                                        </label>
+                                                    </div>
+                                                </div>
+
+                                                <!-- Face Reference Models (Model Mode Only) -->
+                                                <div id="ai_model_face_container">
                                                     <label style="font-size:0.65rem; font-weight:700; color:#888; text-transform:uppercase; letter-spacing:0.05em; margin-bottom:0.4rem; display:block;">Model Face (Optional)</label>
                                                     <div style="display:flex; gap:0.5rem; flex-wrap:wrap;">
                                                         <label class="model-picker-label relative group">
@@ -479,12 +498,14 @@
                                                     </div>
                                                 </div>
 
-                                                <!-- Background Presets -->
+                                                <!-- Background / Surface Presets -->
                                                 <div>
-                                                    <label style="font-size:0.65rem; font-weight:700; color:#888; text-transform:uppercase; letter-spacing:0.05em; margin-bottom:0.4rem; display:block;">Background / Props</label>
-                                                    <div style="display:flex; gap:0.4rem; flex-wrap:wrap;" id="bg_preset_container">
+                                                    <label id="ai_bg_label" style="font-size:0.65rem; font-weight:700; color:#888; text-transform:uppercase; letter-spacing:0.05em; margin-bottom:0.4rem; display:block;">Background / Props</label>
+                                                    
+                                                    <!-- Model Background Presets -->
+                                                    <div style="display:flex; gap:0.4rem; flex-wrap:wrap;" id="bg_preset_container_model">
                                                         <?php
-                                                        $bgPresets = [
+                                                        $bgPresetsModel = [
                                                             'Palace' => 'elegant royal palace with marble pillars and chandeliers',
                                                             'Beach' => 'golden hour beach with soft waves and sunset sky',
                                                             'Studio' => 'clean professional photography studio with soft gradient backdrop',
@@ -495,7 +516,7 @@
                                                             'City Night' => 'modern city skyline at night with bokeh lights'
                                                         ];
                                                         $first = true;
-                                                        foreach($bgPresets as $label => $promptPart):
+                                                        foreach($bgPresetsModel as $label => $promptPart):
                                                         ?>
                                                         <label class="bg-picker-label">
                                                             <input type="radio" name="ai_bg_preset" value="<?= htmlspecialchars($promptPart) ?>" <?= $first ? 'checked' : '' ?> class="hidden peer">
@@ -505,21 +526,55 @@
                                                         </label>
                                                         <?php $first=false; endforeach; ?>
                                                     </div>
-                                                    <input type="text" id="ai_bg_custom" class="ai-input mt-2 w-full" value="elegant royal palace with marble pillars and chandeliers" placeholder="Describe the background and props...">
+
+                                                    <!-- Studio Surface Presets (Studio Mode Only) -->
+                                                    <div style="display:none; gap:0.4rem; flex-wrap:wrap;" id="bg_preset_container_studio">
+                                                        <?php
+                                                        $bgPresetsStudio = [
+                                                            'Dark Marble' => 'luxury black marble surface with soft warm directional studio spotlighting',
+                                                            'Velvet Cushion' => 'royal velvet jewelry display cushion with subtle warm accent lighting',
+                                                            'Wooden Stand' => 'minimalist rustic wooden jewelry stand with soft natural shadows',
+                                                            'Reflective Glass' => 'reflective dark mirror glass surface with sharp luxury reflections',
+                                                            'Champagne Silk' => 'draped champagne silk fabric backdrop with soft diffuse studio lighting',
+                                                            'White Studio' => 'pristine white minimalist studio display backdrop'
+                                                        ];
+                                                        foreach($bgPresetsStudio as $label => $promptPart):
+                                                        ?>
+                                                        <label class="bg-picker-label">
+                                                            <input type="radio" name="ai_bg_preset_studio" value="<?= htmlspecialchars($promptPart) ?>" class="hidden peer">
+                                                            <div class="peer-checked:bg-purple-600 peer-checked:text-white peer-checked:border-purple-600 border border-zinc-800 bg-zinc-900 text-zinc-400 px-3 py-1.5 rounded-full text-xs font-medium cursor-pointer transition-all hover:bg-zinc-800">
+                                                                <?= $label ?>
+                                                            </div>
+                                                        </label>
+                                                        <?php endforeach; ?>
+                                                    </div>
+
+                                                    <input type="text" id="ai_bg_custom" class="ai-input mt-2 w-full" value="elegant royal palace with marble pillars and chandeliers" placeholder="Describe the background, display surface, or props...">
                                                 </div>
 
                                                 <!-- Shot & Hair Controls -->
                                                 <div style="display:grid; grid-template-columns:1fr 1fr; gap:1rem;">
                                                     <div>
                                                         <label style="font-size:0.65rem; font-weight:700; color:#888; text-transform:uppercase; letter-spacing:0.05em; margin-bottom:0.4rem; display:block;">Shot Type</label>
-                                                        <div style="display:flex; flex-direction:column; gap:0.3rem;">
+                                                        
+                                                        <!-- Model Shot Types -->
+                                                        <div id="ai_shot_type_container_model" style="display:flex; flex-direction:column; gap:0.3rem;">
                                                             <label class="flex items-center gap-2 text-xs text-zinc-300 cursor-pointer"><input type="radio" name="ai_shot_type" value="close-up portrait shot focusing on the face and the jewelry"> Close-up Portrait</label>
                                                             <label class="flex items-center gap-2 text-xs text-zinc-300 cursor-pointer"><input type="radio" name="ai_shot_type" value="half body shot from waist up, showing the model's torso and face"> Half Body</label>
                                                             <label class="flex items-center gap-2 text-xs text-zinc-300 cursor-pointer"><input type="radio" name="ai_shot_type" value="full body head-to-toe shot showing the complete outfit/jewelry look" checked> Full Body</label>
                                                             <label class="flex items-center gap-2 text-xs text-zinc-300 cursor-pointer"><input type="radio" name="ai_shot_type" value="shot from behind showing the back design and details of the product"> Back View</label>
                                                         </div>
+
+                                                        <!-- Studio Shot Types (Studio Mode Only) -->
+                                                        <div id="ai_shot_type_container_studio" style="display:none; flex-direction:column; gap:0.3rem;">
+                                                            <label class="flex items-center gap-2 text-xs text-zinc-300 cursor-pointer"><input type="radio" name="ai_shot_type_studio" value="ultra-sharp macro close-up product photography highlighting fine details, gemstone sparkle, and metal texture" checked> Macro Close-Up</label>
+                                                            <label class="flex items-center gap-2 text-xs text-zinc-300 cursor-pointer"><input type="radio" name="ai_shot_type_studio" value="professional flat lay top-down product photography layout"> Flat Lay (Top-Down)</label>
+                                                            <label class="flex items-center gap-2 text-xs text-zinc-300 cursor-pointer"><input type="radio" name="ai_shot_type_studio" value="elegant 3/4 perspective product display shot showing side and front angles"> 3/4 Display Angle</label>
+                                                            <label class="flex items-center gap-2 text-xs text-zinc-300 cursor-pointer"><input type="radio" name="ai_shot_type_studio" value="dramatic floating product display with soft realistic shadow underneath"> Floating Display</label>
+                                                        </div>
                                                     </div>
-                                                    <div>
+
+                                                    <div id="ai_hair_style_container">
                                                         <label style="font-size:0.65rem; font-weight:700; color:#888; text-transform:uppercase; letter-spacing:0.05em; margin-bottom:0.4rem; display:block;">Hair Style</label>
                                                         <div style="display:flex; flex-direction:column; gap:0.3rem;">
                                                             <label class="flex items-center gap-2 text-xs text-zinc-300 cursor-pointer"><input type="radio" name="ai_hair_style" value="open flowing hair with soft waves (khule baal)"> Open Flowing</label>
@@ -1229,38 +1284,99 @@
 
         function updateFinalPrompt() {
             const catName = '<?php echo htmlspecialchars($product['category_name'] ?? ($product['subcategory_name'] ?? 'product')); ?>';
-            
-            // Gather inputs
-            const faceInput = document.querySelector('input[name="ai_model_face"]:checked').value;
+            const mode = document.querySelector('input[name="ai_gen_mode"]:checked')?.value || 'model';
             const customBg = document.getElementById('ai_bg_custom').value.trim();
-            const shotType = document.querySelector('input[name="ai_shot_type"]:checked').value;
-            const hairStyle = document.querySelector('input[name="ai_hair_style"]:checked').value;
 
-            // Assemble background part
-            let bgPrompt = customBg;
-            if (!bgPrompt) bgPrompt = 'clean studio background';
+            if (mode === 'studio') {
+                const shotTypeStudio = document.querySelector('input[name="ai_shot_type_studio"]:checked')?.value || 'ultra-sharp macro close-up product photography highlighting fine details, gemstone sparkle, and metal texture';
+                let bgPrompt = customBg || 'luxury black marble surface with soft warm directional studio spotlighting';
 
-            // Assemble final prompt
-            let promptParts = [
-                `A photorealistic beautiful Indian fashion model wearing this exact ${catName}.`,
-                `The background should have ${bgPrompt}.`,
-                `Shot type: ${shotType}.`,
-                `Do not change the ${catName} details.`,
-                `Aspect ratio: 2:3 vertical fashion portrait format.`
-            ];
-            
-            if (hairStyle) {
-                promptParts.push(`The model should have ${hairStyle}.`);
+                let promptParts = [
+                    `Ultra-high resolution professional studio product photography of this exact ${catName} placed on ${bgPrompt}.`,
+                    `Shot type: ${shotTypeStudio}.`,
+                    `No human model, no hands, product-only studio display photoshoot with soft diffuse studio lighting, 8k resolution, razor-sharp focus on details, gemstone sparkle and fine metal craftsmanship.`,
+                    `Do not change the ${catName} design or features.`,
+                    `Aspect ratio: 2:3 vertical format.`
+                ];
+                document.getElementById('ai_final_prompt').value = promptParts.join(' ');
+            } else {
+                const faceInput = document.querySelector('input[name="ai_model_face"]:checked')?.value || '';
+                const shotTypeModel = document.querySelector('input[name="ai_shot_type"]:checked')?.value || 'full body head-to-toe shot showing the complete outfit/jewelry look';
+                const hairStyle = document.querySelector('input[name="ai_hair_style"]:checked')?.value || '';
+                let bgPrompt = customBg || 'elegant royal palace with marble pillars and chandeliers';
+
+                let promptParts = [
+                    `A photorealistic beautiful Indian fashion model wearing this exact ${catName}.`,
+                    `The background should have ${bgPrompt}.`,
+                    `Shot type: ${shotTypeModel}.`,
+                    `Do not change the ${catName} details.`,
+                    `Aspect ratio: 2:3 vertical fashion portrait format.`
+                ];
+                
+                if (hairStyle) {
+                    promptParts.push(`The model should have ${hairStyle}.`);
+                }
+                if (faceInput) {
+                    promptParts.push(`The model's face must match the reference photo exactly.`);
+                }
+
+                document.getElementById('ai_final_prompt').value = promptParts.join(' ');
             }
-            if (faceInput) {
-                promptParts.push(`The model's face must match the reference photo exactly.`);
-            }
-
-            document.getElementById('ai_final_prompt').value = promptParts.join(' ');
         }
 
+        // Toggle UI Mode (On Model vs Studio Photo)
+        document.querySelectorAll('input[name="ai_gen_mode"]').forEach(radio => {
+            radio.addEventListener('change', (e) => {
+                const mode = e.target.value;
+                const faceContainer = document.getElementById('ai_model_face_container');
+                const hairContainer = document.getElementById('ai_hair_style_container');
+                const bgLabel = document.getElementById('ai_bg_label');
+                const bgModel = document.getElementById('bg_preset_container_model');
+                const bgStudio = document.getElementById('bg_preset_container_studio');
+                const shotModel = document.getElementById('ai_shot_type_container_model');
+                const shotStudio = document.getElementById('ai_shot_type_container_studio');
+                const customBg = document.getElementById('ai_bg_custom');
+                const btn = document.getElementById('aiImageBtn');
+
+                if (mode === 'studio') {
+                    if (faceContainer) faceContainer.style.display = 'none';
+                    if (hairContainer) hairContainer.style.display = 'none';
+                    if (bgModel) bgModel.style.display = 'none';
+                    if (bgStudio) bgStudio.style.display = 'flex';
+                    if (shotModel) shotModel.style.display = 'none';
+                    if (shotStudio) shotStudio.style.display = 'flex';
+                    if (bgLabel) bgLabel.innerText = 'Display Surface / Backdrop';
+                    
+                    const studioVal = document.querySelector('input[name="ai_bg_preset_studio"]:checked')?.value || 'luxury black marble surface with soft warm directional studio spotlighting';
+                    customBg.value = studioVal;
+
+                    btn.style.setProperty('background', '#a855f7', 'important');
+                    btn.style.setProperty('border-color', '#a855f7', 'important');
+                    btn.style.setProperty('color', '#fff', 'important');
+                    btn.innerHTML = '<i class="fas fa-camera"></i> Generate Studio Product Photo';
+                } else {
+                    if (faceContainer) faceContainer.style.display = 'block';
+                    if (hairContainer) hairContainer.style.display = 'block';
+                    if (bgModel) bgModel.style.display = 'flex';
+                    if (bgStudio) bgStudio.style.display = 'none';
+                    if (shotModel) shotModel.style.display = 'flex';
+                    if (shotStudio) shotStudio.style.display = 'none';
+                    if (bgLabel) bgLabel.innerText = 'Background / Props';
+
+                    const modelVal = document.querySelector('input[name="ai_bg_preset"]:checked')?.value || 'elegant royal palace with marble pillars and chandeliers';
+                    customBg.value = modelVal;
+
+                    btn.style.setProperty('background', '#f472b6', 'important');
+                    btn.style.setProperty('border-color', '#f472b6', 'important');
+                    btn.style.setProperty('color', '#000', 'important');
+                    btn.innerHTML = '<i class="fas fa-magic"></i> Generate Model Image';
+                }
+                updateFinalPrompt();
+            });
+        });
+
         // Attach listeners to all inputs to live-update the prompt textarea
-        document.querySelectorAll('input[name="ai_model_face"], input[name="ai_bg_preset"], input[name="ai_shot_type"], input[name="ai_hair_style"]').forEach(input => {
+        document.querySelectorAll('input[name="ai_model_face"], input[name="ai_bg_preset"], input[name="ai_bg_preset_studio"], input[name="ai_shot_type"], input[name="ai_shot_type_studio"], input[name="ai_hair_style"]').forEach(input => {
             input.addEventListener('change', updateFinalPrompt);
         });
         document.getElementById('ai_bg_custom').addEventListener('input', updateFinalPrompt);
@@ -1269,18 +1385,30 @@
             radio.addEventListener('change', (e) => {
                 const customInput = document.getElementById('ai_bg_custom');
                 customInput.value = e.target.value;
-                updateFinalPrompt(); // update the big box too
+                updateFinalPrompt();
                 
-                // Add a subtle highlight effect to show it updated
                 customInput.style.transition = 'all 0.3s ease';
                 customInput.style.boxShadow = '0 0 0 2px rgba(244,114,182,0.4)';
                 setTimeout(() => { customInput.style.boxShadow = ''; }, 600);
             });
         });
 
+        document.querySelectorAll('input[name="ai_bg_preset_studio"]').forEach(radio => {
+            radio.addEventListener('change', (e) => {
+                const customInput = document.getElementById('ai_bg_custom');
+                customInput.value = e.target.value;
+                updateFinalPrompt();
+                
+                customInput.style.transition = 'all 0.3s ease';
+                customInput.style.boxShadow = '0 0 0 2px rgba(168,85,247,0.4)';
+                setTimeout(() => { customInput.style.boxShadow = ''; }, 600);
+            });
+        });
+
         async function aiGenerateAdvancedImage() {
             const btn = document.getElementById('aiImageBtn');
-            const faceInput = document.querySelector('input[name="ai_model_face"]:checked').value;
+            const mode = document.querySelector('input[name="ai_gen_mode"]:checked')?.value || 'model';
+            const faceInput = (mode === 'studio') ? '' : (document.querySelector('input[name="ai_model_face"]:checked')?.value || '');
             const finalPrompt = document.getElementById('ai_final_prompt').value.trim();
             const numImages = document.querySelector('input[name="ai_num_images"]:checked').value;
 
