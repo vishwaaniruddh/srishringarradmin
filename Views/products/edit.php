@@ -1891,6 +1891,11 @@
         document.addEventListener('DOMContentLoaded', () => {
             wpUpdateCatCounter();
             renderSelectedColors();
+
+            // Auto-detect colors from product image asynchronously on page load if none are set
+            if (selectedColors.length === 0) {
+                aiDetectColors(true);
+            }
         });
 
         // --- Product Color Multi-Select Logic ---
@@ -2168,11 +2173,19 @@
             }
         });
 
-        function aiDetectColors() {
+        function aiDetectColors(isAuto = false) {
             const btn = document.getElementById('btnAiDetectColors');
             const icon = document.getElementById('aiDetectColorsIcon');
+            const container = document.getElementById('selectedColorsContainer');
+
             if (btn) btn.disabled = true;
             if (icon) icon.className = 'fas fa-spinner fa-spin';
+
+            if (isAuto && container && selectedColors.length === 0) {
+                container.innerHTML = `<span style="font-size: 0.72rem; color: #f472b6; font-style: italic; display: flex; align-items: center; gap: 0.45rem; padding: 0.2rem 0.4rem;">
+                    <i class="fas fa-spinner fa-spin" style="font-size: 0.7rem;"></i> AI analyzing product image to detect colors...
+                </span>`;
+            }
 
             const productId = <?php echo (int)($product['id'] ?? 0); ?>;
             const productType = '<?php echo addslashes($type ?? 'jewellery'); ?>';
@@ -2191,13 +2204,21 @@
                         });
                         renderSelectedColors();
                     } else {
-                        alert(res.error || "No colors detected by AI for this product image.");
+                        if (!isAuto) {
+                            alert(res.error || "No colors detected by AI for this product image.");
+                        } else {
+                            renderSelectedColors();
+                        }
                     }
                 })
                 .catch(err => {
                     if (btn) btn.disabled = false;
                     if (icon) icon.className = 'fas fa-magic';
-                    alert("AI Color Detection failed: " + err);
+                    if (!isAuto) {
+                        alert("AI Color Detection failed: " + err);
+                    } else {
+                        renderSelectedColors();
+                    }
                 });
         }
 
