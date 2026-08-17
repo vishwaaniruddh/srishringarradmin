@@ -3,6 +3,71 @@
 <head>
     <title>Add Product - Srishringarr</title>
     <?php include __DIR__ . '/../partials/head.php'; ?>
+    <style>
+        .color-chip {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.35rem;
+            padding: 0.3rem 0.65rem;
+            border-radius: 9999px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            color: #334155;
+            cursor: pointer;
+            transition: all 0.15s ease;
+            user-select: none;
+        }
+        .color-chip:hover {
+            border-color: #ec4899;
+            background: #fdf2f8;
+            color: #be185d;
+        }
+        .color-chip--active {
+            background: #fdf2f8 !important;
+            border-color: #ec4899 !important;
+            color: #db2777 !important;
+            font-weight: 700 !important;
+            box-shadow: 0 0 0 2px rgba(236, 72, 153, 0.15);
+        }
+        .color-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            display: inline-block;
+            flex-shrink: 0;
+            border: 1px solid rgba(0,0,0,0.15);
+        }
+        .color-tag-selected {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.45rem;
+            padding: 0.3rem 0.65rem;
+            border-radius: 8px;
+            font-size: 0.75rem;
+            font-weight: 700;
+            background: #fdf2f8;
+            border: 1px solid #f472b6;
+            color: #9d174d;
+            transition: all 0.15s ease;
+        }
+        .color-tag-selected .color-remove-btn {
+            background: transparent;
+            border: none;
+            color: #ec4899;
+            font-size: 0.8rem;
+            line-height: 1;
+            cursor: pointer;
+            padding: 0;
+            margin-left: 2px;
+            transition: transform 0.15s;
+        }
+        .color-tag-selected .color-remove-btn:hover {
+            color: #be185d;
+            transform: scale(1.2);
+        }
+    </style>
 </head>
 <body class="bg-gray-50 font-sans text-gray-900">
     <div class="flex min-h-screen">
@@ -288,6 +353,71 @@
                                     </div>
                                     <div id="pos_price_note" class="bg-blue-50 border border-blue-200 rounded-xl px-4 py-3 text-xs text-blue-700">
                                         <i class="fas fa-info-circle mr-1"></i> These values are stored but <strong>overridden</strong> by POS-calculated prices on the frontend. Switch to "Manual" to use these values directly.
+                                    </div>
+
+                                    <!-- Product Colors (Multiple Selection) -->
+                                    <div class="mt-6 bg-gray-50 border border-gray-200 rounded-2xl p-5">
+                                        <div class="flex items-center justify-between gap-3 mb-3 flex-wrap">
+                                            <div class="flex items-center gap-2.5">
+                                                <div class="w-8 h-8 rounded-lg bg-pink-50 text-pink-600 flex items-center justify-center text-sm border border-pink-100">
+                                                    <i class="fas fa-palette"></i>
+                                                </div>
+                                                <div>
+                                                    <label class="block text-xs font-bold text-gray-700 uppercase tracking-wider">
+                                                        Product Colors (Multiple)
+                                                    </label>
+                                                    <span class="text-xs text-gray-400 block">
+                                                        Select all colors available for this product. Saved as JSON array.
+                                                    </span>
+                                                </div>
+                                            </div>
+                                            <div class="flex items-center gap-2">
+                                                <span id="selectedColorsCounter" class="bg-pink-50 text-pink-600 border border-pink-200 text-xs font-bold px-2.5 py-0.5 rounded-full">
+                                                    0 Selected
+                                                </span>
+                                                <button type="button" onclick="clearAllColors()" class="text-xs text-gray-400 hover:text-gray-600 font-medium underline">Clear</button>
+                                            </div>
+                                        </div>
+
+                                        <!-- Selected Colors Display Area -->
+                                        <div id="selectedColorsContainer" class="flex flex-wrap gap-2 min-h-[42px] p-2 bg-white border border-gray-200 rounded-xl mb-3 items-center">
+                                            <!-- Dynamically rendered badges -->
+                                        </div>
+
+                                        <!-- Search & Custom Add Bar -->
+                                        <div class="relative mb-3">
+                                            <div class="flex gap-2">
+                                                <div class="relative flex-1">
+                                                    <i class="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-xs"></i>
+                                                    <input type="text" id="colorSearchInput" placeholder="Search color or type custom name and press Enter..." 
+                                                           class="w-full bg-white border border-gray-200 rounded-xl pl-9 pr-3 py-2 text-xs focus:ring-primary focus:border-primary outline-none transition-all"
+                                                           onfocus="showColorDropdown()" 
+                                                           oninput="filterColorDropdown()" 
+                                                           onkeydown="handleColorInputKey(event)">
+                                                </div>
+                                                <button type="button" onclick="addCustomColorFromInput()" class="bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs font-semibold px-3 py-2 rounded-xl border border-gray-200 transition-all flex items-center gap-1.5">
+                                                    <i class="fas fa-plus text-[10px]"></i> Add
+                                                </button>
+                                            </div>
+
+                                            <!-- Dropdown of matching colors -->
+                                            <div id="colorDropdownList" class="hidden absolute top-[calc(100%+4px)] left-0 right-0 max-h-52 overflow-y-auto bg-white border border-gray-200 rounded-xl p-2 z-50 shadow-lg">
+                                                <!-- Dynamically populated options -->
+                                            </div>
+                                        </div>
+
+                                        <!-- Quick Pick Popular Colors -->
+                                        <div>
+                                            <div class="text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-2">
+                                                Popular Colors (1-Click Toggle):
+                                            </div>
+                                            <div id="quickPickColors" class="flex flex-wrap gap-1.5">
+                                                <!-- Curated quick pick buttons -->
+                                            </div>
+                                        </div>
+
+                                        <!-- Hidden Inputs Container -->
+                                        <div id="hiddenColorInputs"></div>
                                     </div>
                                 </div>
 
@@ -648,6 +778,281 @@ Product Description: [Your suggested description]`;
 
         document.addEventListener('DOMContentLoaded', () => {
             wpUpdateCatCounter();
+            renderSelectedColors();
+        });
+
+        // --- Product Color Multi-Select Logic ---
+        const allAvailableColors = <?php echo json_encode($availableColors ?? []); ?>;
+        let selectedColors = [];
+        
+        // Color mapping for swatches
+        const colorHexMap = {
+            'antique gold': '#d97706',
+            'azure blue': '#0284c7',
+            'baby pink': '#f472b6',
+            'beige': '#d4c5a9',
+            'black': '#18181b',
+            'blue': '#2563eb',
+            'bottle green': '#064e3b',
+            'brown': '#78350f',
+            'coral': '#fb7185',
+            'cream': '#fef3c7',
+            'dark gold': '#b45309',
+            'dark green': '#14532d',
+            'emerald green': '#059669',
+            'fuchsia pink': '#db2777',
+            'gold': '#eab308',
+            'golden': '#eab308',
+            'green': '#22c55e',
+            'green kundan': '#15803d',
+            'grey': '#71717a',
+            'indigo': '#4f46e5',
+            'kundan': '#fef08a',
+            'light gold': '#fde047',
+            'lime green': '#84cc16',
+            'magenta': '#c026d3',
+            'maroon': '#881337',
+            'mauve': '#a855f7',
+            'mint green': '#6ee7b7',
+            'multicolor': 'linear-gradient(135deg, #ef4444, #eab308, #22c55e, #3b82f6)',
+            'mustard': '#ca8a04',
+            'navy blue': '#1e3a8a',
+            'off white': '#f5f5f4',
+            'olive green': '#65a30d',
+            'orange': '#ea580c',
+            'peach': '#fdba74',
+            'peacock blue': '#0284c7',
+            'pearl': '#f8fafc',
+            'pink': '#ec4899',
+            'purple': '#9333ea',
+            'red': '#dc2626',
+            'rhodolite': '#9f1239',
+            'rose gold': '#f43f5e',
+            'royal blue': '#1d4ed8',
+            'ruby': '#e11d48',
+            'rust': '#c2410c',
+            'sea green': '#0d9488',
+            'silver': '#94a3b8',
+            'sky blue': '#38bdf8',
+            'teal': '#0f766e',
+            'turquoise': '#06b6d4',
+            'vilandi': '#fde047',
+            'white': '#ffffff',
+            'white kundan': '#fafafa',
+            'white pearl': '#f1f5f9',
+            'wine': '#4c0519',
+            'yellow': '#eab308'
+        };
+
+        const popularQuickPickColors = [
+            'Gold', 'Silver', 'Rose Gold', 'Antique Gold', 'Red', 'Maroon', 
+            'Ruby', 'Green', 'Emerald Green', 'Pink', 'Baby Pink', 'White', 
+            'Off White', 'Kundan', 'Yellow', 'Blue', 'Black', 'Multicolor'
+        ];
+
+        function getColorSwatch(colorName) {
+            const key = String(colorName || '').trim().toLowerCase();
+            return colorHexMap[key] || '#ec4899';
+        }
+
+        function renderSelectedColors() {
+            const container = document.getElementById('selectedColorsContainer');
+            const counter = document.getElementById('selectedColorsCounter');
+            const hiddenInputs = document.getElementById('hiddenColorInputs');
+            if (!container || !counter || !hiddenInputs) return;
+
+            // Update Counter
+            counter.textContent = `${selectedColors.length} Selected`;
+            if (selectedColors.length > 0) {
+                counter.className = 'bg-pink-100 text-pink-700 border border-pink-300 text-xs font-bold px-2.5 py-0.5 rounded-full';
+            } else {
+                counter.className = 'bg-pink-50 text-pink-600 border border-pink-200 text-xs font-bold px-2.5 py-0.5 rounded-full';
+            }
+
+            // Render Tags
+            if (selectedColors.length === 0) {
+                container.innerHTML = `<span class="text-xs text-gray-400 italic px-2 py-1">
+                    No colors selected. Pick from popular colors below or search to add.
+                </span>`;
+            } else {
+                container.innerHTML = selectedColors.map((color) => {
+                    const swatch = getColorSwatch(color);
+                    const isGrad = swatch.includes('gradient');
+                    const bgStyle = isGrad ? `background: ${swatch};` : `background-color: ${swatch};`;
+                    return `
+                        <div class="color-tag-selected">
+                            <span class="color-dot" style="${bgStyle}"></span>
+                            <span>${escapeHtml(color)}</span>
+                            <button type="button" class="color-remove-btn" onclick="removeColor('${escapeJsStr(color)}')" title="Remove color">
+                                <i class="fas fa-times"></i>
+                            </button>
+                        </div>
+                    `;
+                }).join('');
+            }
+
+            // Render Hidden Inputs (both array and JSON string)
+            let inputsHtml = selectedColors.map(c => `<input type="hidden" name="colors[]" value="${escapeHtml(c)}">`).join('');
+            inputsHtml += `<input type="hidden" name="brand_color" value='${escapeHtml(JSON.stringify(selectedColors))}'>`;
+            hiddenInputs.innerHTML = inputsHtml;
+
+            // Update Quick Pick active state
+            renderQuickPickPills();
+        }
+
+        function renderQuickPickPills() {
+            const container = document.getElementById('quickPickColors');
+            if (!container) return;
+
+            container.innerHTML = popularQuickPickColors.map(color => {
+                const isSelected = selectedColors.some(c => c.toLowerCase() === color.toLowerCase());
+                const swatch = getColorSwatch(color);
+                const isGrad = swatch.includes('gradient');
+                const bgStyle = isGrad ? `background: ${swatch};` : `background-color: ${swatch};`;
+                return `
+                    <button type="button" onclick="toggleColor('${escapeJsStr(color)}')" class="color-chip ${isSelected ? 'color-chip--active' : ''}">
+                        <span class="color-dot" style="${bgStyle}"></span>
+                        <span>${escapeHtml(color)}</span>
+                        ${isSelected ? '<i class="fas fa-check text-[10px] text-pink-600 ml-0.5"></i>' : ''}
+                    </button>
+                `;
+            }).join('');
+        }
+
+        function toggleColor(color) {
+            const trimmed = color.trim();
+            if (!trimmed) return;
+            const index = selectedColors.findIndex(c => c.toLowerCase() === trimmed.toLowerCase());
+            if (index > -1) {
+                selectedColors.splice(index, 1);
+            } else {
+                selectedColors.push(trimmed);
+            }
+            renderSelectedColors();
+        }
+
+        function removeColor(color) {
+            selectedColors = selectedColors.filter(c => c.toLowerCase() !== color.trim().toLowerCase());
+            renderSelectedColors();
+        }
+
+        function clearAllColors() {
+            selectedColors = [];
+            renderSelectedColors();
+        }
+
+        function showColorDropdown() {
+            filterColorDropdown();
+            const dropdown = document.getElementById('colorDropdownList');
+            if (dropdown) dropdown.classList.remove('hidden');
+        }
+
+        function hideColorDropdown() {
+            setTimeout(() => {
+                const dropdown = document.getElementById('colorDropdownList');
+                if (dropdown) dropdown.classList.add('hidden');
+            }, 250);
+        }
+
+        function filterColorDropdown() {
+            const input = document.getElementById('colorSearchInput');
+            const dropdown = document.getElementById('colorDropdownList');
+            if (!input || !dropdown) return;
+
+            const q = input.value.trim().toLowerCase();
+            
+            // Combine allAvailableColors with quick pick and existing
+            const combinedColors = Array.from(new Set([...allAvailableColors, ...popularQuickPickColors]));
+            combinedColors.sort((a, b) => a.localeCompare(b));
+
+            const filtered = combinedColors.filter(c => !q || c.toLowerCase().includes(q));
+
+            let html = '';
+            if (filtered.length > 0) {
+                html = filtered.map(c => {
+                    const isSelected = selectedColors.some(sc => sc.toLowerCase() === c.toLowerCase());
+                    const swatch = getColorSwatch(c);
+                    const isGrad = swatch.includes('gradient');
+                    const bgStyle = isGrad ? `background: ${swatch};` : `background-color: ${swatch};`;
+                    return `
+                        <div onclick="toggleColor('${escapeJsStr(c)}'); event.stopPropagation();" 
+                             class="flex items-center justify-between p-2 rounded-lg cursor-pointer transition-colors ${isSelected ? 'bg-pink-50 text-pink-700 font-semibold' : 'text-gray-700 hover:bg-gray-50'}">
+                            <div class="flex items-center gap-2 text-xs font-medium">
+                                <span class="color-dot" style="${bgStyle}"></span>
+                                <span>${escapeHtml(c)}</span>
+                            </div>
+                            ${isSelected ? '<i class="fas fa-check text-xs text-pink-600"></i>' : '<i class="fas fa-plus text-[10px] text-gray-400"></i>'}
+                        </div>
+                    `;
+                }).join('');
+            }
+
+            if (q && !combinedColors.some(c => c.toLowerCase() === q)) {
+                html += `
+                    <div onclick="addCustomColorFromInput(); event.stopPropagation();" 
+                         class="flex items-center gap-2 p-2 rounded-lg cursor-pointer bg-blue-50 text-blue-700 text-xs font-semibold mt-1 hover:bg-blue-100 transition-colors">
+                        <i class="fas fa-plus-circle text-blue-600"></i>
+                        <span>Add custom color: "<strong>${escapeHtml(input.value.trim())}</strong>"</span>
+                    </div>
+                `;
+            }
+
+            if (!html) {
+                html = '<div class="p-3 text-center text-gray-400 text-xs">No matching colors found.</div>';
+            }
+
+            dropdown.innerHTML = html;
+            dropdown.classList.remove('hidden');
+        }
+
+        function handleColorInputKey(e) {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                addCustomColorFromInput();
+            } else if (e.key === 'Escape') {
+                const dropdown = document.getElementById('colorDropdownList');
+                if (dropdown) dropdown.classList.add('hidden');
+            }
+        }
+
+        function addCustomColorFromInput() {
+            const input = document.getElementById('colorSearchInput');
+            if (!input) return;
+            const val = input.value.trim();
+            if (val) {
+                const formatted = val.split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(' ');
+                if (!selectedColors.some(c => c.toLowerCase() === formatted.toLowerCase())) {
+                    selectedColors.push(formatted);
+                    renderSelectedColors();
+                }
+                input.value = '';
+                const dropdown = document.getElementById('colorDropdownList');
+                if (dropdown) dropdown.classList.add('hidden');
+            }
+        }
+
+        function escapeHtml(str) {
+            return String(str || '')
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#039;');
+        }
+
+        function escapeJsStr(str) {
+            return String(str || '')
+                .replace(/\\/g, '\\\\')
+                .replace(/'/g, "\\'");
+        }
+
+        // Close dropdown when clicking outside
+        document.addEventListener('click', (e) => {
+            const searchWrap = document.getElementById('colorSearchInput')?.parentElement?.parentElement;
+            if (searchWrap && !searchWrap.contains(e.target)) {
+                const dropdown = document.getElementById('colorDropdownList');
+                if (dropdown) dropdown.classList.add('hidden');
+            }
         });
     </script>
 </body>

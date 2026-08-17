@@ -246,6 +246,69 @@
         }
         .upload-zone:hover { border-color: #444 !important; }
 
+        /* Color multi-select styling */
+        .color-chip {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.4rem;
+            padding: 0.28rem 0.6rem;
+            border-radius: 9999px;
+            font-size: 0.72rem;
+            font-weight: 600;
+            background: #18181b;
+            border: 1px solid #27272a;
+            color: #f4f4f5;
+            cursor: pointer;
+            transition: all 0.15s ease;
+            user-select: none;
+        }
+        .color-chip:hover {
+            border-color: #f472b6;
+            background: #27272a;
+        }
+        .color-chip--active {
+            background: rgba(236, 72, 153, 0.18) !important;
+            border-color: #f472b6 !important;
+            color: #fbcfe8 !important;
+            box-shadow: 0 0 10px rgba(236, 72, 153, 0.25);
+        }
+        .color-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            display: inline-block;
+            flex-shrink: 0;
+            border: 1px solid rgba(255,255,255,0.25);
+        }
+        .color-tag-selected {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.45rem;
+            padding: 0.3rem 0.65rem;
+            border-radius: 8px;
+            font-size: 0.75rem;
+            font-weight: 700;
+            background: rgba(236, 72, 153, 0.15);
+            border: 1px solid #f472b6;
+            color: #fdf2f8;
+            transition: all 0.15s ease;
+        }
+        .color-tag-selected .color-remove-btn {
+            background: transparent;
+            border: none;
+            color: #f472b6;
+            font-size: 0.8rem;
+            line-height: 1;
+            cursor: pointer;
+            padding: 0;
+            margin-left: 2px;
+            transition: transform 0.15s, color 0.15s;
+        }
+        .color-tag-selected .color-remove-btn:hover {
+            color: #fda4af;
+            transform: scale(1.2);
+        }
+
         /* Toggle */
         .toggle-row {
             display: flex; align-items: center; gap: 0.5rem;
@@ -860,6 +923,74 @@
                                 </div>
                                 <div id="pos_price_note" class="<?php echo ($product['price_source'] ?? 'pos') === 'manual' ? 'hidden' : ''; ?>" style="margin-top:0.5rem; padding:0.45rem 0.7rem; background:rgba(59,130,246,0.06); border:1px solid rgba(59,130,246,0.12); border-radius:6px; font-size:0.68rem; color:#3b82f6;">
                                     <i class="fas fa-info-circle mr-1"></i> These values are stored but <strong>overridden</strong> by POS-calculated prices on the frontend. Switch to "Manual" to use these values directly.
+                                </div>
+
+                                <!-- Product Colors (Multiple Selection) -->
+                                <div style="margin-top: 1rem; background: #09090b; border: 1px solid #27272a; border-radius: 10px; padding: 1rem;">
+                                    <div style="display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; margin-bottom: 0.75rem; flex-wrap: wrap;">
+                                        <div style="display: flex; align-items: center; gap: 0.5rem;">
+                                            <div style="width: 26px; height: 26px; border-radius: 6px; background: rgba(236, 72, 153, 0.12); color: #f472b6; display: flex; align-items: center; justify-content: center; font-size: 0.75rem;">
+                                                <i class="fas fa-palette"></i>
+                                            </div>
+                                            <div>
+                                                <label style="font-size: 0.78rem; font-weight: 700; color: #f4f4f5; display: block; margin: 0; text-transform: uppercase; letter-spacing: 0.05em;">
+                                                    Product Colors (Multiple)
+                                                </label>
+                                                <span style="font-size: 0.68rem; color: #71717a; display: block; margin-top: 1px;">
+                                                    Select all colors available for this product. Saved as JSON array.
+                                                </span>
+                                            </div>
+                                        </div>
+                                        <div style="display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;">
+                                            <button type="button" id="btnAiDetectColors" onclick="aiDetectColors()" style="display: inline-flex; align-items: center; gap: 0.35rem; font-size: 0.7rem; font-weight: 600; padding: 0.25rem 0.65rem; border-radius: 6px; background: linear-gradient(135deg, rgba(236, 72, 153, 0.15), rgba(168, 85, 247, 0.15)); border: 1px solid rgba(236, 72, 153, 0.35); color: #fbcfe8; cursor: pointer; transition: all 0.15s;">
+                                                <i class="fas fa-magic" id="aiDetectColorsIcon" style="color: #f472b6; font-size: 0.65rem;"></i> AI Detect Colors
+                                            </button>
+                                            <span id="selectedColorsCounter" style="background: rgba(236, 72, 153, 0.15); color: #f472b6; font-size: 0.7rem; font-weight: 700; padding: 0.15rem 0.55rem; border-radius: 9999px; border: 1px solid rgba(236, 72, 153, 0.3);">
+                                                0 Selected
+                                            </span>
+                                            <button type="button" onclick="clearAllColors()" style="background: transparent; border: none; color: #71717a; font-size: 0.68rem; font-weight: 600; cursor: pointer; text-decoration: underline;">Clear</button>
+                                        </div>
+                                    </div>
+
+                                    <!-- Selected Colors Display Area -->
+                                    <div id="selectedColorsContainer" style="display: flex; flex-wrap: wrap; gap: 0.4rem; min-height: 42px; padding: 0.45rem; background: #121215; border: 1px solid #27272a; border-radius: 8px; margin-bottom: 0.75rem; align-items: center;">
+                                        <!-- Dynamically rendered selected color badges -->
+                                    </div>
+
+                                    <!-- Search & Custom Add Bar -->
+                                    <div style="position: relative; margin-bottom: 0.75rem;">
+                                        <div style="display: flex; gap: 0.4rem;">
+                                            <div style="position: relative; flex: 1;">
+                                                <i class="fas fa-search" style="position: absolute; left: 0.75rem; top: 50%; transform: translateY(-50%); font-size: 0.72rem; color: #71717a;"></i>
+                                                <input type="text" id="colorSearchInput" placeholder="Search color or type custom name and press Enter..." 
+                                                       style="width: 100%; background: #18181b; border: 1px solid #27272a; border-radius: 8px; padding: 0.45rem 0.75rem 0.45rem 2.2rem; font-size: 0.76rem; color: #fff; outline: none; transition: border-color 0.15s;"
+                                                       onfocus="this.style.borderColor='#f472b6'; showColorDropdown();" 
+                                                       oninput="filterColorDropdown()" 
+                                                       onkeydown="handleColorInputKey(event)">
+                                            </div>
+                                            <button type="button" onclick="addCustomColorFromInput()" style="background: #27272a; border: 1px solid #3f3f46; color: #e4e4e7; font-size: 0.72rem; font-weight: 600; padding: 0.45rem 0.85rem; border-radius: 8px; cursor: pointer; display: flex; align-items: center; gap: 0.35rem; transition: all 0.15s;">
+                                                <i class="fas fa-plus" style="font-size: 0.65rem;"></i> Add
+                                            </button>
+                                        </div>
+
+                                        <!-- Dropdown of matching colors -->
+                                        <div id="colorDropdownList" style="display: none; position: absolute; top: calc(100% + 4px); left: 0; right: 0; max-height: 200px; overflow-y: auto; background: #18181b; border: 1px solid #3f3f46; border-radius: 8px; padding: 0.4rem; z-index: 50; box-shadow: 0 10px 25px rgba(0,0,0,0.5);">
+                                            <!-- Dynamically populated options -->
+                                        </div>
+                                    </div>
+
+                                    <!-- Quick Pick Popular Colors -->
+                                    <div>
+                                        <div style="font-size: 0.65rem; font-weight: 700; color: #71717a; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.4rem;">
+                                            Popular Colors (1-Click Toggle):
+                                        </div>
+                                        <div id="quickPickColors" style="display: flex; flex-wrap: wrap; gap: 0.35rem;">
+                                            <!-- Curated quick pick buttons -->
+                                        </div>
+                                    </div>
+
+                                    <!-- Hidden Inputs Container -->
+                                    <div id="hiddenColorInputs"></div>
                                 </div>
                             </div>
 
@@ -1759,7 +1890,316 @@
 
         document.addEventListener('DOMContentLoaded', () => {
             wpUpdateCatCounter();
+            renderSelectedColors();
         });
+
+        // --- Product Color Multi-Select Logic ---
+        const allAvailableColors = <?php echo json_encode($availableColors ?? []); ?>;
+        let selectedColors = <?php echo json_encode($product['colors'] ?? []); ?>;
+        
+        // Color mapping for swatches
+        const colorHexMap = {
+            'antique gold': '#d97706',
+            'azure blue': '#0284c7',
+            'baby pink': '#f472b6',
+            'beige': '#d4c5a9',
+            'black': '#18181b',
+            'blue': '#2563eb',
+            'bottle green': '#064e3b',
+            'brown': '#78350f',
+            'coral': '#fb7185',
+            'cream': '#fef3c7',
+            'dark gold': '#b45309',
+            'dark green': '#14532d',
+            'emerald green': '#059669',
+            'fuchsia pink': '#db2777',
+            'gold': '#eab308',
+            'golden': '#eab308',
+            'green': '#22c55e',
+            'green kundan': '#15803d',
+            'grey': '#71717a',
+            'indigo': '#4f46e5',
+            'kundan': '#fef08a',
+            'light gold': '#fde047',
+            'lime green': '#84cc16',
+            'magenta': '#c026d3',
+            'maroon': '#881337',
+            'mauve': '#a855f7',
+            'mint green': '#6ee7b7',
+            'multicolor': 'linear-gradient(135deg, #ef4444, #eab308, #22c55e, #3b82f6)',
+            'mustard': '#ca8a04',
+            'navy blue': '#1e3a8a',
+            'off white': '#f5f5f4',
+            'olive green': '#65a30d',
+            'orange': '#ea580c',
+            'peach': '#fdba74',
+            'peacock blue': '#0284c7',
+            'pearl': '#f8fafc',
+            'pink': '#ec4899',
+            'purple': '#9333ea',
+            'red': '#dc2626',
+            'rhodolite': '#9f1239',
+            'rose gold': '#f43f5e',
+            'royal blue': '#1d4ed8',
+            'ruby': '#e11d48',
+            'rust': '#c2410c',
+            'sea green': '#0d9488',
+            'silver': '#94a3b8',
+            'sky blue': '#38bdf8',
+            'teal': '#0f766e',
+            'turquoise': '#06b6d4',
+            'vilandi': '#fde047',
+            'white': '#ffffff',
+            'white kundan': '#fafafa',
+            'white pearl': '#f1f5f9',
+            'wine': '#4c0519',
+            'yellow': '#eab308'
+        };
+
+        const popularQuickPickColors = [
+            'Gold', 'Silver', 'Rose Gold', 'Antique Gold', 'Red', 'Maroon', 
+            'Ruby', 'Green', 'Emerald Green', 'Pink', 'Baby Pink', 'White', 
+            'Off White', 'Kundan', 'Yellow', 'Blue', 'Black', 'Multicolor'
+        ];
+
+        function getColorSwatch(colorName) {
+            const key = String(colorName || '').trim().toLowerCase();
+            return colorHexMap[key] || '#ec4899';
+        }
+
+        function renderSelectedColors() {
+            const container = document.getElementById('selectedColorsContainer');
+            const counter = document.getElementById('selectedColorsCounter');
+            const hiddenInputs = document.getElementById('hiddenColorInputs');
+            if (!container || !counter || !hiddenInputs) return;
+
+            // Update Counter
+            counter.textContent = `${selectedColors.length} Selected`;
+            if (selectedColors.length > 0) {
+                counter.style.background = 'rgba(236, 72, 153, 0.2)';
+                counter.style.color = '#fbcfe8';
+                counter.style.borderColor = '#f472b6';
+                counter.style.boxShadow = '0 0 10px rgba(236, 72, 153, 0.3)';
+            } else {
+                counter.style.background = 'rgba(236, 72, 153, 0.15)';
+                counter.style.color = '#f472b6';
+                counter.style.borderColor = 'rgba(236, 72, 153, 0.3)';
+                counter.style.boxShadow = 'none';
+            }
+
+            // Render Tags
+            if (selectedColors.length === 0) {
+                container.innerHTML = `<span style="font-size: 0.72rem; color: #71717a; font-style: italic; padding: 0.2rem 0.4rem;">
+                    No colors selected. Pick from popular colors below or search to add.
+                </span>`;
+            } else {
+                container.innerHTML = selectedColors.map((color) => {
+                    const swatch = getColorSwatch(color);
+                    const isGrad = swatch.includes('gradient');
+                    const bgStyle = isGrad ? `background: ${swatch};` : `background-color: ${swatch};`;
+                    return `
+                        <div class="color-tag-selected">
+                            <span class="color-dot" style="${bgStyle}"></span>
+                            <span>${escapeHtml(color)}</span>
+                            <button type="button" class="color-remove-btn" onclick="removeColor('${escapeJsStr(color)}')" title="Remove color">
+                                <i class="fas fa-times"></i>
+                            </button>
+                        </div>
+                    `;
+                }).join('');
+            }
+
+            // Render Hidden Inputs (both array and JSON string)
+            let inputsHtml = selectedColors.map(c => `<input type="hidden" name="colors[]" value="${escapeHtml(c)}">`).join('');
+            inputsHtml += `<input type="hidden" name="brand_color" value='${escapeHtml(JSON.stringify(selectedColors))}'>`;
+            hiddenInputs.innerHTML = inputsHtml;
+
+            // Update Quick Pick active state
+            renderQuickPickPills();
+        }
+
+        function renderQuickPickPills() {
+            const container = document.getElementById('quickPickColors');
+            if (!container) return;
+
+            container.innerHTML = popularQuickPickColors.map(color => {
+                const isSelected = selectedColors.some(c => c.toLowerCase() === color.toLowerCase());
+                const swatch = getColorSwatch(color);
+                const isGrad = swatch.includes('gradient');
+                const bgStyle = isGrad ? `background: ${swatch};` : `background-color: ${swatch};`;
+                return `
+                    <button type="button" onclick="toggleColor('${escapeJsStr(color)}')" class="color-chip ${isSelected ? 'color-chip--active' : ''}">
+                        <span class="color-dot" style="${bgStyle}"></span>
+                        <span>${escapeHtml(color)}</span>
+                        ${isSelected ? '<i class="fas fa-check" style="font-size: 0.6rem; color: #f472b6; margin-left: 2px;"></i>' : ''}
+                    </button>
+                `;
+            }).join('');
+        }
+
+        function toggleColor(color) {
+            const trimmed = color.trim();
+            if (!trimmed) return;
+            const index = selectedColors.findIndex(c => c.toLowerCase() === trimmed.toLowerCase());
+            if (index > -1) {
+                selectedColors.splice(index, 1);
+            } else {
+                selectedColors.push(trimmed);
+            }
+            renderSelectedColors();
+        }
+
+        function removeColor(color) {
+            selectedColors = selectedColors.filter(c => c.toLowerCase() !== color.trim().toLowerCase());
+            renderSelectedColors();
+        }
+
+        function clearAllColors() {
+            selectedColors = [];
+            renderSelectedColors();
+        }
+
+        function showColorDropdown() {
+            filterColorDropdown();
+            const dropdown = document.getElementById('colorDropdownList');
+            if (dropdown) dropdown.style.display = 'block';
+        }
+
+        function filterColorDropdown() {
+            const input = document.getElementById('colorSearchInput');
+            const dropdown = document.getElementById('colorDropdownList');
+            if (!input || !dropdown) return;
+
+            const q = input.value.trim().toLowerCase();
+            
+            // Combine allAvailableColors with quick pick and existing
+            const combinedColors = Array.from(new Set([...allAvailableColors, ...popularQuickPickColors]));
+            combinedColors.sort((a, b) => a.localeCompare(b));
+
+            const filtered = combinedColors.filter(c => !q || c.toLowerCase().includes(q));
+
+            let html = '';
+            if (filtered.length > 0) {
+                html = filtered.map(c => {
+                    const isSelected = selectedColors.some(sc => sc.toLowerCase() === c.toLowerCase());
+                    const swatch = getColorSwatch(c);
+                    const isGrad = swatch.includes('gradient');
+                    const bgStyle = isGrad ? `background: ${swatch};` : `background-color: ${swatch};`;
+                    return `
+                        <div onclick="toggleColor('${escapeJsStr(c)}'); event.stopPropagation();" 
+                             style="display: flex; align-items: center; justify-content: space-between; padding: 0.4rem 0.6rem; border-radius: 6px; cursor: pointer; transition: background 0.15s; ${isSelected ? 'background: rgba(236,72,153,0.15); color: #fbcfe8;' : 'color: #d4d4d8;'}"
+                             onmouseover="this.style.background='rgba(255,255,255,0.06)'" 
+                             onmouseout="this.style.background='${isSelected ? 'rgba(236,72,153,0.15)' : 'transparent'}'">
+                            <div style="display: flex; align-items: center; gap: 0.5rem; font-size: 0.74rem; font-weight: 500;">
+                                <span class="color-dot" style="${bgStyle}"></span>
+                                <span>${escapeHtml(c)}</span>
+                            </div>
+                            ${isSelected ? '<i class="fas fa-check" style="font-size: 0.65rem; color: #f472b6;"></i>' : '<i class="fas fa-plus" style="font-size: 0.6rem; color: #71717a;"></i>'}
+                        </div>
+                    `;
+                }).join('');
+            }
+
+            if (q && !combinedColors.some(c => c.toLowerCase() === q)) {
+                html += `
+                    <div onclick="addCustomColorFromInput(); event.stopPropagation();" 
+                         style="display: flex; align-items: center; gap: 0.5rem; padding: 0.45rem 0.6rem; border-radius: 6px; cursor: pointer; background: rgba(59, 130, 246, 0.15); color: #93c5fd; font-size: 0.74rem; font-weight: 600; margin-top: 0.25rem;">
+                        <i class="fas fa-plus-circle" style="color: #60a5fa;"></i>
+                        <span>Add custom color: "<strong>${escapeHtml(input.value.trim())}</strong>"</span>
+                    </div>
+                `;
+            }
+
+            if (!html) {
+                html = '<div style="padding: 0.5rem; text-align: center; color: #71717a; font-size: 0.72rem;">No matching colors found.</div>';
+            }
+
+            dropdown.innerHTML = html;
+            dropdown.style.display = 'block';
+        }
+
+        function handleColorInputKey(e) {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                addCustomColorFromInput();
+            } else if (e.key === 'Escape') {
+                const dropdown = document.getElementById('colorDropdownList');
+                if (dropdown) dropdown.style.display = 'none';
+            }
+        }
+
+        function addCustomColorFromInput() {
+            const input = document.getElementById('colorSearchInput');
+            if (!input) return;
+            const val = input.value.trim();
+            if (val) {
+                const formatted = val.split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(' ');
+                if (!selectedColors.some(c => c.toLowerCase() === formatted.toLowerCase())) {
+                    selectedColors.push(formatted);
+                    renderSelectedColors();
+                }
+                input.value = '';
+                const dropdown = document.getElementById('colorDropdownList');
+                if (dropdown) dropdown.style.display = 'none';
+            }
+        }
+
+        function escapeHtml(str) {
+            return String(str || '')
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#039;');
+        }
+
+        function escapeJsStr(str) {
+            return String(str || '')
+                .replace(/\\/g, '\\\\')
+                .replace(/'/g, "\\'");
+        }
+
+        // Close dropdown when clicking outside
+        document.addEventListener('click', (e) => {
+            const searchWrap = document.getElementById('colorSearchInput')?.parentElement?.parentElement;
+            if (searchWrap && !searchWrap.contains(e.target)) {
+                const dropdown = document.getElementById('colorDropdownList');
+                if (dropdown) dropdown.style.display = 'none';
+            }
+        });
+
+        function aiDetectColors() {
+            const btn = document.getElementById('btnAiDetectColors');
+            const icon = document.getElementById('aiDetectColorsIcon');
+            if (btn) btn.disabled = true;
+            if (icon) icon.className = 'fas fa-spinner fa-spin';
+
+            const productId = <?php echo (int)($product['id'] ?? 0); ?>;
+            const productType = '<?php echo addslashes($type ?? 'jewellery'); ?>';
+
+            fetch(`index.php?controller=product&action=aiSuggestColors&id=${productId}&type=${productType}`)
+                .then(r => r.json())
+                .then(res => {
+                    if (btn) btn.disabled = false;
+                    if (icon) icon.className = 'fas fa-magic';
+                    if (res.success && Array.isArray(res.colors) && res.colors.length > 0) {
+                        res.colors.forEach(c => {
+                            const trimmed = c.trim();
+                            if (!selectedColors.some(sc => sc.toLowerCase() === trimmed.toLowerCase())) {
+                                selectedColors.push(trimmed);
+                            }
+                        });
+                        renderSelectedColors();
+                    } else {
+                        alert(res.error || "No colors detected by AI for this product image.");
+                    }
+                })
+                .catch(err => {
+                    if (btn) btn.disabled = false;
+                    if (icon) icon.className = 'fas fa-magic';
+                    alert("AI Color Detection failed: " + err);
+                });
+        }
 
         function syncSingleProduct(id, type) {
             const btn = document.getElementById('btnSyncSingle');

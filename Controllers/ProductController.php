@@ -177,6 +177,34 @@ class ProductController extends Controller {
         $this->json(['success' => true, 'names' => $names]);
     }
 
+    public function aiSuggestColors() {
+        $id = (int)($_GET['id'] ?? 0);
+        $type = $_GET['type'] ?? 'jewellery';
+
+        if (!$id) {
+            $this->json(['error' => 'Product ID is required'], 400);
+            return;
+        }
+
+        $productModel = new ProductModel();
+        $images = $productModel->getProductImages($id, $type);
+
+        if (empty($images)) {
+            $this->json(['error' => 'Product has no images to analyze.'], 400);
+            return;
+        }
+
+        $imgRelativePath = $images[0]['img_name'] ?? '';
+        $colors = $productModel->detectColorsFromImage($imgRelativePath, $type);
+
+        if (empty($colors)) {
+            $this->json(['error' => 'Could not detect colors from image. Please select manually.'], 500);
+            return;
+        }
+
+        $this->json(['success' => true, 'colors' => $colors]);
+    }
+
     public function aiSuggestDescription() {
         $id = (int)($_GET['id'] ?? 0);
         $type = $_GET['type'] ?? 'jewellery';
@@ -789,12 +817,14 @@ class ProductController extends Controller {
         $garments = $productModel->getGarments();
         $allJewelCategoriesTree = $productModel->getAllCategoriesWithSubcategories('jewellery');
         $allGarmentCategoriesTree = $productModel->getAllCategoriesWithSubcategories('garments');
+        $availableColors = $productModel->getAvailableColors();
         
         $this->view('products/add', [
             'jewelCategories' => $jewelCategories,
             'garments' => $garments,
             'allJewelCategoriesTree' => $allJewelCategoriesTree,
-            'allGarmentCategoriesTree' => $allGarmentCategoriesTree
+            'allGarmentCategoriesTree' => $allGarmentCategoriesTree,
+            'availableColors' => $availableColors
         ]);
     }
 
@@ -906,6 +936,7 @@ class ProductController extends Controller {
         
         $allCategoriesTree = $productModel->getAllCategoriesWithSubcategories($type);
         $assignedCategories = $productModel->getProductAssignedCategories($id, $type);
+        $availableColors = $productModel->getAvailableColors();
         
         $this->view('products/edit', [
             'product' => $product,
@@ -914,7 +945,8 @@ class ProductController extends Controller {
             'jewelCategories' => $jewelCategories,
             'garments' => $garments,
             'allCategoriesTree' => $allCategoriesTree,
-            'assignedCategories' => $assignedCategories
+            'assignedCategories' => $assignedCategories,
+            'availableColors' => $availableColors
         ]);
     }
 
@@ -963,13 +995,15 @@ class ProductController extends Controller {
         
         $jewelCategories = $productModel->getJewelCategories();
         $garments = $productModel->getGarments();
+        $availableColors = $productModel->getAvailableColors();
         
         $this->view('products/edit3', [
             'product' => $product,
             'images' => $images,
             'type' => $type,
             'jewelCategories' => $jewelCategories,
-            'garments' => $garments
+            'garments' => $garments,
+            'availableColors' => $availableColors
         ]);
     }
 

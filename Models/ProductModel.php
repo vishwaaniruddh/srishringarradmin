@@ -641,7 +641,156 @@ class ProductModel extends Model
             }
             return $categories;
         }
-    }    public function getProductAssignedCategories($productId, $type = 'jewellery')
+    }
+
+    public function getAvailableColors()
+    {
+        $sql = "SELECT DISTINCT TRIM(color) as color_name FROM brand_color WHERE color IS NOT NULL AND color != '' AND color NOT LIKE '%crawler%' AND color NOT LIKE '%74.125%' AND color NOT LIKE '%addmin%' ORDER BY TRIM(color) ASC";
+        $result = $this->query($this->db, $sql);
+        $colors = [];
+        if ($result) {
+            while ($row = $this->fetchOne($result)) {
+                $c = trim($row['color_name'] ?? '');
+                if (!empty($c)) {
+                    $formatted = ucwords(strtolower($c));
+                    if (!in_array($formatted, $colors)) {
+                        $colors[] = $formatted;
+                    }
+                }
+            }
+        }
+        
+        // Ensure standard jewelry and apparel colors are available
+        $defaults = [
+            'Antique Gold', 'Azure Blue', 'Baby Pink', 'Beige', 'Black', 'Blue', 
+            'Bottle Green', 'Brown', 'Coral', 'Cream', 'Dark Gold', 'Dark Green', 
+            'Emerald Green', 'Fuchsia Pink', 'Gold', 'Golden', 'Green', 'Grey', 
+            'Indigo', 'Kundan', 'Light Gold', 'Lime Green', 'Magenta', 'Maroon', 
+            'Mauve', 'Mint Green', 'Multicolor', 'Mustard', 'Navy Blue', 'Off White', 
+            'Olive Green', 'Orange', 'Peach', 'Peacock Blue', 'Pearl', 'Pink', 
+            'Purple', 'Red', 'Rhodolite', 'Rose Gold', 'Royal Blue', 'Ruby', 
+            'Rust', 'Sea Green', 'Silver', 'Sky Blue', 'Teal', 'Turquoise', 
+            'Vilandi', 'White', 'Wine', 'Yellow'
+        ];
+        foreach ($defaults as $d) {
+            if (!in_array($d, $colors)) {
+                $colors[] = $d;
+            }
+        }
+        sort($colors);
+        return $colors;
+    }
+
+    /**
+     * Analyze a product image with Gemini API to automatically detect dominant & accent colors.
+     *
+     * @param string $imagePathOrUrl Relative path (e.g. /2026/07/img.jpg) or full URL
+     * @param string $type Product type ('jewellery' or 'garments')
+     * @return array List of detected color names (e.g. ['Gold', 'Emerald Green'])
+     */
+    public function detectColorsFromImage($imagePathOrUrl, $type = 'jewellery')
+    {
+        $secretsFile = __DIR__ . '/../Config/secrets.php';
+        if (!file_exists($secretsFile)) {
+            return [];
+        }
+        $secrets = include($secretsFile);
+        $apiKey = $secrets['GEMINI_API_KEY'] ?? '';
+        if (empty($apiKey)) {
+            return [];
+        }
+
+        $imgContent = null;
+        $mimeType = 'image/jpeg';
+
+        if (str_starts_with($imagePathOrUrl, 'http://') || str_starts_with($imagePathOrUrl, 'https://')) {
+            $imgContent = @file_get_contents($imagePathOrUrl);
+            $ext = strtolower(pathinfo(parse_url($imagePathOrUrl, PHP_URL_PATH), PATHINFO_EXTENSION));
+            if ($ext === 'png') $mimeType = 'image/png';
+            elseif ($ext === 'webp') $mimeType = 'image/webp';
+        } else {
+            $cleanedPath = '/' . ltrim($imagePathOrUrl, '/');
+            $localPath = __DIR__ . '/../../yn/uploads' . $cleanedPath;
+            if (file_exists($localPath)) {
+                $imgContent = file_get_contents($localPath);
+                $mime = mime_content_type($localPath);
+                if ($mime) $mimeType = $mime;
+            } else {
+                $remoteUrl = 'https://srishringarr.com/yn/uploads' . $cleanedPath;
+                $imgContent = @file_get_contents($remoteUrl);
+                $ext = strtolower(pathinfo($imagePathOrUrl, PATHINFO_EXTENSION));
+                if ($ext === 'png') $mimeType = 'image/png';
+                elseif ($ext === 'webp') $mimeType = 'image/webp';
+            }
+        }
+
+        if (empty($imgContent)) {
+            return [];
+        }
+
+        $base64Image = base64_encode($imgContent);
+        $prompt = "You are an expert Indian fashion & jewelry color analyst for Srishringarr. Analyze the jewelry or apparel item in this image. " .
+                  "Identify 1 to 4 dominant and accent color names for this item from standard fashion/jewelry terminology " .
+                  "(such as Gold, Antique Gold, Rose Gold, Silver, Red, Maroon, Ruby, Green, Emerald Green, Mint Green, Pink, Baby Pink, Fuchsia Pink, White, Off White, Kundan, Yellow, Mustard, Blue, Navy Blue, Royal Blue, Turquoise, Peach, Black, Multicolor, etc.). " .
+                  "Return ONLY a raw JSON array of strings containing the color names (e.g. [\"Gold\", \"Emerald Green\"]). " .
+                  "Do NOT wrap in markdown formatting (no ```json or ```).";
+
+        $url = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key=' . $apiKey;
+        $payload = json_encode([
+            'contents' => [
+                [
+                    'parts' => [
+                        ['text' => $prompt],
+                        [
+                            'inlineData' => [
+                                'mimeType' => $mimeType,
+                                'data' => $base64Image
+                            ]
+                        ]
+                    ]
+                ]
+            ]
+        ]);
+
+        $ch = curl_init($url);
+        curl_setopt_array($ch, [
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_POST => true,
+            CURLOPT_HTTPHEADER => ['Content-Type: application/json'],
+            CURLOPT_POSTFIELDS => $payload,
+            CURLOPT_TIMEOUT => 20,
+            CURLOPT_SSL_VERIFYPEER => false,
+        ]);
+        $response = curl_exec($ch);
+        $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        @curl_close($ch);
+
+        if ($httpCode !== 200) {
+            return [];
+        }
+
+        $decoded = json_decode($response, true);
+        $text = $decoded['candidates'][0]['content']['parts'][0]['text'] ?? '';
+        $text = trim(preg_replace('/^```json|```$/i', '', trim($text)));
+        $colors = json_decode($text, true);
+
+        if (!is_array($colors)) {
+            preg_match_all('/"(.*?)"/', $text, $matches);
+            $colors = !empty($matches[1]) ? $matches[1] : [];
+        }
+
+        $cleanColors = [];
+        foreach ($colors as $c) {
+            $formatted = ucwords(strtolower(trim((string)$c)));
+            if (!empty($formatted) && !in_array($formatted, $cleanColors)) {
+                $cleanColors[] = $formatted;
+            }
+        }
+
+        return $cleanColors;
+    }
+
+    public function getProductAssignedCategories($productId, $type = 'jewellery')
     {
         $productId = (int)$productId;
         $type = mysqli_real_escape_string($this->db, $type);
@@ -940,26 +1089,49 @@ class ProductModel extends Model
             $featured = (int) ($data['featured'] ?? 0);
             $priceSource = ($data['price_source'] ?? 'pos') === 'manual' ? 'manual' : 'pos';
             $availability = in_array($data['availability'] ?? 'both', ['rent', 'sell', 'both']) ? $data['availability'] : 'both';
+            $size_avail = $data['size_avail'] ?? '';
+            $brand_name = $data['brand_name'] ?? '';
+
+            // Format colors into JSON Array string
+            $colorsInput = $data['colors'] ?? $data['brand_color'] ?? [];
+            $colorsArray = [];
+            if (is_string($colorsInput)) {
+                $trimmed = trim($colorsInput);
+                if (!empty($trimmed)) {
+                    $decoded = json_decode($trimmed, true);
+                    if (json_last_error() === JSON_ERROR_NONE && is_array($decoded)) {
+                        $colorsArray = $decoded;
+                    } else {
+                        $colorsArray = array_filter(array_map('trim', explode(',', $trimmed)));
+                    }
+                }
+            } else if (is_array($colorsInput)) {
+                $colorsArray = $colorsInput;
+            }
+            $colorsArray = array_values(array_unique(array_filter(array_map(function($c) {
+                return trim(strip_tags((string)$c));
+            }, $colorsArray))));
+            $brand_color = !empty($colorsArray) ? json_encode($colorsArray, JSON_UNESCAPED_UNICODE) : '';
 
             if ($type === 'jewellery') {
                 $sql = "INSERT INTO product (
                     product_code, product_name, product_desc, date_added, 
-                    categories_id, subcat_id, sales_price, rent_price, deposit, featured, price_source, availability
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+                    categories_id, subcat_id, sales_price, rent_price, deposit, featured, price_source, availability, size_avail, brand_name, brand_color
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
 
                 $stmt = mysqli_prepare($this->db, $sql);
-                mysqli_stmt_bind_param($stmt, "ssssiidddiss", $code, $name, $desc, $date_added, $cat, $sub, $price, $rent, $dep, $featured, $priceSource, $availability);
+                mysqli_stmt_bind_param($stmt, "ssssiidddisssss", $code, $name, $desc, $date_added, $cat, $sub, $price, $rent, $dep, $featured, $priceSource, $availability, $size_avail, $brand_name, $brand_color);
                 mysqli_stmt_execute($stmt);
                 $product_id = mysqli_insert_id($this->db);
                 mysqli_stmt_close($stmt);
             } else {
                 $sql = "INSERT INTO garment_product (
                     gproduct_code, gproduct_name, gproduct_desc, date_added, 
-                    garment_id, product_for, sales_price, rent_price, deposit, featured, price_source, availability
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+                    garment_id, product_for, sales_price, rent_price, deposit, featured, price_source, availability, size_avail, brand_name, brand_color
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
 
                 $stmt = mysqli_prepare($this->db, $sql);
-                mysqli_stmt_bind_param($stmt, "ssssiidddiss", $code, $name, $desc, $date_added, $cat, $cat, $price, $rent, $dep, $featured, $priceSource, $availability);
+                mysqli_stmt_bind_param($stmt, "ssssiidddisssss", $code, $name, $desc, $date_added, $cat, $cat, $price, $rent, $dep, $featured, $priceSource, $availability, $size_avail, $brand_name, $brand_color);
                 mysqli_stmt_execute($stmt);
                 $product_id = mysqli_insert_id($this->db);
                 mysqli_stmt_close($stmt);
@@ -997,6 +1169,28 @@ class ProductModel extends Model
                 mysqli_stmt_bind_param($stmt, "si", $main_image, $product_id);
                 mysqli_stmt_execute($stmt);
                 mysqli_stmt_close($stmt);
+
+                // Auto-detect colors from uploaded image if colors were not provided
+                if (empty($colorsArray)) {
+                    try {
+                        $detectedColors = $this->detectColorsFromImage($main_image, $type);
+                        if (!empty($detectedColors)) {
+                            $detectedJson = json_encode($detectedColors, JSON_UNESCAPED_UNICODE);
+                            $colorUpdateSql = "UPDATE $table SET brand_color = ? WHERE $pk = ?";
+                            $cStmt = mysqli_prepare($this->db, $colorUpdateSql);
+                            mysqli_stmt_bind_param($cStmt, "si", $detectedJson, $product_id);
+                            mysqli_stmt_execute($cStmt);
+                            mysqli_stmt_close($cStmt);
+
+                            foreach ($detectedColors as $newCol) {
+                                $escCol = mysqli_real_escape_string($this->db, $newCol);
+                                @mysqli_query($this->db, "INSERT IGNORE INTO brand_color (color, status) VALUES ('$escCol', 1)");
+                            }
+                        }
+                    } catch (\Throwable $th) {
+                        error_log("Auto color detection error in saveProduct: " . $th->getMessage());
+                    }
+                }
             }
 
             // Save product categories mapping
@@ -1034,7 +1228,7 @@ class ProductModel extends Model
         if ($type === 'jewellery') {
             $sql = "SELECT p.product_id as id, p.product_code as code, p.product_name as name, p.product_desc as description, 
                            p.categories_id as category, p.subcat_id as sub_category, p.sales_price as s_price, 
-                           p.rent_price as rental_price, p.deposit, p.discount, p.featured, p.price_source, p.availability, p.brand_name, p.size_avail,
+                           p.rent_price as rental_price, p.deposit, p.discount, p.featured, p.price_source, p.availability, p.brand_name, p.size_avail, p.brand_color,
                            c.categories_name as category_name, s.name as subcategory_name
                      FROM product p
                      LEFT JOIN jewel_subcat c ON p.categories_id = c.subcat_id
@@ -1043,7 +1237,7 @@ class ProductModel extends Model
         } else {
             $sql = "SELECT p.gproduct_id as id, p.gproduct_code as code, p.gproduct_name as name, p.gproduct_desc as description, 
                            p.garment_id as category, p.product_for as sub_category, p.sales_price as s_price, 
-                           p.rent_price as rental_price, p.deposit, p.discount, p.featured, p.price_source, p.availability, p.brand_name, p.size_avail,
+                           p.rent_price as rental_price, p.deposit, p.discount, p.featured, p.price_source, p.availability, p.brand_name, p.size_avail, p.brand_color,
                            c.name as category_name, s.name as subcategory_name
                      FROM garment_product p
                      LEFT JOIN garments c ON p.garment_id = c.garment_id
@@ -1055,6 +1249,26 @@ class ProductModel extends Model
         if ($product) {
             $product['type'] = $type;
             $product['quantity'] = $this->getPosQuantity($product['code'] ?? '');
+
+            // Parse brand_color JSON array into colors
+            $colors = [];
+            if (!empty($product['brand_color'])) {
+                $rawColor = trim($product['brand_color']);
+                $decoded = json_decode($rawColor, true);
+                if (json_last_error() === JSON_ERROR_NONE && is_array($decoded)) {
+                    $colors = $decoded;
+                } else if (str_starts_with($rawColor, '[') && str_ends_with($rawColor, ']')) {
+                    $decoded = json_decode(stripslashes($rawColor), true);
+                    if (json_last_error() === JSON_ERROR_NONE && is_array($decoded)) {
+                        $colors = $decoded;
+                    }
+                } else {
+                    $colors = array_filter(array_map('trim', explode(',', $rawColor)));
+                }
+            }
+            $product['colors'] = array_values(array_unique(array_filter(array_map(function($c) {
+                return trim(strip_tags((string)$c));
+            }, $colors))));
 
             $details = $this->getProductDetails([
                 'id' => $product['id'],
@@ -1146,6 +1360,59 @@ class ProductModel extends Model
             $size_avail = $data['size_avail'] ?? '';
             $brand_name = $data['brand_name'] ?? '';
 
+            // Format colors into JSON Array string
+            $colorsInput = $data['colors'] ?? $data['brand_color'] ?? [];
+            $colorsArray = [];
+            if (is_string($colorsInput)) {
+                $trimmed = trim($colorsInput);
+                if (!empty($trimmed)) {
+                    $decoded = json_decode($trimmed, true);
+                    if (json_last_error() === JSON_ERROR_NONE && is_array($decoded)) {
+                        $colorsArray = $decoded;
+                    } else if (str_starts_with($trimmed, '[') && str_ends_with($trimmed, ']')) {
+                        $decoded = json_decode(stripslashes($trimmed), true);
+                        if (json_last_error() === JSON_ERROR_NONE && is_array($decoded)) {
+                            $colorsArray = $decoded;
+                        }
+                    } else {
+                        $colorsArray = array_filter(array_map('trim', explode(',', $trimmed)));
+                    }
+                }
+            } else if (is_array($colorsInput)) {
+                $colorsArray = $colorsInput;
+            }
+            $colorsArray = array_values(array_unique(array_filter(array_map(function($c) {
+                return trim(strip_tags((string)$c));
+            }, $colorsArray))));
+            // If colors are not provided or empty, automatically detect colors using Gemini image analysis
+            if (empty($colorsArray)) {
+                $productImages = $this->getProductImages($id, $type);
+                $targetImg = '';
+                if (!empty($productImages)) {
+                    $targetImg = $productImages[0]['img_name'] ?? '';
+                }
+                if (!empty($targetImg)) {
+                    try {
+                        $detectedColors = $this->detectColorsFromImage($targetImg, $type);
+                        if (!empty($detectedColors)) {
+                            $colorsArray = $detectedColors;
+                        }
+                    } catch (\Throwable $th) {
+                        error_log("Auto color detection error in updateProduct: " . $th->getMessage());
+                    }
+                }
+            }
+
+            $brand_color = !empty($colorsArray) ? json_encode($colorsArray, JSON_UNESCAPED_UNICODE) : '';
+
+            // Ensure custom typed or auto-detected colors are inserted into brand_color table
+            if (!empty($colorsArray)) {
+                foreach ($colorsArray as $newCol) {
+                    $escCol = mysqli_real_escape_string($this->db, $newCol);
+                    @mysqli_query($this->db, "INSERT IGNORE INTO brand_color (color, status) VALUES ('$escCol', 1)");
+                }
+            }
+
             if ($type === 'jewellery') {
                 $sql = "UPDATE product SET 
                     product_name = ?, 
@@ -1159,12 +1426,13 @@ class ProductModel extends Model
                     price_source = ?,
                     availability = ?,
                     size_avail = ?,
-                    brand_name = ?
+                    brand_name = ?,
+                    brand_color = ?
                     WHERE product_id = ?";
                 $stmt = mysqli_prepare($this->db, $sql);
                 if (!$stmt)
                     throw new \Exception(mysqli_error($this->db));
-                mysqli_stmt_bind_param($stmt, "ssiidddissssi", $name, $desc, $cat, $sub, $price, $rent, $dep, $featured, $priceSource, $availability, $size_avail, $brand_name, $id);
+                mysqli_stmt_bind_param($stmt, "ssiidddisssssi", $name, $desc, $cat, $sub, $price, $rent, $dep, $featured, $priceSource, $availability, $size_avail, $brand_name, $brand_color, $id);
                 if (!mysqli_stmt_execute($stmt))
                     throw new \Exception(mysqli_error($this->db));
                 mysqli_stmt_close($stmt);
@@ -1181,12 +1449,13 @@ class ProductModel extends Model
                     price_source = ?,
                     availability = ?,
                     size_avail = ?,
-                    brand_name = ?
+                    brand_name = ?,
+                    brand_color = ?
                     WHERE gproduct_id = ?";
                 $stmt = mysqli_prepare($this->db, $sql);
                 if (!$stmt)
                     throw new \Exception(mysqli_error($this->db));
-                mysqli_stmt_bind_param($stmt, "ssiidddissssi", $name, $desc, $cat, $cat, $price, $rent, $dep, $featured, $priceSource, $availability, $size_avail, $brand_name, $id);
+                mysqli_stmt_bind_param($stmt, "ssiidddisssssi", $name, $desc, $cat, $cat, $price, $rent, $dep, $featured, $priceSource, $availability, $size_avail, $brand_name, $brand_color, $id);
                 if (!mysqli_stmt_execute($stmt))
                     throw new \Exception(mysqli_error($this->db));
                 mysqli_stmt_close($stmt);

@@ -138,6 +138,23 @@
                                         <span class="text-xs font-medium text-zinc-300"><?php echo htmlspecialchars($product['brand_name'] ?? 'N/A'); ?></span>
                                     </div>
                                     <div class="flex justify-between items-center py-2 border-b border-zinc-900/60">
+                                        <span class="text-xs text-zinc-500">Colors</span>
+                                        <?php 
+                                        $colorsList = $product['colors'] ?? [];
+                                        if (!empty($colorsList)): 
+                                        ?>
+                                            <div class="flex flex-wrap gap-1.5 justify-end">
+                                                <?php foreach ($colorsList as $c): ?>
+                                                    <span class="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-semibold bg-pink-950/40 text-pink-300 border border-pink-900/50">
+                                                        <?php echo htmlspecialchars($c); ?>
+                                                    </span>
+                                                <?php endforeach; ?>
+                                            </div>
+                                        <?php else: ?>
+                                            <span class="text-xs font-medium text-zinc-300">N/A</span>
+                                        <?php endif; ?>
+                                    </div>
+                                    <div class="flex justify-between items-center py-2 border-b border-zinc-900/60">
                                         <span class="text-xs text-zinc-500">Sizes</span>
                                         <span class="text-xs font-medium text-zinc-300"><?php echo htmlspecialchars($product['size_avail'] ?? 'N/A'); ?></span>
                                     </div>
