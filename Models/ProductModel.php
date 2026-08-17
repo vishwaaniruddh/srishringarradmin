@@ -1093,10 +1093,10 @@ class ProductModel extends Model
             // Lookup category and subcategory names from product_categories table
             $catData = $this->getCategoryDetailsFromProductCategories($product['id'], $type);
             if ($catData) {
-                if (!empty($catData['category_name']) && (empty($product['category_name']) || $product['category_name'] === 'N/A')) {
+                if (!empty($catData['category_name'])) {
                     $product['category_name'] = $catData['category_name'];
                 }
-                if (!empty($catData['subcategory_name']) && (empty($product['subcategory_name']) || $product['subcategory_name'] === 'N/A')) {
+                if (!empty($catData['subcategory_name'])) {
                     $product['subcategory_name'] = $catData['subcategory_name'];
                 }
             }

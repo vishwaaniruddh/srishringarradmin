@@ -118,7 +118,20 @@
                                     </div>
                                     <div class="flex justify-between items-center py-2 border-b border-zinc-900/60">
                                         <span class="text-xs text-zinc-500">Subcategory</span>
-                                        <span class="text-xs font-medium text-zinc-300"><?php echo htmlspecialchars($product['subcategory_name'] ?? 'N/A'); ?></span>
+                                        <?php 
+                                        $subTags = array_filter(array_map('trim', explode(',', $product['subcategory_name'] ?? '')));
+                                        if (!empty($subTags)): 
+                                        ?>
+                                            <div class="flex flex-wrap gap-1.5 justify-end">
+                                                <?php foreach ($subTags as $tag): ?>
+                                                    <span class="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-semibold bg-indigo-950/50 text-indigo-300 border border-indigo-900/50">
+                                                        <?php echo htmlspecialchars($tag); ?>
+                                                    </span>
+                                                <?php endforeach; ?>
+                                            </div>
+                                        <?php else: ?>
+                                            <span class="text-xs font-medium text-zinc-300">N/A</span>
+                                        <?php endif; ?>
                                     </div>
                                     <div class="flex justify-between items-center py-2 border-b border-zinc-900/60">
                                         <span class="text-xs text-zinc-500">Brand</span>
