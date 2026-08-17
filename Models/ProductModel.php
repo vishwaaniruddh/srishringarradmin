@@ -328,11 +328,14 @@ class ProductModel extends Model
         $type = $product['type'];
         $priceSource = $product['price_source'] ?? 'pos';
 
-        // Resolve website subcategory name from subcat1 table (Antique, Kundan, etc.)
-        // Note: jewel_subcat stores main categories (Necklace Sets), subcat1 stores subcategories
+        // Resolve website subcategory name(s) from product_categories table or primary subcat_id column
         $subcategory_id = $product['subcategory_id'] ?? 0;
         $subcategory_name = '';
-        if ($type === 'jewellery' && $subcategory_id > 0) {
+
+        $pcDetails = $this->getCategoryDetailsFromProductCategories($product['id'], $type);
+        if ($pcDetails && !empty($pcDetails['subcategory_name'])) {
+            $subcategory_name = $pcDetails['subcategory_name'];
+        } elseif ($type === 'jewellery' && $subcategory_id > 0) {
             $sub_q = "SELECT name FROM subcat1 WHERE subcat_id = " . (int)$subcategory_id . " LIMIT 1";
             $sub_r = $this->query($this->db, $sub_q);
             $sub_row = $this->fetchOne($sub_r);
