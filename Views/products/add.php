@@ -422,21 +422,32 @@
                                 </div>
 
                                 <!-- Images -->
-                                <div class="space-y-4 pt-8 border-t border-gray-100">
+                                <div class="space-y-4 pt-8 border-t border-gray-100 dark:border-zinc-800">
                                     <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-2">
-                                        <h3 class="text-lg font-semibold text-gray-800 flex items-center">
-                                            <span class="w-8 h-8 bg-primary/10 text-primary rounded-full flex items-center justify-center mr-3 text-sm">4</span>
+                                        <h3 class="text-lg font-semibold text-gray-800 dark:text-zinc-100 flex items-center">
+                                            <span class="w-8 h-8 bg-primary/10 text-primary rounded-full flex items-center justify-center mr-3 text-sm font-bold">4</span>
                                             Product Images
                                         </h3>
+                                        <div class="flex items-center gap-2">
+                                            <span id="img_counter_badge" class="hidden text-xs font-semibold px-2.5 py-1 rounded-full bg-primary/10 text-primary border border-primary/20">
+                                                0 Images
+                                            </span>
+                                            <button type="button" id="btn_clear_images" onclick="clearAllUploadedImages()" class="hidden text-xs font-medium text-red-500 hover:text-red-600 hover:underline">
+                                                Clear All
+                                            </button>
+                                        </div>
                                     </div>
-                                    <div class="border-2 border-dashed border-gray-200 rounded-2xl p-8 text-center hover:border-primary transition-all group">
+                                    <div id="image_dropzone" class="border-2 border-dashed border-gray-200 dark:border-zinc-700 hover:border-primary dark:hover:border-primary rounded-2xl p-8 text-center transition-all group bg-gray-50/50 dark:bg-zinc-900/40 cursor-pointer">
                                         <input type="file" name="images[]" id="img_upload" multiple accept="image/*" class="hidden">
-                                        <label for="img_upload" class="cursor-pointer">
-                                            <i class="fas fa-cloud-upload-alt text-4xl text-gray-300 group-hover:text-primary transition-all mb-4"></i>
-                                            <p class="text-sm text-gray-500">Click to browse or drag and drop images here</p>
+                                        <label for="img_upload" class="cursor-pointer block">
+                                            <div class="w-14 h-14 mx-auto mb-3 rounded-full bg-primary/10 text-primary flex items-center justify-center group-hover:scale-110 transition-transform">
+                                                <i class="fas fa-cloud-upload-alt text-2xl"></i>
+                                            </div>
+                                            <p class="text-sm font-semibold text-gray-700 dark:text-zinc-200">Click to browse or drag & drop product images</p>
+                                            <p class="text-xs text-gray-400 dark:text-zinc-500 mt-1">PNG, JPG, WEBP or JPEG up to 10MB each. The first image will be used as the hero/cover image.</p>
                                         </label>
-                                        <div id="img_preview" class="grid grid-cols-4 md:grid-cols-6 gap-4 mt-6"></div>
                                     </div>
+                                    <div id="img_preview" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4 mt-4"></div>
                                 </div>
 
                                 <div class="sticky bottom-0 sm:static pt-4 pb-4 sm:pt-8 sm:pb-0 flex flex-col-reverse sm:flex-row justify-end sm:space-x-4 bg-white sm:bg-transparent border-t border-gray-100 sm:border-none px-4 sm:px-0 -mx-4 sm:mx-0 z-40 gap-3 sm:gap-0 mt-8 sm:mt-0 shadow-[0_-15px_15px_-10px_rgba(0,0,0,0.05)] sm:shadow-none">
@@ -512,47 +523,193 @@
             }
         }
 
-        document.getElementById('jewel_cat').addEventListener('change', function() {
-            fetchSubcategories('jewellery', this.value, 'jewel_subcat');
-        });
+        if (document.getElementById('jewel_cat')) {
+            document.getElementById('jewel_cat').addEventListener('change', function() {
+                fetchSubcategories('jewellery', this.value, 'jewel_subcat');
+            });
+        }
 
-        document.getElementById('garment_cat').addEventListener('change', function() {
-            fetchSubcategories('garments', this.value, 'garment_subcat');
-        });
+        if (document.getElementById('garment_cat')) {
+            document.getElementById('garment_cat').addEventListener('change', function() {
+                fetchSubcategories('garments', this.value, 'garment_subcat');
+            });
+        }
 
         async function fetchSubcategories(type, parentId, targetId) {
             const subDropdown = document.getElementById(targetId);
+            if (!subDropdown) return;
             if (!parentId) {
                 subDropdown.innerHTML = '<option value="">Select Subcategory</option>';
                 return;
             }
 
-            const response = await fetch(`index.php?controller=product&action=getSubcategories&type=${type}&parent_id=${parentId}`);
-            const data = await response.json();
+            try {
+                const response = await fetch(`index.php?controller=product&action=getSubcategories&type=${type}&parent_id=${parentId}`);
+                const data = await response.json();
 
-            subDropdown.innerHTML = '<option value="">Select Subcategory</option>';
-            data.forEach(sub => {
-                const opt = document.createElement('option');
-                opt.value = sub.subcat_id;
-                opt.textContent = sub.name;
-                subDropdown.appendChild(opt);
+                subDropdown.innerHTML = '<option value="">Select Subcategory</option>';
+                data.forEach(sub => {
+                    const opt = document.createElement('option');
+                    opt.value = sub.subcat_id;
+                    opt.textContent = sub.name;
+                    subDropdown.appendChild(opt);
+                });
+            } catch (err) {
+                console.warn('Could not fetch subcategories:', err);
+            }
+        }
+
+        // ==========================================
+        // Robust Product Images Upload & Preview
+        // ==========================================
+        let uploadedFiles = [];
+
+        const imgUploadInput = document.getElementById('img_upload');
+        const imgDropzone = document.getElementById('image_dropzone');
+        const imgPreview = document.getElementById('img_preview');
+        const imgCounterBadge = document.getElementById('img_counter_badge');
+        const btnClearImages = document.getElementById('btn_clear_images');
+
+        function syncInputFiles() {
+            if (!imgUploadInput) return;
+            try {
+                const dt = new DataTransfer();
+                uploadedFiles.forEach(file => dt.items.add(file));
+                imgUploadInput.files = dt.files;
+            } catch (e) {
+                console.warn('DataTransfer not supported or error:', e);
+            }
+        }
+
+        function formatBytes(bytes) {
+            if (!bytes || bytes === 0) return '0 B';
+            const k = 1024;
+            const sizes = ['B', 'KB', 'MB', 'GB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
+        }
+
+        function renderImagePreviews() {
+            if (!imgPreview) return;
+            imgPreview.innerHTML = '';
+
+            const count = uploadedFiles.length;
+            if (imgCounterBadge) {
+                if (count > 0) {
+                    imgCounterBadge.textContent = `${count} ${count === 1 ? 'Image' : 'Images'}`;
+                    imgCounterBadge.classList.remove('hidden');
+                } else {
+                    imgCounterBadge.classList.add('hidden');
+                }
+            }
+
+            if (btnClearImages) {
+                if (count > 0) {
+                    btnClearImages.classList.remove('hidden');
+                } else {
+                    btnClearImages.classList.add('hidden');
+                }
+            }
+
+            uploadedFiles.forEach((file, index) => {
+                const card = document.createElement('div');
+                card.className = 'relative aspect-[3/4] rounded-xl overflow-hidden border border-gray-200 dark:border-zinc-700 bg-zinc-900 group shadow-sm transition-all hover:shadow-md hover:border-primary';
+
+                // Image Object URL
+                const objectUrl = URL.createObjectURL(file);
+
+                card.innerHTML = `
+                    <img src="${objectUrl}" alt="${escapeHtml(file.name)}" class="w-full h-full object-cover">
+                    
+                    <!-- Gradient overlay on hover -->
+                    <div class="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col justify-between p-2">
+                        <!-- Top Bar: Index & Delete Button -->
+                        <div class="flex items-center justify-between">
+                            <span class="text-[10px] font-bold px-1.5 py-0.5 rounded bg-black/60 text-white backdrop-blur-sm border border-white/10">
+                                #${index + 1}
+                            </span>
+                            <button type="button" onclick="removeUploadedImage(${index})" class="w-6 h-6 rounded-full bg-red-600/90 hover:bg-red-600 text-white flex items-center justify-center transition-transform hover:scale-110 shadow-lg cursor-pointer" title="Remove image">
+                                <i class="fas fa-times text-[10px]"></i>
+                            </button>
+                        </div>
+                        
+                        <!-- Bottom Bar: File details -->
+                        <div class="text-[10px] text-white">
+                            <p class="truncate font-medium">${escapeHtml(file.name)}</p>
+                            <p class="text-zinc-400 text-[9px]">${formatBytes(file.size)}</p>
+                        </div>
+                    </div>
+
+                    <!-- Main Cover Badge for 1st image -->
+                    ${index === 0 ? `
+                        <div class="absolute top-2 left-2 z-10">
+                            <span class="px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider bg-primary text-white shadow-md flex items-center gap-1">
+                                <i class="fas fa-star text-[8px]"></i> Cover
+                            </span>
+                        </div>
+                    ` : ''}
+                `;
+
+                imgPreview.appendChild(card);
+            });
+
+            syncInputFiles();
+        }
+
+        function handleFilesAdded(newFileList) {
+            if (!newFileList || newFileList.length === 0) return;
+            const validFiles = Array.from(newFileList).filter(file => file.type.startsWith('image/'));
+            if (validFiles.length === 0) {
+                alert('Please select valid image files (PNG, JPG, WEBP, JPEG).');
+                return;
+            }
+            uploadedFiles = [...uploadedFiles, ...validFiles];
+            renderImagePreviews();
+        }
+
+        function removeUploadedImage(index) {
+            if (index >= 0 && index < uploadedFiles.length) {
+                uploadedFiles.splice(index, 1);
+                renderImagePreviews();
+            }
+        }
+
+        function clearAllUploadedImages() {
+            uploadedFiles = [];
+            renderImagePreviews();
+        }
+
+        if (imgUploadInput) {
+            imgUploadInput.addEventListener('change', function(e) {
+                handleFilesAdded(this.files);
             });
         }
 
-        document.getElementById('img_upload').addEventListener('change', function(e) {
-            const preview = document.getElementById('img_preview');
-            preview.innerHTML = '';
-            [...this.files].forEach(file => {
-                const reader = new FileReader();
-                reader.onload = (e) => {
-                    const div = document.createElement('div');
-                    div.className = 'aspect-square relative group';
-                    div.innerHTML = `<img src="${e.target.result}" class="w-full h-full object-cover rounded-xl shadow-sm">`;
-                    preview.appendChild(div);
-                };
-                reader.readAsDataURL(file);
+        if (imgDropzone) {
+            ['dragenter', 'dragover'].forEach(eventName => {
+                imgDropzone.addEventListener(eventName, (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    imgDropzone.classList.add('border-primary', 'bg-primary/5', 'dark:bg-primary/10');
+                }, false);
             });
-        });
+
+            ['dragleave', 'drop'].forEach(eventName => {
+                imgDropzone.addEventListener(eventName, (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    imgDropzone.classList.remove('border-primary', 'bg-primary/5', 'dark:bg-primary/10');
+                }, false);
+            });
+
+            imgDropzone.addEventListener('drop', (e) => {
+                const dt = e.dataTransfer;
+                if (dt && dt.files && dt.files.length > 0) {
+                    handleFilesAdded(dt.files);
+                }
+            }, false);
+        }
+
 
         function readAsBase64(fileOrBlob) {
             return new Promise((resolve, reject) => {
@@ -567,14 +724,13 @@
             const btn = document.getElementById('btn_ai_suggest');
             const originalText = btn.innerHTML;
             
-            const imgUpload = document.getElementById('img_upload');
-            let imageBase64 = null;
+            const fileToAnalyze = (uploadedFiles && uploadedFiles.length > 0) ? uploadedFiles[0] : (imgUpload?.files?.[0] || null);
             
             try {
-                if (imgUpload && imgUpload.files && imgUpload.files.length > 0) {
+                if (fileToAnalyze) {
                     btn.disabled = true;
                     btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-1.5"></i> Reading image...';
-                    imageBase64 = await readAsBase64(imgUpload.files[0]);
+                    imageBase64 = await readAsBase64(fileToAnalyze);
                 }
                 
                 if (!imageBase64) {

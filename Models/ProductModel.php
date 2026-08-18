@@ -55,13 +55,13 @@ class ProductModel extends Model
                 $id = (int) $id;
 
                 if ($type === 'garment') {
-                    $garments_search .= " AND (garment_id = $id OR product_for = $id OR EXISTS (SELECT 1 FROM product_categories pc WHERE pc.product_id = garment_product.gproduct_id AND pc.product_type = 'garments' AND (pc.category_id = $id OR pc.subcategory_id = $id OR pc.legacy_category_id = $id OR pc.legacy_subcategory_id = $id)))";
+                    $garments_search .= " AND (garment_id = $id OR product_for = $id OR EXISTS (SELECT 1 FROM product_categories pc WHERE pc.product_id = garment_product.gproduct_id AND pc.product_type = 'garments' AND (pc.legacy_category_id = $id OR pc.legacy_subcategory_id = $id)))";
                     $jewellery_search .= " AND 1=0";
                 } elseif ($type === 'jewel_parent' || $type === 'jewel_main') {
-                    $jewellery_search .= " AND (categories_id = $id OR EXISTS (SELECT 1 FROM product_categories pc WHERE pc.product_id = product.product_id AND pc.product_type = 'jewellery' AND (pc.category_id = $id OR pc.legacy_category_id = $id OR pc.legacy_subcategory_id IN (SELECT subcat_id FROM subcat1 WHERE maincat_id = $id))))";
+                    $jewellery_search .= " AND (categories_id = $id OR subcat_id IN (SELECT subcat_id FROM subcat1 WHERE maincat_id = $id) OR EXISTS (SELECT 1 FROM product_categories pc WHERE pc.product_id = product.product_id AND pc.product_type = 'jewellery' AND (pc.legacy_category_id = $id OR pc.legacy_subcategory_id IN (SELECT subcat_id FROM subcat1 WHERE maincat_id = $id))))";
                     $garments_search .= " AND 1=0";
                 } elseif ($type === 'jewel_child' || $type === 'jewel_sub') {
-                    $jewellery_search .= " AND (subcat_id = $id OR EXISTS (SELECT 1 FROM product_categories pc WHERE pc.product_id = product.product_id AND pc.product_type = 'jewellery' AND (pc.subcategory_id = $id OR pc.legacy_subcategory_id = $id OR pc.category_id = $id OR pc.legacy_category_id = $id)))";
+                    $jewellery_search .= " AND (subcat_id = $id OR EXISTS (SELECT 1 FROM product_categories pc WHERE pc.product_id = product.product_id AND pc.product_type = 'jewellery' AND pc.legacy_subcategory_id = $id))";
                     $garments_search .= " AND 1=0";
                 }
             }
@@ -183,13 +183,13 @@ class ProductModel extends Model
                 $id = (int) $id;
 
                 if ($type === 'garment') {
-                    $garments_search .= " AND (garment_id = $id OR product_for = $id OR EXISTS (SELECT 1 FROM product_categories pc WHERE pc.product_id = garment_product.gproduct_id AND pc.product_type = 'garments' AND (pc.category_id = $id OR pc.subcategory_id = $id OR pc.legacy_category_id = $id OR pc.legacy_subcategory_id = $id)))";
+                    $garments_search .= " AND (garment_id = $id OR product_for = $id OR EXISTS (SELECT 1 FROM product_categories pc WHERE pc.product_id = garment_product.gproduct_id AND pc.product_type = 'garments' AND (pc.legacy_category_id = $id OR pc.legacy_subcategory_id = $id)))";
                     $jewellery_search .= " AND 1=0";
                 } elseif ($type === 'jewel_parent' || $type === 'jewel_main') {
-                    $jewellery_search .= " AND (categories_id = $id OR EXISTS (SELECT 1 FROM product_categories pc WHERE pc.product_id = product.product_id AND pc.product_type = 'jewellery' AND (pc.category_id = $id OR pc.legacy_category_id = $id OR pc.legacy_subcategory_id IN (SELECT subcat_id FROM subcat1 WHERE maincat_id = $id))))";
+                    $jewellery_search .= " AND (categories_id = $id OR subcat_id IN (SELECT subcat_id FROM subcat1 WHERE maincat_id = $id) OR EXISTS (SELECT 1 FROM product_categories pc WHERE pc.product_id = product.product_id AND pc.product_type = 'jewellery' AND (pc.legacy_category_id = $id OR pc.legacy_subcategory_id IN (SELECT subcat_id FROM subcat1 WHERE maincat_id = $id))))";
                     $garments_search .= " AND 1=0";
                 } elseif ($type === 'jewel_child' || $type === 'jewel_sub') {
-                    $jewellery_search .= " AND (subcat_id = $id OR EXISTS (SELECT 1 FROM product_categories pc WHERE pc.product_id = product.product_id AND pc.product_type = 'jewellery' AND (pc.subcategory_id = $id OR pc.legacy_subcategory_id = $id OR pc.category_id = $id OR pc.legacy_category_id = $id)))";
+                    $jewellery_search .= " AND (subcat_id = $id OR EXISTS (SELECT 1 FROM product_categories pc WHERE pc.product_id = product.product_id AND pc.product_type = 'jewellery' AND pc.legacy_subcategory_id = $id))";
                     $garments_search .= " AND 1=0";
                 }
             }
@@ -299,7 +299,6 @@ class ProductModel extends Model
                                       FROM product p
                                       LEFT JOIN product_categories pc ON (p.product_id = pc.product_id AND pc.product_type = 'jewellery')
                                       WHERE p.subcat_id = $sub_id 
-                                         OR p.categories_id = $sub_id 
                                          OR pc.legacy_subcategory_id = $sub_id";
                     $sub_count_res = $this->query($this->db, $sub_count_qry);
                     $sub_count_row = $this->fetchOne($sub_count_res);
