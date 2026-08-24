@@ -1664,6 +1664,24 @@ class ProductModel extends Model
                 }
             }
         }
+
+        // Update product_categories mapping
+        $mainCategories = $data['categories'] ?? ($cat > 0 ? [$cat] : []);
+        $subcategories = $data['sub_categories'] ?? ($sub > 0 ? [$sub] : []);
+        if (!empty($mainCategories) || !empty($subcategories)) {
+            $productId = 0;
+            if ($type === 'jewellery') {
+                $row = $this->fetchOne($this->query($this->db, "SELECT product_id FROM product WHERE product_code = '" . mysqli_real_escape_string($this->db, $sku) . "' LIMIT 1"));
+                $productId = (int)($row['product_id'] ?? 0);
+            } else {
+                $row = $this->fetchOne($this->query($this->db, "SELECT gproduct_id FROM garment_product WHERE gproduct_code = '" . mysqli_real_escape_string($this->db, $sku) . "' LIMIT 1"));
+                $productId = (int)($row['gproduct_id'] ?? 0);
+            }
+            if ($productId > 0) {
+                $this->saveProductCategories($productId, $type, $mainCategories, $subcategories);
+            }
+        }
+
         return true;
     }
 

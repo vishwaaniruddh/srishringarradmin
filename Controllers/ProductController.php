@@ -1117,9 +1117,9 @@ class ProductController extends Controller {
     public function downloadTemplate() {
         if (ob_get_level()) ob_end_clean();
         
-        $csv = "sku,name,description,type,category_id,subcat_id,s_price,rental_price,deposit,images\n";
-        $csv .= '"JW101","Bridal Necklace Set","Beautiful antique set","jewellery","1","1","5000","1500","2000","https://example.com/img1.jpg,https://example.com/img2.jpg"' . "\n";
-        $csv .= '"GM202","Red Lehenga Choli","Designer lehenga","garments","10","","12000","3500","5000","https://example.com/img3.jpg"' . "\n";
+        $csv = "sku,name,description,type,categories,sub_categories,rental_price,s_price,deposit,colors,size_avail,brand_name\n";
+        $csv .= '"JW101","Bridal Kundan Necklace Set","Exquisite bridal set with matching earrings","jewellery","1, 2","1, 14","2500","8000","3000","Gold, Maroon","Free Size","Sri Shringaar"' . "\n";
+        $csv .= '"GM202","Royal Red Velvet Bridal Lehenga","Intricate zardozi embroidery designer lehenga","garments","10, 22","","4500","18000","5000","Red, Golden","M, L, XL","Sri Shringaar"' . "\n";
 
         header('Content-Type: text/csv; charset=utf-8');
         header('Content-Disposition: attachment; filename="product_import_template.csv"');
@@ -1127,6 +1127,104 @@ class ProductController extends Controller {
         header('Pragma: no-cache');
         header('Expires: 0');
         echo $csv;
+        exit;
+    }
+
+    public function downloadSampleZip() {
+        if (ob_get_level()) ob_end_clean();
+
+        $zipFile = tempnam(sys_get_temp_dir(), 'sample_import_');
+        $zip = new \ZipArchive();
+        if ($zip->open($zipFile, \ZipArchive::CREATE | \ZipArchive::OVERWRITE) !== true) {
+            die("Cannot create zip archive");
+        }
+
+        // 1. Create Sample Excel spreadsheet with PhpSpreadsheet if available
+        $excelSaved = false;
+        $excelTemp = tempnam(sys_get_temp_dir(), 'excel_');
+
+        if (class_exists('\PhpOffice\PhpSpreadsheet\Spreadsheet')) {
+            try {
+                $spreadsheet = new \PhpOffice\PhpSpreadsheet\Spreadsheet();
+                $sheet = $spreadsheet->getActiveSheet();
+                $sheet->setTitle('Products');
+
+                $headers = ['sku', 'name', 'description', 'type', 'categories', 'sub_categories', 'rental_price', 's_price', 'deposit', 'colors', 'size_avail', 'brand_name'];
+                $sheet->fromArray([$headers], NULL, 'A1');
+
+                $sampleRows = [
+                    ['JW101', 'Bridal Kundan Necklace Set', 'Exquisite bridal set with matching earrings and maang tikka', 'jewellery', '1, 2', '1, 14', 2500, 8000, 3000, 'Gold, Maroon', 'Free Size', 'Sri Shringaar'],
+                    ['JW102', 'Antique Gold Plated Choker', 'Traditional temple choker necklace with pearls', 'jewellery', '1', '1', 1800, 6500, 2000, 'Gold', 'Free Size', 'Sri Shringaar'],
+                    ['GM202', 'Royal Red Velvet Bridal Lehenga', 'Intricate zardozi embroidery designer bridal lehenga with dupatta', 'garments', '10, 22', '', 4500, 18000, 5000, 'Red, Golden', 'M, L, XL', 'Sri Shringaar']
+                ];
+                $sheet->fromArray($sampleRows, NULL, 'A2');
+
+                // Style Header
+                $headerRange = 'A1:L1';
+                $sheet->getStyle($headerRange)->getFont()->setBold(true)->setColor(new \PhpOffice\PhpSpreadsheet\Style\Color(\PhpOffice\PhpSpreadsheet\Style\Color::COLOR_WHITE));
+                $sheet->getStyle($headerRange)->getFill()->setFillType(\PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID)->getStartColor()->setARGB('FF1E293B');
+
+                foreach (range('A', 'L') as $col) {
+                    $sheet->getColumnDimension($col)->setAutoSize(true);
+                }
+
+                $writer = new \PhpOffice\PhpSpreadsheet\Writer\Xlsx($spreadsheet);
+                $writer->save($excelTemp);
+                $zip->addFile($excelTemp, 'products_template.xlsx');
+                $excelSaved = true;
+            } catch (\Throwable $t) {
+                error_log("Spreadsheet generation failed: " . $t->getMessage());
+            }
+        }
+
+        if (!$excelSaved) {
+            $csv = "sku,name,description,type,categories,sub_categories,rental_price,s_price,deposit,colors,size_avail,brand_name\n";
+            $csv .= '"JW101","Bridal Kundan Necklace Set","Exquisite bridal set with matching earrings","jewellery","1, 2","1, 14","2500","8000","3000","Gold, Maroon","Free Size","Sri Shringaar"' . "\n";
+            $csv .= '"GM202","Royal Red Velvet Bridal Lehenga","Intricate zardozi embroidery designer lehenga","garments","10, 22","","4500","18000","5000","Red, Golden","M, L, XL","Sri Shringaar"' . "\n";
+            $zip->addFromString('products_template.csv', $csv);
+        }
+
+        // 2. Add sample SKU folders with sample images (1x1 PNG bytes as lightweight placeholder)
+        $sampleImgBytes = base64_decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==');
+        $zip->addEmptyDir('JW101');
+        $zip->addFromString('JW101/front_view.jpg', $sampleImgBytes);
+        $zip->addFromString('JW101/detail_view.jpg', $sampleImgBytes);
+
+        $zip->addEmptyDir('JW102');
+        $zip->addFromString('JW102/main_choker.jpg', $sampleImgBytes);
+
+        $zip->addEmptyDir('GM202');
+        $zip->addFromString('GM202/full_lehenga.jpg', $sampleImgBytes);
+        $zip->addFromString('GM202/embroidery_zoom.jpg', $sampleImgBytes);
+
+        // 3. Add Instructions Readme
+        $readme = "=======================================================\r\n";
+        $readme .= " SRI SHRINGAAR - BULK PRODUCT UPLOAD INSTRUCTIONS\r\n";
+        $readme .= "=======================================================\r\n\r\n";
+        $readme .= "1. SPREADSHEET (products_template.xlsx or .csv):\r\n";
+        $readme .= "   - Fill in your product details in the Excel file.\r\n";
+        $readme .= "   - 'sku' and 'name' are required columns.\r\n";
+        $readme .= "   - You do NOT need any image URL column in the spreadsheet.\r\n\r\n";
+        $readme .= "2. PRODUCT IMAGES:\r\n";
+        $readme .= "   - Create a folder named exactly after each product SKU (e.g. 'JW101', 'GM202').\r\n";
+        $readme .= "   - Put that product's photo(s) inside its folder (.jpg, .png, .webp supported).\r\n";
+        $readme .= "   - You can put 1 or multiple images in each SKU folder.\r\n\r\n";
+        $readme .= "3. ZIP AND UPLOAD:\r\n";
+        $readme .= "   - Select the Excel file and your SKU folders, then compress them into a .zip file.\r\n";
+        $readme .= "   - Upload the .zip archive on the admin Import page.\r\n";
+        $readme .= "=======================================================\r\n";
+        $zip->addFromString('README_INSTRUCTIONS.txt', $readme);
+
+        $zip->close();
+        if (file_exists($excelTemp)) @unlink($excelTemp);
+
+        header('Content-Type: application/zip');
+        header('Content-Disposition: attachment; filename="sample_product_import_package.zip"');
+        header('Content-Length: ' . filesize($zipFile));
+        header('Pragma: no-cache');
+        header('Expires: 0');
+        readfile($zipFile);
+        @unlink($zipFile);
         exit;
     }
 
@@ -1271,9 +1369,262 @@ class ProductController extends Controller {
     public function import() {
         $productModel = new ProductModel();
         $categories = $productModel->getCategories();
+        $jewelCategoriesTree = $productModel->getAllCategoriesWithSubcategories('jewellery');
+        $garmentCategoriesTree = $productModel->getAllCategoriesWithSubcategories('garments');
+        
         $this->view('products/import', [
-            'categories' => $categories
+            'categories' => $categories,
+            'jewelCategoriesTree' => $jewelCategoriesTree,
+            'garmentCategoriesTree' => $garmentCategoriesTree
         ]);
+    }
+
+    public function uploadImportPackage() {
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            $this->json(['error' => 'Method not allowed'], 405);
+            return;
+        }
+
+        if (empty($_FILES['file']) && empty($_FILES['zip_file']) && empty($_FILES['package_file'])) {
+            $this->json(['error' => 'No file uploaded. Please select a .zip or .xlsx/.csv file.'], 400);
+            return;
+        }
+
+        $uploaded = $_FILES['file'] ?? $_FILES['zip_file'] ?? $_FILES['package_file'];
+        if ($uploaded['error'] !== UPLOAD_ERR_OK) {
+            $this->json(['error' => 'Upload error code: ' . $uploaded['error']], 400);
+            return;
+        }
+
+        $originalName = $uploaded['name'];
+        $tempFilePath = $uploaded['tmp_name'];
+        $fileExt = strtolower(pathinfo($originalName, PATHINFO_EXTENSION));
+
+        $tempImportsBase = __DIR__ . '/../../yn/uploads/temp_imports/';
+        if (!file_exists($tempImportsBase)) {
+            mkdir($tempImportsBase, 0777, true);
+        }
+
+        $importToken = 'imp_' . date('Ymd_His') . '_' . bin2hex(random_bytes(6));
+        $extractDir = $tempImportsBase . $importToken . '/';
+        if (!mkdir($extractDir, 0777, true)) {
+            $this->json(['error' => 'Failed to create temporary extraction directory.'], 500);
+            return;
+        }
+
+        $spreadsheetFile = null;
+
+        if ($fileExt === 'zip') {
+            if (!class_exists('\ZipArchive')) {
+                $this->json(['error' => 'ZipArchive extension is not enabled in PHP.'], 500);
+                return;
+            }
+
+            $zip = new \ZipArchive();
+            if ($zip->open($tempFilePath) === true) {
+                $zip->extractTo($extractDir);
+                $zip->close();
+            } else {
+                $this->json(['error' => 'Failed to open and extract ZIP archive.'], 400);
+                return;
+            }
+        } elseif (in_array($fileExt, ['xlsx', 'xls', 'csv'])) {
+            $targetSpreadsheet = $extractDir . 'spreadsheet.' . $fileExt;
+            if (!move_uploaded_file($tempFilePath, $targetSpreadsheet)) {
+                $this->json(['error' => 'Failed to save uploaded spreadsheet.'], 500);
+                return;
+            }
+            $spreadsheetFile = $targetSpreadsheet;
+        } else {
+            $this->json(['error' => 'Unsupported file type. Please upload a .zip, .xlsx, .xls, or .csv file.'], 400);
+            return;
+        }
+
+        // Recursively index all files in $extractDir
+        $skuFolderMap = []; // lowercase sku => array of relative file paths
+        $imageExtensions = ['jpg', 'jpeg', 'png', 'webp', 'avif', 'gif', 'bmp'];
+
+        $iterator = new \RecursiveIteratorIterator(
+            new \RecursiveDirectoryIterator($extractDir, \RecursiveDirectoryIterator::SKIP_DOTS),
+            \RecursiveIteratorIterator::SELF_FIRST
+        );
+
+        foreach ($iterator as $item) {
+            $subPath = $iterator->getSubPathName();
+            $subPath = str_replace('\\', '/', $subPath);
+            
+            // Ignore Mac OS metadata or temp lock files
+            if (str_contains($subPath, '__MACOSX') || str_contains($subPath, '.~lock') || str_starts_with(basename($subPath), '~$')) {
+                continue;
+            }
+
+            if ($item->isFile()) {
+                $ext = strtolower(pathinfo($subPath, PATHINFO_EXTENSION));
+                
+                // If spreadsheet not yet identified, check if this is an Excel/CSV file
+                if (!$spreadsheetFile && in_array($ext, ['xlsx', 'xls', 'csv'])) {
+                    $spreadsheetFile = $item->getPathname();
+                }
+
+                // If image file, categorize under its parent folder (which represents SKU)
+                if (in_array($ext, $imageExtensions)) {
+                    $folderName = basename(dirname($subPath));
+                    if ($folderName !== '.' && $folderName !== '' && $folderName !== basename($extractDir)) {
+                        $skuKey = strtolower(trim($folderName));
+                        if (!isset($skuFolderMap[$skuKey])) {
+                            $skuFolderMap[$skuKey] = [];
+                        }
+                        $skuFolderMap[$skuKey][] = $subPath;
+                    }
+                }
+            }
+        }
+
+        if (!$spreadsheetFile || !file_exists($spreadsheetFile)) {
+            $this->json(['error' => 'No valid Excel (.xlsx / .xls) or CSV file found inside the uploaded package.'], 400);
+            return;
+        }
+
+        // Parse spreadsheet rows
+        $parsedProducts = [];
+        $spreadsheetExt = strtolower(pathinfo($spreadsheetFile, PATHINFO_EXTENSION));
+
+        if ($spreadsheetExt === 'csv') {
+            $handle = fopen($spreadsheetFile, 'r');
+            if ($handle) {
+                $headers = [];
+                $rowIdx = 0;
+                while (($row = fgetcsv($handle, 10000, ",")) !== false) {
+                    $rowIdx++;
+                    if ($rowIdx === 1) {
+                        $headers = array_map(function($h) {
+                            return strtolower(trim(preg_replace('/[^a-zA-Z0-9_]/', '_', (string)$h)));
+                        }, $row);
+                        continue;
+                    }
+                    if (empty(array_filter($row))) continue;
+                    $item = [];
+                    foreach ($headers as $idx => $header) {
+                        $item[$header] = isset($row[$idx]) ? trim((string)$row[$idx]) : '';
+                    }
+                    $parsedProducts[] = $item;
+                }
+                fclose($handle);
+            }
+        } else {
+            // Read via PhpSpreadsheet
+            try {
+                $spreadsheet = \PhpOffice\PhpSpreadsheet\IOFactory::load($spreadsheetFile);
+                $worksheet = $spreadsheet->getActiveSheet();
+                $rows = $worksheet->toArray(null, true, true, false);
+
+                if (!empty($rows) && count($rows) > 1) {
+                    $rawHeaders = $rows[0];
+                    $headers = array_map(function($h) {
+                        return strtolower(trim(preg_replace('/[^a-zA-Z0-9_]/', '_', (string)$h)));
+                    }, $rawHeaders);
+
+                    for ($i = 1; $i < count($rows); $i++) {
+                        $row = $rows[$i];
+                        if (empty(array_filter($row, function($v) { return $v !== null && $v !== ''; }))) continue;
+                        $item = [];
+                        foreach ($headers as $idx => $header) {
+                            if (!empty($header)) {
+                                $val = $row[$idx] ?? '';
+                                $item[$header] = is_string($val) ? trim($val) : (string)$val;
+                            }
+                        }
+                        $parsedProducts[] = $item;
+                    }
+                }
+            } catch (\Throwable $e) {
+                $this->json(['error' => 'Error reading spreadsheet: ' . $e->getMessage()], 400);
+                return;
+            }
+        }
+
+        // Match each product row with its SKU image folder
+        $totalMatchedImages = 0;
+        $matchedFolders = [];
+        $validProducts = [];
+
+        foreach ($parsedProducts as $prod) {
+            $sku = trim($prod['sku'] ?? $prod['sku_code'] ?? $prod['product_code'] ?? $prod['code'] ?? '');
+            $name = trim($prod['name'] ?? $prod['product_name'] ?? '');
+
+            if (empty($sku) && empty($name)) continue;
+
+            if (!empty($sku) && empty($prod['sku'])) {
+                $prod['sku'] = $sku;
+            }
+
+            $skuKey = strtolower($sku);
+            $matchedImages = [];
+
+            if (!empty($skuKey) && isset($skuFolderMap[$skuKey])) {
+                $matchedImages = $skuFolderMap[$skuKey];
+                $matchedFolders[$skuKey] = true;
+                $totalMatchedImages += count($matchedImages);
+            }
+
+            $prod['temp_images'] = $matchedImages;
+            $prod['images_count'] = count($matchedImages);
+            $validProducts[] = $prod;
+        }
+
+        $this->json([
+            'status' => 'success',
+            'import_token' => $importToken,
+            'spreadsheet_name' => basename($spreadsheetFile),
+            'total_products' => count($validProducts),
+            'total_images' => $totalMatchedImages,
+            'total_folders' => count($matchedFolders),
+            'products' => $validProducts
+        ]);
+    }
+
+    public function cleanupImportTemp() {
+        $token = $_POST['import_token'] ?? $_GET['import_token'] ?? '';
+        $tempImportsBase = __DIR__ . '/../../yn/uploads/temp_imports/';
+
+        if (!empty($token)) {
+            $safeToken = preg_replace('/[^a-zA-Z0-9_-]/', '', $token);
+            $targetDir = $tempImportsBase . $safeToken;
+            if (is_dir($targetDir)) {
+                $this->rrmdir($targetDir);
+            }
+        }
+
+        // Auto sweep folders older than 2 hours
+        if (is_dir($tempImportsBase)) {
+            $dirs = scandir($tempImportsBase);
+            $now = time();
+            foreach ($dirs as $d) {
+                if ($d === '.' || $d === '..') continue;
+                $path = $tempImportsBase . $d;
+                if (is_dir($path) && ($now - filemtime($path) > 7200)) {
+                    $this->rrmdir($path);
+                }
+            }
+        }
+
+        $this->json(['status' => 'success']);
+    }
+
+    private function rrmdir($dir) {
+        if (is_dir($dir)) {
+            $objects = scandir($dir);
+            foreach ($objects as $object) {
+                if ($object !== "." && $object !== "..") {
+                    if (is_dir($dir . DIRECTORY_SEPARATOR . $object) && !is_link($dir . "/" . $object)) {
+                        $this->rrmdir($dir . DIRECTORY_SEPARATOR . $object);
+                    } else {
+                        @unlink($dir . DIRECTORY_SEPARATOR . $object);
+                    }
+                }
+            }
+            @rmdir($dir);
+        }
     }
 
     public function processImportRow() {
@@ -1284,39 +1635,94 @@ class ProductController extends Controller {
         $data = !empty($input) ? $input : $_POST;
         
         $productModel = new ProductModel();
+        $categoryModel = new \Models\CategoryModel();
 
         try {
-            $type = $data['type'] ?? 'jewellery';
-            $code = $data['sku'] ?? '';
+            $type = strtolower(trim($data['type'] ?? ''));
+            $code = trim($data['sku'] ?? $data['sku_code'] ?? $data['code'] ?? '');
 
             if (empty($code)) throw new \Exception("Missing SKU");
+
+            // Auto-detect type if empty
+            if (empty($type)) {
+                $type = (stripos($code, 'GM') === 0 || stripos($code, 'LM') === 0 || stripos($code, 'FM') === 0) ? 'garments' : 'jewellery';
+            } else if ($type === 'garment' || $type === 'apparel') {
+                $type = 'garments';
+            } else if ($type === 'jewelry' || $type === 'jewel') {
+                $type = 'jewellery';
+            }
 
             // Check if exists
             $isUpdate = $productModel->checkProductExists($code, $type);
             
-            // Process Images from URLs
-            $imageUrls = !empty($data['images']) ? explode(',', $data['images']) : [];
+            // Process Images from extracted ZIP folder or from URLs / local paths
             $downloadedImages = [];
+            $current_year = date('Y');
+            $current_month = date('m');
+            $upload_base = __DIR__ . "/../../yn/uploads/";
+            $upload_path = $current_year . '/' . $current_month . '/';
+            $full_upload_path = $upload_base . $upload_path;
+
+            if (!file_exists($full_upload_path)) {
+                mkdir($full_upload_path, 0777, true);
+            }
+
+            // 1. Check if temp_images array from ZIP import is present
+            $tempImages = $data['temp_images'] ?? [];
+            $importToken = !empty($data['import_token']) ? preg_replace('/[^a-zA-Z0-9_-]/', '', (string)$data['import_token']) : '';
+
+            if (!empty($importToken)) {
+                $tempImportsBase = __DIR__ . '/../../yn/uploads/temp_imports/' . $importToken . '/';
+                
+                // If temp_images array was passed
+                if (!empty($tempImages) && is_array($tempImages)) {
+                    foreach ($tempImages as $relPath) {
+                        $sourcePath = $tempImportsBase . ltrim((string)$relPath, '/\\');
+                        if (file_exists($sourcePath) && is_file($sourcePath)) {
+                            $ext = strtolower(pathinfo($sourcePath, PATHINFO_EXTENSION)) ?: 'jpg';
+                            $filename = preg_replace('/[^a-zA-Z0-9_-]/', '_', $code) . '_' . time() . '_' . uniqid() . '.' . $ext;
+                            if (copy($sourcePath, $full_upload_path . $filename)) {
+                                $downloadedImages[] = $upload_path . $filename;
+                            }
+                        }
+                    }
+                } else {
+                    // Fallback: search folder named after SKU in temp directory
+                    $skuDirs = [$tempImportsBase . $code, $tempImportsBase . strtolower($code), $tempImportsBase . strtoupper($code)];
+                    foreach ($skuDirs as $sDir) {
+                        if (file_exists($sDir) && is_dir($sDir)) {
+                            $files = glob($sDir . '/*.{jpg,jpeg,png,webp,avif,gif,JPG,JPEG,PNG,WEBP}', GLOB_BRACE);
+                            if (!empty($files)) {
+                                foreach ($files as $f) {
+                                    $ext = strtolower(pathinfo($f, PATHINFO_EXTENSION)) ?: 'jpg';
+                                    $filename = preg_replace('/[^a-zA-Z0-9_-]/', '_', $code) . '_' . time() . '_' . uniqid() . '.' . $ext;
+                                    if (copy($f, $full_upload_path . $filename)) {
+                                        $downloadedImages[] = $upload_path . $filename;
+                                    }
+                                }
+                                break;
+                            }
+                        }
+                    }
+                }
+            }
+
+            // 2. Also support comma-separated images if supplied
+            $rawImages = $data['images'] ?? $data['image'] ?? '';
+            $imageUrls = !empty($rawImages) ? explode(',', (string)$rawImages) : [];
             
             foreach ($imageUrls as $url) {
                 $url = trim($url);
                 if (empty($url)) continue;
 
-                // For updates, we might want to check if image already exists to avoid duplicates
-                // But for now, we'll just download and add
-                
-                $current_year = date('Y');
-                $current_month = date('m');
-                $upload_base = __DIR__ . "/../../yn/uploads/";
-                $upload_path = $current_year . '/' . $current_month . '/';
-                $full_upload_path = $upload_base . $upload_path;
-
-                if (!file_exists($full_upload_path)) {
-                    mkdir($full_upload_path, 0777, true);
+                // If already a local relative path, preserve it
+                if (str_starts_with($url, '/') || str_starts_with($url, '202') || str_starts_with($url, 'uploads/')) {
+                    $downloadedImages[] = ltrim(str_replace(['/yn/uploads/', 'yn/uploads/', '/uploads/'], '', $url), '/');
+                    continue;
                 }
 
-                $ext = pathinfo($url, PATHINFO_EXTENSION) ?: 'jpg';
-                $filename = $code . '_' . time() . '_' . uniqid() . '.' . $ext;
+                $ext = pathinfo(parse_url($url, PHP_URL_PATH) ?? '', PATHINFO_EXTENSION) ?: 'jpg';
+                $filename = preg_replace('/[^a-zA-Z0-9_-]/', '_', $code) . '_' . time() . '_' . uniqid() . '.' . $ext;
                 
                 $imgData = @file_get_contents($url);
                 if ($imgData) {
@@ -1326,39 +1732,103 @@ class ProductController extends Controller {
                 }
             }
 
-            $catId = $data['category_id'] ?? 0;
-            $subId = $data['subcat_id'] ?? 0;
-            
-            // Smart Match for Category Names if IDs are not numeric
-            $categoryModel = new \Models\CategoryModel();
-            if (!empty($catId) && !is_numeric($catId)) {
-                $foundId = $categoryModel->getCategoryIdByName($catId, $type);
-                if ($foundId) $catId = $foundId;
-                else $catId = 0; // Fallback to 0 if not found
+            // --- Multi-Category and Subcategory Parsing ---
+            $rawMain = [];
+            if (!empty($data['categories'])) {
+                $rawMain = is_array($data['categories']) ? $data['categories'] : explode(',', (string)$data['categories']);
             }
-            if (!empty($subId) && !is_numeric($subId)) {
-                $foundId = $categoryModel->getCategoryIdByName($subId, $type);
-                if ($foundId) $subId = $foundId;
-                else $subId = 0;
+            if (!empty($data['category_id'])) {
+                $rawMain = array_merge($rawMain, is_array($data['category_id']) ? $data['category_id'] : explode(',', (string)$data['category_id']));
+            }
+            if (!empty($data['category'])) {
+                $rawMain = array_merge($rawMain, is_array($data['category']) ? $data['category'] : explode(',', (string)$data['category']));
+            }
+
+            $rawSub = [];
+            if (!empty($data['sub_categories'])) {
+                $rawSub = is_array($data['sub_categories']) ? $data['sub_categories'] : explode(',', (string)$data['sub_categories']);
+            }
+            if (!empty($data['subcat_id'])) {
+                $rawSub = array_merge($rawSub, is_array($data['subcat_id']) ? $data['subcat_id'] : explode(',', (string)$data['subcat_id']));
+            }
+            if (!empty($data['sub_category'])) {
+                $rawSub = array_merge($rawSub, is_array($data['sub_category']) ? $data['sub_category'] : explode(',', (string)$data['sub_category']));
+            }
+
+            // Resolve Main Category IDs
+            $mainCategoryIds = [];
+            foreach ($rawMain as $item) {
+                $item = trim((string)$item);
+                if (empty($item)) continue;
+                if (is_numeric($item) && (int)$item > 0) {
+                    $mainCategoryIds[] = (int)$item;
+                } else {
+                    $foundId = $categoryModel->getCategoryIdByName($item, $type);
+                    if ($foundId > 0) $mainCategoryIds[] = $foundId;
+                }
+            }
+            $mainCategoryIds = array_values(array_unique(array_filter($mainCategoryIds)));
+
+            // Resolve Subcategory IDs
+            $subcategoryIds = [];
+            foreach ($rawSub as $item) {
+                $item = trim((string)$item);
+                if (empty($item)) continue;
+                if (is_numeric($item) && (int)$item > 0) {
+                    $subcategoryIds[] = (int)$item;
+                } else {
+                    $foundId = $categoryModel->getCategoryIdByName($item, $type);
+                    if ($foundId > 0) $subcategoryIds[] = $foundId;
+                }
+            }
+            $subcategoryIds = array_values(array_unique(array_filter($subcategoryIds)));
+
+            // Primary category & subcategory fallback
+            $primaryCatId = !empty($mainCategoryIds) ? $mainCategoryIds[0] : 0;
+            $primarySubId = !empty($subcategoryIds) ? $subcategoryIds[0] : 0;
+
+            // Colors parsing
+            $colorsInput = $data['colors'] ?? $data['brand_color'] ?? '';
+            $colorsArray = [];
+            if (!empty($colorsInput)) {
+                if (is_array($colorsInput)) {
+                    $colorsArray = $colorsInput;
+                } else if (is_string($colorsInput)) {
+                    $trimmedC = trim($colorsInput);
+                    $decoded = json_decode($trimmedC, true);
+                    if (json_last_error() === JSON_ERROR_NONE && is_array($decoded)) {
+                        $colorsArray = $decoded;
+                    } else {
+                        $colorsArray = array_filter(array_map('trim', explode(',', $trimmedC)));
+                    }
+                }
             }
 
             $saveData = [
                 'code' => $code,
                 'name' => $data['name'] ?? 'Imported Product',
                 'description' => $data['description'] ?? '',
-                'category' => $catId,
-                'sub_category' => $subId,
-                's_price' => $data['s_price'] ?? 0,
-                'rental_price' => $data['rental_price'] ?? 0,
-                'deposit' => $data['deposit'] ?? 0
+                'category' => $primaryCatId,
+                'sub_category' => $primarySubId,
+                'categories' => $mainCategoryIds,
+                'sub_categories' => $subcategoryIds,
+                's_price' => (float)($data['s_price'] ?? $data['sales_price'] ?? $data['sale_price'] ?? 0),
+                'rental_price' => (float)($data['rental_price'] ?? $data['rent_price'] ?? 0),
+                'deposit' => (float)($data['deposit'] ?? 0),
+                'size_avail' => $data['size_avail'] ?? $data['size'] ?? '',
+                'brand_name' => $data['brand_name'] ?? $data['brand'] ?? '',
+                'colors' => $colorsArray,
+                'brand_color' => $colorsArray,
+                'price_source' => (!empty($data['price_source']) && strtolower($data['price_source']) === 'manual') ? 'manual' : 'pos',
+                'availability' => in_array(strtolower($data['availability'] ?? ''), ['rent', 'sell', 'both']) ? strtolower($data['availability']) : 'both'
             ];
 
             if ($isUpdate) {
                 $productModel->syncProductBySku($type, $saveData, $downloadedImages);
-                return $this->json(['status' => 'updated', 'message' => "Product $code updated successfully"]);
+                return $this->json(['status' => 'updated', 'message' => "Product $code updated successfully with categories and " . count($downloadedImages) . " images"]);
             } else {
                 $productModel->saveProduct($type, $saveData, $downloadedImages);
-                return $this->json(['status' => 'success', 'message' => "Product $code imported successfully"]);
+                return $this->json(['status' => 'success', 'message' => "Product $code imported successfully with categories and " . count($downloadedImages) . " images"]);
             }
         } catch (\Exception $e) {
             return $this->json(['status' => 'error', 'message' => $e->getMessage()]);

@@ -137,22 +137,28 @@ class CategoryModel extends Model {
     }
 
     public function getCategoryIdByName($name, $type = 'jewellery') {
-        $name = mysqli_real_escape_string($this->db, trim($name));
+        $name = trim((string)$name);
         if (empty($name)) return 0;
+        $escName = mysqli_real_escape_string($this->db, $name);
 
         if ($type === 'jewellery') {
-            // Check Main Categories
-            $sql = "SELECT subcat_id as id FROM jewel_subcat WHERE categories_name = '$name' LIMIT 1";
+            // Check Main Categories (jewel_subcat)
+            $sql = "SELECT subcat_id as id FROM jewel_subcat WHERE categories_name = '$escName' OR LOWER(TRIM(categories_name)) = LOWER('$escName') LIMIT 1";
             $res = mysqli_query($this->db, $sql);
             if ($row = mysqli_fetch_assoc($res)) return (int)$row['id'];
 
-            // Check Subcategories
-            $sql = "SELECT subcat_id as id FROM subcat1 WHERE name = '$name' LIMIT 1";
+            // Check Subcategories (subcat1)
+            $sql = "SELECT subcat_id as id FROM subcat1 WHERE name = '$escName' OR LOWER(TRIM(name)) = LOWER('$escName') LIMIT 1";
             $res = mysqli_query($this->db, $sql);
             if ($row = mysqli_fetch_assoc($res)) return (int)$row['id'];
         } else {
-            // Apparel
-            $sql = "SELECT garment_id as id FROM garment_category WHERE name = '$name' LIMIT 1";
+            // Check Main Garments (garments)
+            $sql = "SELECT garment_id as id FROM garments WHERE name = '$escName' OR LOWER(TRIM(name)) = LOWER('$escName') LIMIT 1";
+            $res = mysqli_query($this->db, $sql);
+            if ($row = mysqli_fetch_assoc($res)) return (int)$row['id'];
+
+            // Check Garment Subcategories (garment_subcat)
+            $sql = "SELECT sub_id as id FROM garment_subcat WHERE sub_name = '$escName' OR LOWER(TRIM(sub_name)) = LOWER('$escName') LIMIT 1";
             $res = mysqli_query($this->db, $sql);
             if ($row = mysqli_fetch_assoc($res)) return (int)$row['id'];
         }
