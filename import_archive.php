@@ -82,13 +82,14 @@ if (isset($_GET['action']) && $_GET['action'] === 'process_row') {
             $type = 'jewellery';
         }
 
-        // 1. Check if SKU exists -> SKIP if exists
-        $existing = $productModel->checkProductExists($code, $type);
-        if ($existing) {
+        // 1. Check if SKU exists in EITHER jewellery OR garments -> SKIP if exists
+        $existsJewel = $productModel->checkProductExists($code, 'jewellery');
+        $existsGarment = $productModel->checkProductExists($code, 'garments');
+        if ($existsJewel || $existsGarment) {
             echo json_encode([
                 'status' => 'skipped',
                 'sku' => $code,
-                'message' => "SKU $code already exists in database. Skipped (not modified)."
+                'message' => "SKU $code already exists in database (" . ($existsJewel ? 'jewellery' : 'garments') . "). Skipped."
             ]);
             exit;
         }
@@ -426,9 +427,14 @@ $scanResult = scanArchiveDirectory($archiveDir);
                         </h2>
                         <p class="text-xs text-slate-400 mt-0.5">Products that already exist will be safely <b>SKIPPED</b> without modifying data.</p>
                     </div>
-                    <button id="start_btn" class="px-8 py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold shadow-lg shadow-indigo-600/30 transition-all flex items-center gap-2">
-                        <i class="fas fa-play"></i> Run Archive Import Now
-                    </button>
+                    <div class="flex items-center gap-3">
+                        <button id="download_report_btn" class="hidden px-5 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-xl text-xs font-bold border border-slate-700 transition-all flex items-center gap-1.5">
+                            <i class="fas fa-download text-emerald-400"></i> Download Full Report (CSV)
+                        </button>
+                        <button id="start_btn" class="px-8 py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold shadow-lg shadow-indigo-600/30 transition-all flex items-center gap-2">
+                            <i class="fas fa-play"></i> Run Archive Import Now
+                        </button>
+                    </div>
                 </div>
 
                 <!-- Stats Counters -->
@@ -464,23 +470,23 @@ $scanResult = scanArchiveDirectory($archiveDir);
 
                 <!-- Live Log Table -->
                 <div class="border border-slate-800 rounded-xl overflow-hidden bg-slate-950">
-                    <div class="max-h-96 overflow-y-auto custom-scrollbar">
+                    <div class="max-h-[500px] overflow-y-auto custom-scrollbar">
                         <table class="w-full text-left text-xs border-collapse">
                             <thead class="bg-slate-900/90 text-slate-400 text-[10px] font-bold uppercase tracking-wider sticky top-0 border-b border-slate-800 z-10">
                                 <tr>
                                     <th class="px-4 py-3">#</th>
                                     <th class="px-4 py-3">SKU</th>
                                     <th class="px-4 py-3">Product Name</th>
-                                    <th class="px-4 py-3">Photos Found</th>
-                                    <th class="px-4 py-3 text-right">Status</th>
+                                    <th class="px-4 py-3">Photos</th>
+                                    <th class="px-4 py-3 text-right">Status & Notes</th>
                                 </tr>
                             </thead>
                             <tbody id="log_tbody" class="divide-y divide-slate-800/60 font-mono text-[11px]">
                                 <?php foreach ($scanResult['products'] as $idx => $p): ?>
-                                    <tr id="row-<?php echo $idx; ?>" class="hover:bg-slate-900/40">
+                                    <tr id="row-<?php echo $idx; ?>" class="hover:bg-slate-900/40 transition-colors">
                                         <td class="px-4 py-2.5 text-slate-500"><?php echo $idx + 1; ?></td>
                                         <td class="px-4 py-2.5 font-bold text-indigo-300"><?php echo htmlspecialchars($p['sku']); ?></td>
-                                        <td class="px-4 py-2.5 text-slate-300 truncate max-w-[200px]"><?php echo htmlspecialchars($p['name'] ?? ''); ?></td>
+                                        <td class="px-4 py-2.5 text-slate-300 truncate max-w-[200px]" title="<?php echo htmlspecialchars($p['name'] ?? ''); ?>"><?php echo htmlspecialchars($p['name'] ?? ''); ?></td>
                                         <td class="px-4 py-2.5 text-slate-400">
                                             <?php if ($p['images_count'] > 0): ?>
                                                 <span class="text-emerald-400 font-bold"><i class="fas fa-images mr-1"></i><?php echo $p['images_count']; ?></span>
@@ -500,6 +506,7 @@ $scanResult = scanArchiveDirectory($archiveDir);
             <script>
                 const productsData = <?php echo json_encode($scanResult['products']); ?>;
                 const startBtn = document.getElementById('start_btn');
+                const downloadReportBtn = document.getElementById('download_report_btn');
                 const progressBar = document.getElementById('progress_bar');
                 const progressPct = document.getElementById('progress_pct');
                 const progressStatus = document.getElementById('progress_status');
@@ -507,6 +514,8 @@ $scanResult = scanArchiveDirectory($archiveDir);
                 const cntCreated = document.getElementById('cnt_created');
                 const cntSkipped = document.getElementById('cnt_skipped');
                 const cntError = document.getElementById('cnt_error');
+
+                let fullResults = [['#', 'SKU', 'Name', 'Status', 'Images', 'Reason/Message']];
 
                 startBtn.addEventListener('click', async function() {
                     startBtn.disabled = true;
@@ -535,20 +544,32 @@ $scanResult = scanArchiveDirectory($archiveDir);
                             if (data.status === 'success') {
                                 created++;
                                 cntCreated.textContent = created;
-                                if (statusCol) statusCol.innerHTML = `<span class="text-emerald-400 font-bold"><i class="fas fa-check-circle mr-1"></i>Created (${data.images_count || 0} imgs)</span>`;
+                                if (statusCol) {
+                                    statusCol.innerHTML = `<span class="text-emerald-400 font-bold"><i class="fas fa-check-circle mr-1"></i>Created (${data.images_count || 0} imgs)</span>`;
+                                }
+                                fullResults.push([i+1, item.sku, item.name || '', 'Created', data.images_count || 0, data.message || '']);
                             } else if (data.status === 'skipped') {
                                 skipped++;
                                 cntSkipped.textContent = skipped;
-                                if (statusCol) statusCol.innerHTML = `<span class="text-amber-400 font-bold"><i class="fas fa-forward mr-1"></i>Skipped</span>`;
+                                if (statusCol) {
+                                    statusCol.innerHTML = `<div><span class="text-amber-400 font-bold"><i class="fas fa-forward mr-1"></i>Skipped</span><div class="text-[9px] text-amber-500/80 mt-0.5">Already in DB</div></div>`;
+                                }
+                                fullResults.push([i+1, item.sku, item.name || '', 'Skipped', 0, data.message || 'Already exists']);
                             } else {
                                 errors++;
                                 cntError.textContent = errors;
-                                if (statusCol) statusCol.innerHTML = `<span class="text-rose-400 font-bold" title="${data.message}"><i class="fas fa-times-circle mr-1"></i>Error</span>`;
+                                if (statusCol) {
+                                    statusCol.innerHTML = `<div><span class="text-rose-400 font-bold"><i class="fas fa-times-circle mr-1"></i>Failed</span><div class="text-[9px] text-rose-400 mt-0.5 max-w-[280px] truncate" title="${data.message}">${data.message}</div></div>`;
+                                }
+                                fullResults.push([i+1, item.sku, item.name || '', 'Error', 0, data.message || 'Unknown error']);
                             }
                         } catch (err) {
                             errors++;
                             cntError.textContent = errors;
-                            if (statusCol) statusCol.innerHTML = `<span class="text-rose-400 font-bold"><i class="fas fa-times-circle mr-1"></i>Failed</span>`;
+                            if (statusCol) {
+                                statusCol.innerHTML = `<div><span class="text-rose-400 font-bold"><i class="fas fa-times-circle mr-1"></i>HTTP Error</span><div class="text-[9px] text-rose-400 mt-0.5">${err.message}</div></div>`;
+                            }
+                            fullResults.push([i+1, item.sku, item.name || '', 'Error', 0, err.message]);
                         }
 
                         const pct = Math.round(((i + 1) / productsData.length) * 100);
@@ -557,9 +578,19 @@ $scanResult = scanArchiveDirectory($archiveDir);
                         progressStatus.textContent = `Processing item ${i + 1} of ${productsData.length} (${item.sku})...`;
                     }
 
-                    progressStatus.textContent = 'Import finished successfully!';
+                    progressStatus.textContent = `Import completed! Created: ${created}, Skipped: ${skipped}, Errors: ${errors}`;
                     startBtn.textContent = 'Import Completed';
                     startBtn.className = 'px-8 py-3 bg-emerald-600 text-white rounded-xl text-xs font-bold cursor-default';
+                    downloadReportBtn.classList.remove('hidden');
+                });
+
+                downloadReportBtn.addEventListener('click', function() {
+                    const csvContent = fullResults.map(r => r.map(c => `"${String(c).replace(/"/g, '""')}"`).join(',')).join('\n');
+                    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+                    const link = document.createElement('a');
+                    link.href = URL.createObjectURL(blob);
+                    link.download = `Archive_Import_Report_${new Date().toISOString().slice(0,10)}.csv`;
+                    link.click();
                 });
             </script>
         <?php endif; ?>
