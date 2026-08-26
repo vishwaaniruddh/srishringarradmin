@@ -1,6 +1,6 @@
 <?php
 /**
- * Direct Server Archive Importer
+ * Direct Server Archive Importer (Enhanced Pre-Audit & Reliable Batching)
  * Imports products from the server's "archive" folder (Spreadsheet + SKU image folders)
  * Can be run via Browser or CLI (php import_archive.php)
  */
@@ -215,7 +215,8 @@ if (isset($_GET['action']) && $_GET['action'] === 'process_row') {
             'availability' => in_array(strtolower($input['availability'] ?? ''), ['rent', 'sell', 'both']) ? strtolower($input['availability']) : 'both'
         ];
 
-        $productModel->saveProduct($type, $saveData, $downloadedImages);
+        // Save with autoDetectColors = false to prevent Gemini AI API rate-limits/timeouts
+        $productModel->saveProduct($type, $saveData, $downloadedImages, false);
 
         echo json_encode([
             'status' => 'success',
@@ -234,10 +235,10 @@ if (isset($_GET['action']) && $_GET['action'] === 'process_row') {
     }
 }
 
-// Function to scan archive folder for spreadsheet & SKU folders
+// Function to scan archive folder for spreadsheet & SKU folders, with instant bulk DB check
 function scanArchiveDirectory($archiveDir) {
     if (!$archiveDir || !is_dir($archiveDir)) {
-        return ['error' => 'Archive directory not found.'];
+        return ['error' => 'Archive directory not found: ' . htmlspecialchars($archiveDir)];
     }
 
     $spreadsheetFile = null;
@@ -320,6 +321,7 @@ function scanArchiveDirectory($archiveDir) {
 
     // Match products with SKU folders
     $validProducts = [];
+    $skuList = [];
     foreach ($parsedProducts as $p) {
         $sku = trim($p['sku'] ?? $p['sku_code'] ?? $p['product_code'] ?? $p['code'] ?? '');
         $name = trim($p['name'] ?? $p['product_name'] ?? '');
@@ -341,12 +343,58 @@ function scanArchiveDirectory($archiveDir) {
         $p['sku_folder_path'] = $matchedPath ?: '';
         $p['images_count'] = $imgCount;
         $validProducts[] = $p;
+        $skuList[] = $sku;
+    }
+
+    // Single Fast Bulk Query to Pre-Check Existing SKUs in Database
+    $existingSkus = [];
+    $db = \Core\Database::getConnection('con');
+    if ($db && !empty($skuList)) {
+        foreach (array_chunk($skuList, 400) as $chunk) {
+            $escaped = array_map(function($s) use ($db) {
+                return "'" . mysqli_real_escape_string($db, $s) . "'";
+            }, $chunk);
+            $inList = implode(',', $escaped);
+
+            $q1 = @mysqli_query($db, "SELECT product_code FROM product WHERE product_code IN ($inList)");
+            if ($q1) {
+                while ($r = mysqli_fetch_assoc($q1)) {
+                    $existingSkus[strtolower($r['product_code'])] = 'jewellery';
+                }
+            }
+
+            $q2 = @mysqli_query($db, "SELECT gproduct_code FROM garment_product WHERE gproduct_code IN ($inList)");
+            if ($q2) {
+                while ($r = mysqli_fetch_assoc($q2)) {
+                    $existingSkus[strtolower($r['gproduct_code'])] = 'garments';
+                }
+            }
+        }
+    }
+
+    $readyCount = 0;
+    $existCount = 0;
+
+    foreach ($validProducts as &$p) {
+        $key = strtolower($p['sku']);
+        if (isset($existingSkus[$key])) {
+            $p['pre_status'] = 'exists';
+            $p['pre_message'] = 'Already in DB (' . $existingSkus[$key] . ')';
+            $existCount++;
+        } else {
+            $p['pre_status'] = 'ready';
+            $p['pre_message'] = 'Ready to Create (' . $p['images_count'] . ' photos)';
+            $readyCount++;
+        }
     }
 
     return [
         'archive_dir' => $archiveDir,
         'spreadsheet_file' => basename($spreadsheetFile),
         'total_folders' => count($skuFolders),
+        'total_products' => count($validProducts),
+        'ready_count' => $readyCount,
+        'exist_count' => $existCount,
         'products' => $validProducts
     ];
 }
@@ -380,9 +428,9 @@ $scanResult = scanArchiveDirectory($archiveDir);
                 <div>
                     <h1 class="text-xl font-bold text-white flex items-center gap-2">
                         Direct Server Archive Importer
-                        <span class="px-2.5 py-0.5 bg-emerald-500/20 text-emerald-400 text-[10px] font-bold rounded-full border border-emerald-500/30 uppercase">Bypasses Upload Limits</span>
+                        <span class="px-2.5 py-0.5 bg-emerald-500/20 text-emerald-400 text-[10px] font-bold rounded-full border border-emerald-500/30 uppercase">Direct Execution</span>
                     </h1>
-                    <p class="text-xs text-slate-400 mt-0.5">Processes SKU folders and spreadsheet directly from your server's root <code>archive/</code> directory.</p>
+                    <p class="text-xs text-slate-400 mt-0.5">Pre-audited direct import bypassing upload limits.</p>
                 </div>
             </div>
             <div class="flex items-center gap-3">
@@ -405,27 +453,36 @@ $scanResult = scanArchiveDirectory($archiveDir);
                 </form>
             </div>
         <?php else: ?>
-            <!-- Archive Detection Info -->
+            <!-- Pre-Scan Audit Cards -->
             <div class="grid grid-cols-1 sm:grid-cols-4 gap-4">
                 <div class="bg-slate-900/80 border border-slate-800 p-4 rounded-2xl">
-                    <div class="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Archive Path</div>
-                    <div class="text-xs font-mono text-indigo-300 truncate" title="<?php echo htmlspecialchars($scanResult['archive_dir']); ?>">
-                        <?php echo htmlspecialchars($scanResult['archive_dir']); ?>
+                    <div class="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Total in Spreadsheet</div>
+                    <div class="text-2xl font-extrabold text-white"><?php echo $scanResult['total_products']; ?></div>
+                    <div class="text-[10px] text-slate-500 mt-0.5 truncate"><?php echo htmlspecialchars($scanResult['spreadsheet_file']); ?></div>
+                </div>
+
+                <div class="bg-emerald-950/30 border border-emerald-500/30 p-4 rounded-2xl cursor-pointer hover:border-emerald-500 transition-all" onclick="filterTable('ready')">
+                    <div class="text-[10px] font-bold text-emerald-400 uppercase tracking-wider mb-1 flex items-center justify-between">
+                        <span>Ready to Upload (New)</span>
+                        <i class="fas fa-plus-circle"></i>
                     </div>
+                    <div class="text-2xl font-extrabold text-emerald-400"><?php echo $scanResult['ready_count']; ?></div>
+                    <div class="text-[10px] text-emerald-300/70 mt-0.5">Will be newly created</div>
                 </div>
-                <div class="bg-slate-900/80 border border-slate-800 p-4 rounded-2xl">
-                    <div class="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Spreadsheet File</div>
-                    <div class="text-sm font-bold text-emerald-400 flex items-center gap-1.5">
-                        <i class="fas fa-file-excel"></i> <?php echo htmlspecialchars($scanResult['spreadsheet_file']); ?>
+
+                <div class="bg-amber-950/30 border border-amber-500/30 p-4 rounded-2xl cursor-pointer hover:border-amber-500 transition-all" onclick="filterTable('exists')">
+                    <div class="text-[10px] font-bold text-amber-400 uppercase tracking-wider mb-1 flex items-center justify-between">
+                        <span>Already in DB (Skipped)</span>
+                        <i class="fas fa-forward"></i>
                     </div>
+                    <div class="text-2xl font-extrabold text-amber-400"><?php echo $scanResult['exist_count']; ?></div>
+                    <div class="text-[10px] text-amber-300/70 mt-0.5">Will not be touched</div>
                 </div>
+
                 <div class="bg-slate-900/80 border border-slate-800 p-4 rounded-2xl">
-                    <div class="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">SKU Image Folders</div>
-                    <div class="text-2xl font-extrabold text-white"><?php echo $scanResult['total_folders']; ?></div>
-                </div>
-                <div class="bg-slate-900/80 border border-slate-800 p-4 rounded-2xl">
-                    <div class="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Total Products in Sheet</div>
-                    <div class="text-2xl font-extrabold text-indigo-400"><?php echo count($scanResult['products']); ?></div>
+                    <div class="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">SKU Folders on Server</div>
+                    <div class="text-2xl font-extrabold text-indigo-400"><?php echo $scanResult['total_folders']; ?></div>
+                    <div class="text-[10px] text-indigo-300/70 mt-0.5">Matched from archive/</div>
                 </div>
             </div>
 
@@ -434,44 +491,42 @@ $scanResult = scanArchiveDirectory($archiveDir);
                 <div class="flex items-center justify-between flex-wrap gap-4 pb-4 border-b border-slate-800">
                     <div>
                         <h2 class="text-base font-bold text-white flex items-center gap-2">
-                            <i class="fas fa-bolt text-yellow-400"></i> Start Import Process
+                            <i class="fas fa-bolt text-yellow-400"></i> Import Execution Controls
                         </h2>
-                        <p class="text-xs text-slate-400 mt-0.5">Products that already exist will be safely <b>SKIPPED</b> without modifying data.</p>
+                        <p class="text-xs text-slate-400 mt-0.5">Choose to import only new products or process the full batch.</p>
                     </div>
-                    <div class="flex items-center gap-3">
-                        <button id="download_report_btn" class="hidden px-5 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-xl text-xs font-bold border border-slate-700 transition-all flex items-center gap-1.5">
-                            <i class="fas fa-download text-emerald-400"></i> Download Full Report (CSV)
+                    <div class="flex items-center gap-2.5 flex-wrap">
+                        <button id="download_report_btn" class="hidden px-4 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-xl text-xs font-bold border border-slate-700 transition-all flex items-center gap-1.5">
+                            <i class="fas fa-download text-emerald-400"></i> Download CSV Report
                         </button>
-                        <button id="start_btn" class="px-8 py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold shadow-lg shadow-indigo-600/30 transition-all flex items-center gap-2">
-                            <i class="fas fa-play"></i> Run Archive Import Now
+                        <button id="start_new_only_btn" class="px-6 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold shadow-lg shadow-emerald-600/30 transition-all flex items-center gap-2">
+                            <i class="fas fa-rocket"></i> Import ONLY New (<?php echo $scanResult['ready_count']; ?> Items)
+                        </button>
+                        <button id="start_all_btn" class="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold shadow-lg shadow-indigo-600/30 transition-all flex items-center gap-2">
+                            <i class="fas fa-play"></i> Process All (<?php echo $scanResult['total_products']; ?> Items)
                         </button>
                     </div>
                 </div>
 
-                <!-- Stats Counters -->
-                <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 text-center">
-                    <div class="bg-slate-950 p-3 rounded-xl border border-slate-800">
-                        <div class="text-[10px] text-slate-400 font-bold uppercase">Total</div>
-                        <div id="cnt_total" class="text-xl font-bold text-white"><?php echo count($scanResult['products']); ?></div>
+                <!-- Filter Tabs & Stats -->
+                <div class="flex items-center justify-between flex-wrap gap-3">
+                    <div class="flex items-center gap-1.5 bg-slate-950 p-1 rounded-xl border border-slate-800 text-xs">
+                        <button type="button" onclick="filterTable('all')" id="tab_all" class="px-3.5 py-1.5 rounded-lg font-bold bg-indigo-600 text-white transition-all">All (<?php echo $scanResult['total_products']; ?>)</button>
+                        <button type="button" onclick="filterTable('ready')" id="tab_ready" class="px-3.5 py-1.5 rounded-lg font-bold text-slate-400 hover:text-white transition-all">Ready / New (<?php echo $scanResult['ready_count']; ?>)</button>
+                        <button type="button" onclick="filterTable('exists')" id="tab_exists" class="px-3.5 py-1.5 rounded-lg font-bold text-slate-400 hover:text-white transition-all">Already in DB (<?php echo $scanResult['exist_count']; ?>)</button>
                     </div>
-                    <div class="bg-emerald-950/30 p-3 rounded-xl border border-emerald-500/20">
-                        <div class="text-[10px] text-emerald-400 font-bold uppercase">Created</div>
-                        <div id="cnt_created" class="text-xl font-bold text-emerald-400">0</div>
-                    </div>
-                    <div class="bg-amber-950/30 p-3 rounded-xl border border-amber-500/20">
-                        <div class="text-[10px] text-amber-400 font-bold uppercase">Skipped (Exists)</div>
-                        <div id="cnt_skipped" class="text-xl font-bold text-amber-400">0</div>
-                    </div>
-                    <div class="bg-rose-950/30 p-3 rounded-xl border border-rose-500/20">
-                        <div class="text-[10px] text-rose-400 font-bold uppercase">Errors</div>
-                        <div id="cnt_error" class="text-xl font-bold text-rose-400">0</div>
+
+                    <div class="flex items-center gap-4 text-xs font-mono">
+                        <div>Created: <b id="cnt_created" class="text-emerald-400">0</b></div>
+                        <div>Skipped: <b id="cnt_skipped" class="text-amber-400">0</b></div>
+                        <div>Errors: <b id="cnt_error" class="text-rose-400">0</b></div>
                     </div>
                 </div>
 
                 <!-- Progress Bar -->
                 <div class="space-y-1.5">
                     <div class="flex justify-between text-xs">
-                        <span id="progress_status" class="text-slate-400 font-mono">Ready to import...</span>
+                        <span id="progress_status" class="text-slate-400 font-mono">Pre-scan completed. Select an action above to begin.</span>
                         <span id="progress_pct" class="font-bold text-indigo-400">0%</span>
                     </div>
                     <div class="w-full bg-slate-800 rounded-full h-3 overflow-hidden border border-slate-700">
@@ -479,7 +534,7 @@ $scanResult = scanArchiveDirectory($archiveDir);
                     </div>
                 </div>
 
-                <!-- Live Log Table -->
+                <!-- Pre-Scan Table -->
                 <div class="border border-slate-800 rounded-xl overflow-hidden bg-slate-950">
                     <div class="max-h-[500px] overflow-y-auto custom-scrollbar">
                         <table class="w-full text-left text-xs border-collapse">
@@ -488,16 +543,16 @@ $scanResult = scanArchiveDirectory($archiveDir);
                                     <th class="px-4 py-3">#</th>
                                     <th class="px-4 py-3">SKU</th>
                                     <th class="px-4 py-3">Product Name</th>
-                                    <th class="px-4 py-3">Photos</th>
-                                    <th class="px-4 py-3 text-right">Status & Notes</th>
+                                    <th class="px-4 py-3">Photos Found</th>
+                                    <th class="px-4 py-3 text-right">Status / Pre-Audit</th>
                                 </tr>
                             </thead>
                             <tbody id="log_tbody" class="divide-y divide-slate-800/60 font-mono text-[11px]">
                                 <?php foreach ($scanResult['products'] as $idx => $p): ?>
-                                    <tr id="row-<?php echo $idx; ?>" class="hover:bg-slate-900/40 transition-colors">
+                                    <tr id="row-<?php echo $idx; ?>" class="product-row hover:bg-slate-900/40 transition-colors" data-prestatus="<?php echo $p['pre_status']; ?>" data-sku="<?php echo htmlspecialchars($p['sku']); ?>">
                                         <td class="px-4 py-2.5 text-slate-500"><?php echo $idx + 1; ?></td>
                                         <td class="px-4 py-2.5 font-bold text-indigo-300"><?php echo htmlspecialchars($p['sku']); ?></td>
-                                        <td class="px-4 py-2.5 text-slate-300 truncate max-w-[200px]" title="<?php echo htmlspecialchars($p['name'] ?? ''); ?>"><?php echo htmlspecialchars($p['name'] ?? ''); ?></td>
+                                        <td class="px-4 py-2.5 text-slate-300 truncate max-w-[220px]" title="<?php echo htmlspecialchars($p['name'] ?? ''); ?>"><?php echo htmlspecialchars($p['name'] ?? ''); ?></td>
                                         <td class="px-4 py-2.5 text-slate-400">
                                             <?php if ($p['images_count'] > 0): ?>
                                                 <span class="text-emerald-400 font-bold"><i class="fas fa-images mr-1"></i><?php echo $p['images_count']; ?></span>
@@ -505,7 +560,13 @@ $scanResult = scanArchiveDirectory($archiveDir);
                                                 <span class="text-slate-600">0</span>
                                             <?php endif; ?>
                                         </td>
-                                        <td class="px-4 py-2.5 text-right status-col text-slate-500">Pending</td>
+                                        <td class="px-4 py-2.5 text-right status-col">
+                                            <?php if ($p['pre_status'] === 'exists'): ?>
+                                                <span class="text-amber-400/90 font-bold"><i class="fas fa-forward mr-1"></i><?php echo $p['pre_message']; ?></span>
+                                            <?php else: ?>
+                                                <span class="text-emerald-400/90 font-bold"><i class="fas fa-check mr-1"></i><?php echo $p['pre_message']; ?></span>
+                                            <?php endif; ?>
+                                        </td>
                                     </tr>
                                 <?php endforeach; ?>
                             </tbody>
@@ -515,8 +576,9 @@ $scanResult = scanArchiveDirectory($archiveDir);
             </div>
 
             <script>
-                const productsData = <?php echo json_encode($scanResult['products']); ?>;
-                const startBtn = document.getElementById('start_btn');
+                const allProductsData = <?php echo json_encode($scanResult['products']); ?>;
+                const startNewOnlyBtn = document.getElementById('start_new_only_btn');
+                const startAllBtn = document.getElementById('start_all_btn');
                 const downloadReportBtn = document.getElementById('download_report_btn');
                 const progressBar = document.getElementById('progress_bar');
                 const progressPct = document.getElementById('progress_pct');
@@ -528,71 +590,123 @@ $scanResult = scanArchiveDirectory($archiveDir);
 
                 let fullResults = [['#', 'SKU', 'Name', 'Status', 'Images', 'Reason/Message']];
 
-                startBtn.addEventListener('click', async function() {
-                    startBtn.disabled = true;
-                    startBtn.classList.add('opacity-50', 'cursor-not-allowed');
+                function filterTable(type) {
+                    ['all', 'ready', 'exists'].forEach(t => {
+                        const tab = document.getElementById('tab_' + t);
+                        if (tab) {
+                            if (t === type) {
+                                tab.className = "px-3.5 py-1.5 rounded-lg font-bold bg-indigo-600 text-white transition-all";
+                            } else {
+                                tab.className = "px-3.5 py-1.5 rounded-lg font-bold text-slate-400 hover:text-white transition-all";
+                            }
+                        }
+                    });
+
+                    const rows = document.querySelectorAll('.product-row');
+                    rows.forEach(r => {
+                        if (type === 'all' || r.getAttribute('data-prestatus') === type) {
+                            r.classList.remove('hidden');
+                        } else {
+                            r.classList.add('hidden');
+                        }
+                    });
+                }
+
+                async function runImport(itemsToProcess) {
+                    startNewOnlyBtn.disabled = true;
+                    startAllBtn.disabled = true;
+                    startNewOnlyBtn.classList.add('opacity-50', 'cursor-not-allowed');
+                    startAllBtn.classList.add('opacity-50', 'cursor-not-allowed');
 
                     let created = 0, skipped = 0, errors = 0;
 
-                    for (let i = 0; i < productsData.length; i++) {
-                        const item = productsData[i];
-                        const rowEl = document.getElementById(`row-${i}`);
+                    for (let i = 0; i < itemsToProcess.length; i++) {
+                        const item = itemsToProcess[i];
+                        const rowEl = document.querySelector(`.product-row[data-sku="${item.sku}"]`);
                         const statusCol = rowEl ? rowEl.querySelector('.status-col') : null;
 
                         if (statusCol) {
-                            statusCol.innerHTML = `<span class="text-indigo-400 animate-pulse"><i class="fas fa-spinner fa-spin mr-1"></i>Processing</span>`;
+                            statusCol.innerHTML = `<span class="text-indigo-400 animate-pulse"><i class="fas fa-spinner fa-spin mr-1"></i>Saving</span>`;
                         }
                         if (rowEl) rowEl.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
 
-                        try {
-                            const res = await fetch('import_archive.php?action=process_row', {
-                                method: 'POST',
-                                headers: { 'Content-Type': 'application/json' },
-                                body: JSON.stringify(item)
-                            });
-                            const data = await res.json();
+                        let success = false;
+                        let retries = 0;
 
-                            if (data.status === 'success') {
-                                created++;
-                                cntCreated.textContent = created;
-                                if (statusCol) {
-                                    statusCol.innerHTML = `<span class="text-emerald-400 font-bold"><i class="fas fa-check-circle mr-1"></i>Created (${data.images_count || 0} imgs)</span>`;
+                        while (!success && retries < 2) {
+                            try {
+                                const res = await fetch('import_archive.php?action=process_row', {
+                                    method: 'POST',
+                                    headers: { 'Content-Type': 'application/json' },
+                                    body: JSON.stringify(item)
+                                });
+                                const data = await res.json();
+                                success = true;
+
+                                if (data.status === 'success') {
+                                    created++;
+                                    cntCreated.textContent = created;
+                                    if (statusCol) {
+                                        statusCol.innerHTML = `<span class="text-emerald-400 font-bold"><i class="fas fa-check-circle mr-1"></i>Created (${data.images_count || 0} imgs)</span>`;
+                                    }
+                                    fullResults.push([i+1, item.sku, item.name || '', 'Created', data.images_count || 0, data.message || '']);
+                                } else if (data.status === 'skipped') {
+                                    skipped++;
+                                    cntSkipped.textContent = skipped;
+                                    if (statusCol) {
+                                        statusCol.innerHTML = `<div><span class="text-amber-400 font-bold"><i class="fas fa-forward mr-1"></i>Skipped</span><div class="text-[9px] text-amber-500/80 mt-0.5">Already in DB</div></div>`;
+                                    }
+                                    fullResults.push([i+1, item.sku, item.name || '', 'Skipped', 0, data.message || 'Already exists']);
+                                } else {
+                                    errors++;
+                                    cntError.textContent = errors;
+                                    if (statusCol) {
+                                        statusCol.innerHTML = `<div><span class="text-rose-400 font-bold"><i class="fas fa-times-circle mr-1"></i>Failed</span><div class="text-[9px] text-rose-400 mt-0.5 max-w-[280px] truncate" title="${data.message}">${data.message}</div></div>`;
+                                    }
+                                    fullResults.push([i+1, item.sku, item.name || '', 'Error', 0, data.message || 'Unknown error']);
                                 }
-                                fullResults.push([i+1, item.sku, item.name || '', 'Created', data.images_count || 0, data.message || '']);
-                            } else if (data.status === 'skipped') {
-                                skipped++;
-                                cntSkipped.textContent = skipped;
-                                if (statusCol) {
-                                    statusCol.innerHTML = `<div><span class="text-amber-400 font-bold"><i class="fas fa-forward mr-1"></i>Skipped</span><div class="text-[9px] text-amber-500/80 mt-0.5">Already in DB</div></div>`;
+                            } catch (err) {
+                                retries++;
+                                if (retries >= 2) {
+                                    errors++;
+                                    cntError.textContent = errors;
+                                    if (statusCol) {
+                                        statusCol.innerHTML = `<div><span class="text-rose-400 font-bold"><i class="fas fa-times-circle mr-1"></i>Connection Error</span><div class="text-[9px] text-rose-400 mt-0.5">${err.message}</div></div>`;
+                                    }
+                                    fullResults.push([i+1, item.sku, item.name || '', 'Error', 0, err.message]);
+                                } else {
+                                    // Short delay before retry
+                                    await new Promise(r => setTimeout(r, 500));
                                 }
-                                fullResults.push([i+1, item.sku, item.name || '', 'Skipped', 0, data.message || 'Already exists']);
-                            } else {
-                                errors++;
-                                cntError.textContent = errors;
-                                if (statusCol) {
-                                    statusCol.innerHTML = `<div><span class="text-rose-400 font-bold"><i class="fas fa-times-circle mr-1"></i>Failed</span><div class="text-[9px] text-rose-400 mt-0.5 max-w-[280px] truncate" title="${data.message}">${data.message}</div></div>`;
-                                }
-                                fullResults.push([i+1, item.sku, item.name || '', 'Error', 0, data.message || 'Unknown error']);
                             }
-                        } catch (err) {
-                            errors++;
-                            cntError.textContent = errors;
-                            if (statusCol) {
-                                statusCol.innerHTML = `<div><span class="text-rose-400 font-bold"><i class="fas fa-times-circle mr-1"></i>HTTP Error</span><div class="text-[9px] text-rose-400 mt-0.5">${err.message}</div></div>`;
-                            }
-                            fullResults.push([i+1, item.sku, item.name || '', 'Error', 0, err.message]);
                         }
 
-                        const pct = Math.round(((i + 1) / productsData.length) * 100);
+                        // Small throttle delay between requests to keep MySQL connection pool clean
+                        await new Promise(r => setTimeout(r, 60));
+
+                        const pct = Math.round(((i + 1) / itemsToProcess.length) * 100);
                         progressBar.style.width = pct + '%';
                         progressPct.textContent = pct + '%';
-                        progressStatus.textContent = `Processing item ${i + 1} of ${productsData.length} (${item.sku})...`;
+                        progressStatus.textContent = `Processed ${i + 1} of ${itemsToProcess.length} (${item.sku})...`;
                     }
 
-                    progressStatus.textContent = `Import completed! Created: ${created}, Skipped: ${skipped}, Errors: ${errors}`;
-                    startBtn.textContent = 'Import Completed';
-                    startBtn.className = 'px-8 py-3 bg-emerald-600 text-white rounded-xl text-xs font-bold cursor-default';
+                    progressStatus.textContent = `Completed! Created: ${created}, Skipped: ${skipped}, Errors: ${errors}`;
+                    startNewOnlyBtn.textContent = 'Completed';
+                    startNewOnlyBtn.className = 'px-6 py-2.5 bg-emerald-600 text-white rounded-xl text-xs font-bold cursor-default';
                     downloadReportBtn.classList.remove('hidden');
+                }
+
+                startNewOnlyBtn.addEventListener('click', function() {
+                    const newItems = allProductsData.filter(p => p.pre_status === 'ready');
+                    if (newItems.length === 0) {
+                        alert('All products already exist in database!');
+                        return;
+                    }
+                    runImport(newItems);
+                });
+
+                startAllBtn.addEventListener('click', function() {
+                    runImport(allProductsData);
                 });
 
                 downloadReportBtn.addEventListener('click', function() {
