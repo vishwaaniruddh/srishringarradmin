@@ -1073,7 +1073,16 @@ class ProductModel extends Model
 
     public function saveProduct($type, $data, $images = [], $autoDetectColors = false)
     {
-        mysqli_begin_transaction($this->db);
+        $db = $this->getDb();
+        if (!$db) {
+            $db = \Core\Database::getConnection('con');
+            $this->db = $db;
+        }
+        if (!$db) {
+            throw new \Exception("Database connection is not available.");
+        }
+
+        mysqli_begin_transaction($db);
         try {
             $product_id = 0;
             $date_added = date('Y-m-d H:i:s');
@@ -1118,10 +1127,10 @@ class ProductModel extends Model
                     categories_id, subcat_id, sales_price, rent_price, deposit, featured, price_source, availability, size_avail, brand_name, brand_color
                 ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
 
-                $stmt = mysqli_prepare($this->db, $sql);
+                $stmt = mysqli_prepare($db, $sql);
                 mysqli_stmt_bind_param($stmt, "ssssiidddisssss", $code, $name, $desc, $date_added, $cat, $sub, $price, $rent, $dep, $featured, $priceSource, $availability, $size_avail, $brand_name, $brand_color);
                 mysqli_stmt_execute($stmt);
-                $product_id = mysqli_insert_id($this->db);
+                $product_id = mysqli_insert_id($db);
                 mysqli_stmt_close($stmt);
             } else {
                 $sql = "INSERT INTO garment_product (
@@ -1129,10 +1138,10 @@ class ProductModel extends Model
                     garment_id, product_for, sales_price, rent_price, deposit, featured, price_source, availability, size_avail, brand_name, brand_color
                 ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
 
-                $stmt = mysqli_prepare($this->db, $sql);
+                $stmt = mysqli_prepare($db, $sql);
                 mysqli_stmt_bind_param($stmt, "ssssiidddisssss", $code, $name, $desc, $date_added, $cat, $cat, $price, $rent, $dep, $featured, $priceSource, $availability, $size_avail, $brand_name, $brand_color);
                 mysqli_stmt_execute($stmt);
-                $product_id = mysqli_insert_id($this->db);
+                $product_id = mysqli_insert_id($db);
                 mysqli_stmt_close($stmt);
             }
 
@@ -1151,7 +1160,7 @@ class ProductModel extends Model
                     subcat_id, $img_field, rank, date_added
                 ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
 
-                $stmt = mysqli_prepare($this->db, $img_sql);
+                $stmt = mysqli_prepare($db, $img_sql);
                 mysqli_stmt_bind_param($stmt, "ssssiiis", $name, $full_path, $code, $full_path, $subcat_val, $product_id, $index, $date_added);
                 mysqli_stmt_execute($stmt);
                 mysqli_stmt_close($stmt);
@@ -1164,7 +1173,7 @@ class ProductModel extends Model
                 $pk = ($type === 'jewellery') ? 'product_id' : 'gproduct_id';
 
                 $update_sql = "UPDATE $table SET $update_field = ? WHERE $pk = ?";
-                $stmt = mysqli_prepare($this->db, $update_sql);
+                $stmt = mysqli_prepare($db, $update_sql);
                 mysqli_stmt_bind_param($stmt, "si", $main_image, $product_id);
                 mysqli_stmt_execute($stmt);
                 mysqli_stmt_close($stmt);
@@ -1211,13 +1220,21 @@ class ProductModel extends Model
     }
     public function checkProductExists($code, $type)
     {
-        $code = mysqli_real_escape_string($this->db, $code);
+        $db = $this->getDb();
+        if (!$db) {
+            $db = \Core\Database::getConnection('con');
+            $this->db = $db;
+        }
+        if (!$db) {
+            return false;
+        }
+        $code = mysqli_real_escape_string($db, $code);
         if ($type === 'jewellery') {
             $sql = "SELECT product_id FROM product WHERE product_code = '$code' LIMIT 1";
         } else {
             $sql = "SELECT gproduct_id FROM garment_product WHERE gproduct_code = '$code' LIMIT 1";
         }
-        $result = $this->query($this->db, $sql);
+        $result = $this->query($db, $sql);
         return $this->fetchOne($result);
     }
 

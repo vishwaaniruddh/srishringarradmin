@@ -22,6 +22,7 @@ class Database {
             str_contains($httpHost, 'srishringarr.com') || 
             str_contains($httpHost, 'yosshitaneha.com') || 
             str_contains($docRoot, 'u464193275') ||
+            str_contains(__DIR__, 'u464193275') ||
             (php_sapi_name() !== 'cli' && !str_contains($httpHost, 'localhost') && !str_contains($httpHost, '127.0.0.1') && !empty($httpHost))
         );
 
