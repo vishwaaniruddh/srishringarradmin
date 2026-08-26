@@ -1494,7 +1494,7 @@ class ProductController extends Controller {
             if ($handle) {
                 $headers = [];
                 $rowIdx = 0;
-                while (($row = fgetcsv($handle, 10000, ",")) !== false) {
+                while (($row = fgetcsv($handle, 0, ',', '"', '\\')) !== false) {
                     $rowIdx++;
                     if ($rowIdx === 1) {
                         $headers = array_map(function($h) {
