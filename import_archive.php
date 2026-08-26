@@ -61,6 +61,17 @@ $isCli = (php_sapi_name() === 'cli');
 // AJAX API Handler for Batch Processing
 if (isset($_GET['action']) && $_GET['action'] === 'process_row') {
     header('Content-Type: application/json');
+    register_shutdown_function(function() {
+        $error = error_get_last();
+        if ($error && in_array($error['type'], [E_ERROR, E_PARSE, E_CORE_ERROR, E_COMPILE_ERROR])) {
+            echo json_encode([
+                'status' => 'error',
+                'sku' => 'UNKNOWN',
+                'message' => 'PHP Fatal Error: ' . $error['message'] . ' in ' . basename($error['file']) . ' line ' . $error['line']
+            ]);
+        }
+    });
+
     $input = json_decode(file_get_contents('php://input'), true);
     if (!$input) $input = $_POST;
 

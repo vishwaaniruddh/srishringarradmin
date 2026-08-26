@@ -1071,7 +1071,7 @@ class ProductModel extends Model
         ];
     }
 
-    public function saveProduct($type, $data, $images = [])
+    public function saveProduct($type, $data, $images = [], $autoDetectColors = false)
     {
         mysqli_begin_transaction($this->db);
         try {
@@ -1169,8 +1169,8 @@ class ProductModel extends Model
                 mysqli_stmt_execute($stmt);
                 mysqli_stmt_close($stmt);
 
-                // Auto-detect colors from uploaded image if colors were not provided
-                if (empty($colorsArray)) {
+                // Auto-detect colors from uploaded image if requested and colors were not provided
+                if ($autoDetectColors && empty($colorsArray)) {
                     try {
                         $detectedColors = $this->detectColorsFromImage($main_image, $type);
                         if (!empty($detectedColors)) {
