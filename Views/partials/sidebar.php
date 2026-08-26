@@ -150,6 +150,10 @@ function isActive($controller, $action = null) {
                 <span class="material-symbols-outlined w-5 mr-2 text-[18px]">smart_toy</span>
                 <span>AI Chatbot</span>
             </a>
+            <a href="index.php?controller=dashboard&action=systemInfo" class="flex items-center px-3 py-2 text-xs font-semibold rounded-lg transition-all <?php echo isActive('dashboard', 'systemInfo') ? 'text-white bg-zinc-900' : 'text-zinc-400 hover:text-white hover:bg-zinc-900/50'; ?>">
+                <i class="fas fa-server w-5 mr-2 text-zinc-400"></i>
+                <span>Server Limits</span>
+            </a>
             <a href="index.php?controller=report&action=activityLogs" class="flex items-center px-3 py-2 text-xs font-semibold rounded-lg transition-all <?php echo isActive('report', 'activityLogs') ? 'text-white bg-zinc-900' : 'text-zinc-400 hover:text-white hover:bg-zinc-900/50'; ?>">
                 <i class="fas fa-history w-5 mr-2 text-zinc-400"></i>
                 <span>Activity Logs</span>

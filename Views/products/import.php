@@ -43,6 +43,9 @@
                                         <p class="text-xs text-gray-500 mt-0.5">Upload a compressed .zip containing your Excel spreadsheet and product image folders named after each SKU.</p>
                                     </div>
                                     <div class="flex items-center gap-2.5 flex-wrap">
+                                        <a href="index.php?controller=dashboard&action=systemInfo" target="_blank" class="px-3.5 py-2 bg-slate-100 text-slate-700 hover:text-indigo-600 rounded-xl text-xs font-bold hover:bg-slate-200 transition-all border border-slate-200 flex items-center gap-1.5 shadow-sm" title="View PHP upload size limits and diagnostics">
+                                            <i class="fas fa-server text-indigo-500"></i> Server Limits
+                                        </a>
                                         <button type="button" onclick="toggleReference()" class="px-3.5 py-2 bg-indigo-50 text-indigo-700 rounded-xl text-xs font-bold hover:bg-indigo-100 transition-all border border-indigo-100 flex items-center gap-1.5 shadow-sm">
                                             <i class="fas fa-sitemap"></i> Category Reference
                                         </button>
