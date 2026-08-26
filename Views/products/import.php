@@ -380,9 +380,9 @@
                                         <div class="text-[10px] font-bold text-emerald-600 uppercase tracking-wider mb-1">New Inserted</div>
                                         <div id="count_success" class="text-2xl font-bold text-emerald-600">0</div>
                                     </div>
-                                    <div class="bg-indigo-50 p-4 rounded-xl border border-indigo-100 text-center">
-                                        <div class="text-[10px] font-bold text-indigo-600 uppercase tracking-wider mb-1">Updated</div>
-                                        <div id="count_updated" class="text-2xl font-bold text-indigo-600">0</div>
+                                    <div class="bg-amber-50 p-4 rounded-xl border border-amber-100 text-center">
+                                        <div class="text-[10px] font-bold text-amber-600 uppercase tracking-wider mb-1">Skipped (Exists)</div>
+                                        <div id="count_skipped" class="text-2xl font-bold text-amber-600">0</div>
                                     </div>
                                     <div class="bg-rose-50 p-4 rounded-xl border border-rose-100 text-center">
                                         <div class="text-[10px] font-bold text-rose-600 uppercase tracking-wider mb-1">Errors</div>
@@ -703,6 +703,7 @@
                 pending: 'bg-gray-100 text-gray-500 border-gray-200',
                 syncing: 'bg-indigo-50 text-indigo-600 border-indigo-200 animate-pulse',
                 success: 'bg-emerald-50 text-emerald-700 border-emerald-200',
+                skipped: 'bg-amber-50 text-amber-700 border-amber-200',
                 updated: 'bg-blue-50 text-blue-700 border-blue-200',
                 error: 'bg-rose-50 text-rose-700 border-rose-200'
             };
@@ -710,6 +711,7 @@
                 pending: 'Pending',
                 syncing: 'Syncing',
                 success: 'Created',
+                skipped: 'Skipped (Exists)',
                 updated: 'Updated',
                 error: 'Error'
             };
@@ -717,16 +719,17 @@
                 pending: 'fa-clock',
                 syncing: 'fa-spinner fa-spin',
                 success: 'fa-check-circle',
+                skipped: 'fa-forward',
                 updated: 'fa-sync-alt',
                 error: 'fa-exclamation-circle'
             };
             
             return `
                 <div class="inline-flex flex-col items-end">
-                    <span class="px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider border ${styles[status]}">
-                        <i class="fas ${icon[status]} mr-1"></i> ${labels[status]}
+                    <span class="px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider border ${styles[status] || styles.error}">
+                        <i class="fas ${icon[status] || 'fa-info-circle'} mr-1"></i> ${labels[status] || status}
                     </span>
-                    ${message ? `<div class="text-[10px] text-rose-500 mt-1 max-w-[240px] truncate" title="${message}">${message}</div>` : ''}
+                    ${message ? `<div class="text-[10px] text-gray-500 mt-1 max-w-[240px] truncate" title="${message}">${message}</div>` : ''}
                 </div>
             `;
         }
@@ -737,7 +740,7 @@
             overallBadge.className = "px-3 py-1 bg-amber-50 text-amber-700 rounded-full text-xs font-bold uppercase tracking-wider border border-amber-200";
             overallBadge.textContent = "Syncing in progress...";
             
-            let success = 0, updated = 0, error = 0;
+            let success = 0, skipped = 0, updated = 0, error = 0;
             importResults = [['SKU', 'Name', 'Type', 'Images Attached', 'Status', 'Message']];
 
             for (let i = 0; i < csvData.length; i++) {
@@ -768,10 +771,16 @@
                         success++;
                         if (statusCell) statusCell.innerHTML = getStatusBadge('success', result.message);
                         document.getElementById('count_success').textContent = success;
+                    } else if (result.status === 'skipped') {
+                        skipped++;
+                        if (statusCell) statusCell.innerHTML = getStatusBadge('skipped', result.message);
+                        const skippedEl = document.getElementById('count_skipped');
+                        if (skippedEl) skippedEl.textContent = skipped;
                     } else if (result.status === 'updated') {
                         updated++;
                         if (statusCell) statusCell.innerHTML = getStatusBadge('updated', result.message);
-                        document.getElementById('count_updated').textContent = updated;
+                        const updatedEl = document.getElementById('count_updated');
+                        if (updatedEl) updatedEl.textContent = updated;
                     } else {
                         error++;
                         if (statusCell) statusCell.innerHTML = getStatusBadge('error', result.message);

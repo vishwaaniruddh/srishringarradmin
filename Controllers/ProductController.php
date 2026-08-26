@@ -1652,8 +1652,14 @@ class ProductController extends Controller {
                 $type = 'jewellery';
             }
 
-            // Check if exists
-            $isUpdate = $productModel->checkProductExists($code, $type);
+            // Check if exists - Skip if already exists (do not update)
+            $existingProduct = $productModel->checkProductExists($code, $type);
+            if ($existingProduct) {
+                return $this->json([
+                    'status' => 'skipped',
+                    'message' => "SKU $code already exists. Skipped (not modified)."
+                ]);
+            }
             
             // Process Images from extracted ZIP folder or from URLs / local paths
             $downloadedImages = [];
@@ -1823,13 +1829,8 @@ class ProductController extends Controller {
                 'availability' => in_array(strtolower($data['availability'] ?? ''), ['rent', 'sell', 'both']) ? strtolower($data['availability']) : 'both'
             ];
 
-            if ($isUpdate) {
-                $productModel->syncProductBySku($type, $saveData, $downloadedImages);
-                return $this->json(['status' => 'updated', 'message' => "Product $code updated successfully with categories and " . count($downloadedImages) . " images"]);
-            } else {
-                $productModel->saveProduct($type, $saveData, $downloadedImages);
-                return $this->json(['status' => 'success', 'message' => "Product $code imported successfully with categories and " . count($downloadedImages) . " images"]);
-            }
+            $productModel->saveProduct($type, $saveData, $downloadedImages);
+            return $this->json(['status' => 'success', 'message' => "Product $code imported successfully with categories and " . count($downloadedImages) . " images"]);
         } catch (\Exception $e) {
             return $this->json(['status' => 'error', 'message' => $e->getMessage()]);
         }
