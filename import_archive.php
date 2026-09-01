@@ -31,13 +31,21 @@ spl_autoload_register(function ($class) {
     }
 });
 
-// Locate the "archive" directory
+// Locate the import folder (new_earrng, archive, etc.)
 $possibleArchivePaths = [
+    __DIR__ . '/new_earrng',
+    __DIR__ . '/../new_earrng',
+    __DIR__ . '/../../new_earrng',
+    dirname(__DIR__) . '/new_earrng',
+    '/home/u464193275/domains/srishringarr.com/public_html/new_earrng',
+    '/domains/srishringarr.com/public_html/new_earrng',
+    'C:/xampp/htdocs/ss/new_earrng',
     __DIR__ . '/archive',
     __DIR__ . '/../archive',
     __DIR__ . '/../../archive',
     dirname(__DIR__) . '/archive',
-    '/home/u464193275/domains/srishringarr.com/public_html/archive'
+    '/home/u464193275/domains/srishringarr.com/public_html/archive',
+    '/domains/srishringarr.com/public_html/archive'
 ];
 
 $archiveDir = null;
@@ -53,6 +61,10 @@ if (!empty($_POST['custom_path']) || !empty($_GET['custom_path'])) {
     $cPath = trim($_POST['custom_path'] ?? $_GET['custom_path']);
     if (is_dir($cPath)) {
         $archiveDir = realpath($cPath);
+    } elseif (is_dir(__DIR__ . '/' . $cPath)) {
+        $archiveDir = realpath(__DIR__ . '/' . $cPath);
+    } elseif (is_dir(dirname(__DIR__) . '/' . $cPath)) {
+        $archiveDir = realpath(dirname(__DIR__) . '/' . $cPath);
     }
 }
 
@@ -399,6 +411,33 @@ function scanArchiveDirectory($archiveDir) {
     ];
 }
 
+// Handle direct Excel / CSV file upload to active directory
+$uploadMessage = null;
+$uploadError = null;
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_FILES['excel_file'])) {
+    if (!$archiveDir || !is_dir($archiveDir)) {
+        $uploadError = "Target folder does not exist or is not specified.";
+    } else {
+        $uploaded = $_FILES['excel_file'];
+        if ($uploaded['error'] === UPLOAD_ERR_OK) {
+            $ext = strtolower(pathinfo($uploaded['name'], PATHINFO_EXTENSION));
+            if (in_array($ext, ['xlsx', 'xls', 'csv'])) {
+                $targetFile = $archiveDir . DIRECTORY_SEPARATOR . $uploaded['name'];
+                if (move_uploaded_file($uploaded['tmp_name'], $targetFile)) {
+                    $uploadMessage = "Successfully uploaded " . htmlspecialchars($uploaded['name']) . " to " . htmlspecialchars(basename($archiveDir)) . "/";
+                } else {
+                    $uploadError = "Failed to move uploaded file. Check folder write permissions on: " . htmlspecialchars($archiveDir);
+                }
+            } else {
+                $uploadError = "Invalid file type (." . htmlspecialchars($ext) . "). Please upload a .xlsx, .xls, or .csv file.";
+            }
+        } else {
+            $uploadError = "File upload failed with error code: " . $uploaded['error'];
+        }
+    }
+}
+
 $scanResult = scanArchiveDirectory($archiveDir);
 ?>
 <!DOCTYPE html>
@@ -440,19 +479,91 @@ $scanResult = scanArchiveDirectory($archiveDir);
             </div>
         </div>
 
+        <?php if ($uploadMessage): ?>
+            <div class="bg-emerald-950/40 border border-emerald-500/40 p-4 rounded-2xl text-xs text-emerald-300 flex items-center gap-2.5 animate-fadeIn">
+                <i class="fas fa-check-circle text-emerald-400 text-base"></i>
+                <span><?php echo $uploadMessage; ?></span>
+            </div>
+        <?php endif; ?>
+
+        <?php if ($uploadError): ?>
+            <div class="bg-rose-950/40 border border-rose-500/40 p-4 rounded-2xl text-xs text-rose-300 flex items-center gap-2.5 animate-fadeIn">
+                <i class="fas fa-exclamation-circle text-rose-400 text-base"></i>
+                <span><?php echo $uploadError; ?></span>
+            </div>
+        <?php endif; ?>
+
         <?php if (!empty($scanResult['error'])): ?>
             <!-- Error Card -->
-            <div class="bg-rose-950/40 border border-rose-500/40 p-6 rounded-2xl text-xs text-rose-300 space-y-3">
+            <div class="bg-rose-950/40 border border-rose-500/40 p-6 rounded-2xl text-xs text-rose-300 space-y-4">
                 <div class="flex items-center gap-2 text-sm font-bold text-rose-400">
-                    <i class="fas fa-exclamation-triangle"></i> Archive Directory Issue
+                    <i class="fas fa-exclamation-triangle"></i> Folder Scan Issue
                 </div>
-                <p><?php echo htmlspecialchars($scanResult['error']); ?></p>
-                <form method="GET" class="flex gap-2 pt-2">
-                    <input type="text" name="custom_path" placeholder="/path/to/your/archive/folder" class="flex-1 bg-slate-900 border border-slate-700 rounded-xl px-3.5 py-2 text-xs font-mono text-white focus:outline-none focus:border-indigo-500">
-                    <button type="submit" class="px-5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl text-xs transition-all">Scan Path</button>
-                </form>
+                <p class="text-slate-300"><?php echo htmlspecialchars($scanResult['error']); ?></p>
+                
+                <?php if ($archiveDir && is_dir($archiveDir)): ?>
+                    <!-- Direct Excel Uploader when Spreadsheet is Missing -->
+                    <div class="bg-slate-900/90 border border-indigo-500/30 rounded-xl p-5 mt-3 space-y-3">
+                        <div class="flex items-center gap-2 text-xs font-bold text-indigo-300">
+                            <i class="fas fa-file-excel text-emerald-400"></i> Upload Excel / CSV Spreadsheet to: <code class="text-white bg-slate-950 px-2 py-0.5 rounded border border-slate-800"><?php echo htmlspecialchars(basename($archiveDir)); ?>/</code>
+                        </div>
+                        <form method="POST" enctype="multipart/form-data" action="<?php echo htmlspecialchars($_SERVER['REQUEST_URI']); ?>" class="flex items-center gap-3 flex-wrap">
+                            <input type="hidden" name="custom_path" value="<?php echo htmlspecialchars($archiveDir); ?>">
+                            <input type="file" name="excel_file" accept=".xlsx,.xls,.csv" required class="flex-1 bg-slate-950 border border-slate-700 rounded-xl px-3.5 py-2 text-xs text-slate-300 file:mr-3 file:py-1 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-indigo-600 file:text-white hover:file:bg-indigo-700 focus:outline-none">
+                            <button type="submit" class="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl text-xs transition-all flex items-center gap-1.5 shadow-lg shadow-emerald-600/20">
+                                <i class="fas fa-upload"></i> Upload & Start Audit
+                            </button>
+                        </form>
+                    </div>
+                <?php endif; ?>
+
+                <div class="pt-2 border-t border-rose-500/20">
+                    <span class="text-[11px] text-slate-400 font-medium block mb-1.5">Or scan another folder path:</span>
+                    <form method="GET" class="flex gap-2">
+                        <input type="text" name="custom_path" value="<?php echo htmlspecialchars($_GET['custom_path'] ?? ''); ?>" placeholder="/domains/srishringarr.com/public_html/new_earrng or relative folder name" class="flex-1 bg-slate-900 border border-slate-700 rounded-xl px-3.5 py-2 text-xs font-mono text-white focus:outline-none focus:border-indigo-500">
+                        <button type="submit" class="px-5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl text-xs transition-all">Scan Folder</button>
+                    </form>
+                </div>
             </div>
         <?php else: ?>
+            <!-- Active Scanned Folder Bar -->
+            <div class="bg-slate-900/60 border border-slate-800/80 px-5 py-3.5 rounded-2xl flex items-center justify-between flex-wrap gap-3 text-xs">
+                <div class="flex items-center gap-2 text-slate-300">
+                    <span class="text-indigo-400 font-bold flex items-center gap-1.5"><i class="fas fa-folder-open"></i> Active Folder:</span>
+                    <code class="bg-slate-950 px-2.5 py-1 rounded-lg border border-slate-800 text-indigo-300 font-mono text-[11px]"><?php echo htmlspecialchars($scanResult['archive_dir']); ?></code>
+                </div>
+                <div class="flex items-center gap-2 flex-wrap">
+                    <!-- Upload/Replace Excel Button & Quick Modal/Form -->
+                    <button type="button" onclick="document.getElementById('excel_upload_drawer').classList.toggle('hidden')" class="px-3 py-1.5 bg-emerald-600/20 text-emerald-400 border border-emerald-500/30 hover:bg-emerald-600/30 font-semibold rounded-lg text-xs transition-all flex items-center gap-1.5">
+                        <i class="fas fa-file-excel"></i> Replace / Upload Excel
+                    </button>
+                    <form method="GET" class="flex items-center gap-2">
+                        <input type="text" name="custom_path" placeholder="Switch folder (e.g. new_earrng)" class="bg-slate-950 border border-slate-800 rounded-lg px-3 py-1 text-xs font-mono text-slate-200 focus:outline-none focus:border-indigo-500 w-52">
+                        <button type="submit" class="px-3 py-1 bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 font-medium rounded-lg text-xs transition-all">Switch</button>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Drawer for Uploading / Replacing Excel File -->
+            <div id="excel_upload_drawer" class="hidden bg-slate-900/90 border border-emerald-500/30 rounded-2xl p-5 space-y-3 animate-fadeIn">
+                <div class="flex items-center justify-between">
+                    <h3 class="text-xs font-bold text-emerald-400 flex items-center gap-2">
+                        <i class="fas fa-file-excel"></i> Upload / Replace Spreadsheet in <?php echo htmlspecialchars(basename($scanResult['archive_dir'])); ?>/
+                    </h3>
+                    <button type="button" onclick="document.getElementById('excel_upload_drawer').classList.add('hidden')" class="text-slate-400 hover:text-white text-xs">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                <p class="text-[11px] text-slate-400">Uploading a new Excel (.xlsx, .xls) or .csv file will save it directly into this folder and refresh the product audit table.</p>
+                <form method="POST" enctype="multipart/form-data" action="<?php echo htmlspecialchars($_SERVER['REQUEST_URI']); ?>" class="flex items-center gap-3 flex-wrap">
+                    <input type="hidden" name="custom_path" value="<?php echo htmlspecialchars($scanResult['archive_dir']); ?>">
+                    <input type="file" name="excel_file" accept=".xlsx,.xls,.csv" required class="flex-1 bg-slate-950 border border-slate-700 rounded-xl px-3.5 py-2 text-xs text-slate-300 file:mr-3 file:py-1 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-emerald-600 file:text-white hover:file:bg-emerald-700 focus:outline-none">
+                    <button type="submit" class="px-5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl text-xs transition-all flex items-center gap-1.5">
+                        <i class="fas fa-upload"></i> Upload & Refresh
+                    </button>
+                </form>
+            </div>
+
             <!-- Pre-Scan Audit Cards -->
             <div class="grid grid-cols-1 sm:grid-cols-4 gap-4">
                 <div class="bg-slate-900/80 border border-slate-800 p-4 rounded-2xl">
