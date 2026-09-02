@@ -329,7 +329,7 @@
                         <input type="checkbox" class="row-checkbox rounded bg-zinc-950 border-zinc-700 text-purple-600 focus:ring-0 w-4 h-4 cursor-pointer" value="${p.id}" data-type="${p.type}" checked>
                     </td>
                     <td class="py-3 px-4 pt-3.5">
-                        <img src="${imgUrl}" alt="${p.code}" onerror="this.src='assets/placeholder.png'" class="w-12 h-14 object-cover rounded-lg border border-zinc-800 bg-zinc-950 shadow-xs">
+                        <img src="${imgUrl}" alt="${p.code}" onerror="this.onerror=null; this.src='data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' width=\'48\' height=\'56\' viewBox=\'0 0 48 56\'%3E%3Crect width=\'48\' height=\'56\' fill=\'%2318181b\'/%3E%3Ctext x=\'50%25\' y=\'50%25\' dominant-baseline=\'middle\' text-anchor=\'middle\' fill=\'%2371717a\' font-size=\'9\'%3ENo Image%3C/text%3E%3C/svg%3E';" class="w-12 h-14 object-cover rounded-lg border border-zinc-800 bg-zinc-950 shadow-xs">
                     </td>
                     <td class="py-3 px-4 pt-3.5">
                         <strong class="text-purple-400 font-mono text-xs block">${p.code}</strong>
