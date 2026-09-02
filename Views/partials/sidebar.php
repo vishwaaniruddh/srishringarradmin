@@ -49,6 +49,11 @@ function isActive($controller, $action = null) {
         <div class="space-y-1">
             <p class="px-3 text-[10px] font-bold text-zinc-500 uppercase tracking-widest mb-2">Catalog</p>
             
+                        <a href="index.php?controller=product&action=bulkAiWriter" class="flex items-center px-3 py-2 text-xs font-semibold rounded-lg transition-all <?php echo isActive('product', 'bulkAiWriter') ? 'text-white bg-zinc-900' : 'text-zinc-400 hover:text-white hover:bg-zinc-900/50'; ?>">
+                <i class="fas fa-wand-magic-sparkles w-5 mr-2 text-purple-400"></i>
+                <span>Bulk AI Writer</span>
+                <span class="ml-auto text-[9px] bg-purple-500/20 text-purple-300 px-1.5 py-0.5 rounded font-bold uppercase tracking-tighter">Gemini</span>
+            </a>
             <a href="index.php?controller=product&action=index" class="flex items-center px-3 py-2 text-xs font-semibold rounded-lg transition-all <?php echo isActive('product', 'index') ? 'text-white bg-zinc-900' : 'text-zinc-400 hover:text-white hover:bg-zinc-900/50'; ?>">
                 <i class="fas fa-box w-5 mr-2 text-zinc-400"></i>
                 <span>All Products</span>

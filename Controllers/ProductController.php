@@ -2435,4 +2435,420 @@ class ProductController extends Controller {
             'products' => $cleanedProducts
         ]);
     }
+    public function bulkAiWriter() {
+        $productModel = new ProductModel();
+        $categories = $productModel->getCategories();
+        
+        $secretsFile = __DIR__ . '/../Config/secrets.php';
+        $hasApiKey = false;
+        if (file_exists($secretsFile)) {
+            $sec = include($secretsFile);
+            $hasApiKey = !empty($sec['GEMINI_API_KEY']);
+        }
+
+        $this->view('products/bulk_ai_writer', [
+            'categories' => $categories,
+            'hasApiKey' => $hasApiKey
+        ]);
+    }
+
+        public function bulkAiLoadProducts() {
+        $category = $_GET['category'] ?? '';
+        $filterType = $_GET['filter_type'] ?? 'needs_content';
+        $search = trim($_GET['search'] ?? '');
+        $nameFilter = trim($_GET['name_filter'] ?? '');
+        $descFilter = trim($_GET['desc_filter'] ?? '');
+        $skuFilter = trim($_GET['sku_filter'] ?? '');
+        $limit = isset($_GET['limit']) ? min(200, max(10, (int)$_GET['limit'])) : 50;
+
+        $db = \Core\Database::getConnection('con');
+        if (!$db) {
+            $this->json(['success' => false, 'error' => 'Database connection failed'], 500);
+            return;
+        }
+
+        $jewelWhere = ["1=1"];
+        $garmentWhere = ["1=1"];
+
+        // Dedicated Name Filter
+        if ($nameFilter !== '') {
+            $escName = mysqli_real_escape_string($db, $nameFilter);
+            if ($nameFilter === '1' || $nameFilter === '0') {
+                $jewelWhere[] = "(TRIM(product_name) = '$escName' OR product_name = '$escName')";
+                $garmentWhere[] = "(TRIM(gproduct_name) = '$escName' OR gproduct_name = '$escName')";
+            } else {
+                $jewelWhere[] = "product_name LIKE '%$escName%'";
+                $garmentWhere[] = "gproduct_name LIKE '%$escName%'";
+            }
+        }
+
+        // Dedicated Description Filter
+        if ($descFilter !== '') {
+            $escDesc = mysqli_real_escape_string($db, $descFilter);
+            if ($descFilter === '1' || $descFilter === '0') {
+                $jewelWhere[] = "(TRIM(product_desc) = '$escDesc' OR product_desc = '$escDesc' OR TRIM(short_desc) = '$escDesc')";
+                $garmentWhere[] = "(TRIM(gproduct_desc) = '$escDesc' OR gproduct_desc = '$escDesc' OR TRIM(short_desc) = '$escDesc')";
+            } else {
+                $jewelWhere[] = "(product_desc LIKE '%$escDesc%' OR short_desc LIKE '%$escDesc%')";
+                $garmentWhere[] = "(gproduct_desc LIKE '%$escDesc%' OR short_desc LIKE '%$escDesc%')";
+            }
+        }
+
+        // Dedicated SKU Filter
+        if ($skuFilter !== '') {
+            $escSku = mysqli_real_escape_string($db, $skuFilter);
+            $jewelWhere[] = "product_code LIKE '%$escSku%'";
+            $garmentWhere[] = "gproduct_code LIKE '%$escSku%'";
+        }
+
+        // General Search (searches everything)
+        if (!empty($search)) {
+            $escSearch = mysqli_real_escape_string($db, $search);
+            $jewelWhere[] = "(product_name LIKE '%$escSearch%' OR product_code LIKE '%$escSearch%' OR product_desc LIKE '%$escSearch%' OR short_desc LIKE '%$escSearch%')";
+            $garmentWhere[] = "(gproduct_name LIKE '%$escSearch%' OR gproduct_code LIKE '%$escSearch%' OR gproduct_desc LIKE '%$escSearch%' OR short_desc LIKE '%$escSearch%')";
+        }
+
+        // Category Filter
+        if (!empty($category) && strpos($category, ':') !== false) {
+            list($type, $id) = explode(':', $category);
+            $id = (int)$id;
+
+            if ($type === 'garment') {
+                $garmentWhere[] = "(garment_id = $id OR product_for = $id OR EXISTS (SELECT 1 FROM product_categories pc WHERE pc.product_id = garment_product.gproduct_id AND pc.product_type = 'garments' AND (pc.legacy_category_id = $id OR pc.legacy_subcategory_id = $id)))";
+                $jewelWhere[] = "1=0";
+            } elseif ($type === 'jewel_parent' || $type === 'jewel_main') {
+                $jewelWhere[] = "(categories_id = $id OR subcat_id IN (SELECT subcat_id FROM subcat1 WHERE maincat_id = $id) OR EXISTS (SELECT 1 FROM product_categories pc WHERE pc.product_id = product.product_id AND pc.product_type = 'jewellery' AND (pc.legacy_category_id = $id OR pc.legacy_subcategory_id IN (SELECT subcat_id FROM subcat1 WHERE maincat_id = $id))))";
+                $garmentWhere[] = "1=0";
+            } elseif ($type === 'jewel_child' || $type === 'jewel_sub') {
+                $jewelWhere[] = "(subcat_id = $id OR EXISTS (SELECT 1 FROM product_categories pc WHERE pc.product_id = product.product_id AND pc.product_type = 'jewellery' AND pc.legacy_subcategory_id = $id))";
+                $garmentWhere[] = "1=0";
+            }
+        }
+
+        // Quality Presets
+        if ($filterType === 'name_is_1') {
+            $jewelWhere[] = "(TRIM(product_name) = '1' OR product_name = '1')";
+            $garmentWhere[] = "(TRIM(gproduct_name) = '1' OR gproduct_name = '1')";
+        } elseif ($filterType === 'desc_is_1') {
+            $jewelWhere[] = "(TRIM(product_desc) = '1' OR product_desc = '1' OR TRIM(short_desc) = '1')";
+            $garmentWhere[] = "(TRIM(gproduct_desc) = '1' OR gproduct_desc = '1' OR TRIM(short_desc) = '1')";
+        } elseif ($filterType === 'name_or_desc_is_1') {
+            $jewelWhere[] = "(TRIM(product_name) = '1' OR product_name = '1' OR TRIM(product_desc) = '1' OR product_desc = '1')";
+            $garmentWhere[] = "(TRIM(gproduct_name) = '1' OR gproduct_name = '1' OR TRIM(gproduct_desc) = '1' OR gproduct_desc = '1')";
+        } elseif ($filterType === 'needs_content') {
+            $jewelWhere[] = "(TRIM(product_name) = '1' OR product_name = '1' OR product_name = product_code OR product_name LIKE 'YN%' OR short_desc IS NULL OR short_desc = '' OR TRIM(short_desc) = '1' OR product_desc IS NULL OR product_desc = '' OR TRIM(product_desc) = '1' OR product_desc LIKE '%Premium Quality%' OR product_desc LIKE '%Collection%')";
+            $garmentWhere[] = "(TRIM(gproduct_name) = '1' OR gproduct_name = '1' OR gproduct_name = gproduct_code OR gproduct_name LIKE 'YN%' OR short_desc IS NULL OR short_desc = '' OR TRIM(short_desc) = '1' OR gproduct_desc IS NULL OR gproduct_desc = '' OR TRIM(gproduct_desc) = '1' OR gproduct_desc LIKE '%Premium Quality%' OR gproduct_desc LIKE '%Collection%')";
+        } elseif ($filterType === 'missing_desc') {
+            $jewelWhere[] = "(product_desc IS NULL OR product_desc = '' OR TRIM(product_desc) = '1' OR product_desc LIKE '%Premium Quality%')";
+            $garmentWhere[] = "(gproduct_desc IS NULL OR gproduct_desc = '' OR TRIM(gproduct_desc) = '1' OR gproduct_desc LIKE '%Premium Quality%')";
+        } elseif ($filterType === 'missing_short_desc') {
+            $jewelWhere[] = "(short_desc IS NULL OR short_desc = '' OR TRIM(short_desc) = '1' OR short_desc = product_name)";
+            $garmentWhere[] = "(short_desc IS NULL OR short_desc = '' OR TRIM(short_desc) = '1' OR short_desc = gproduct_name)";
+        }
+
+        $jewelWhereSql = implode(" AND ", $jewelWhere);
+        $garmentWhereSql = implode(" AND ", $garmentWhere);
+
+        $unionQuery = "
+            (SELECT 
+                product_id as id,
+                product_name as name,
+                product_code as code,
+                'jewellery' as type,
+                short_desc,
+                product_desc as description,
+                categories_id as category_id,
+                subcat_id as subcategory_id
+            FROM product 
+            WHERE $jewelWhereSql)
+            UNION ALL
+            (SELECT 
+                gproduct_id as id,
+                gproduct_name as name,
+                gproduct_code as code,
+                'garment' as type,
+                short_desc,
+                gproduct_desc as description,
+                garment_id as category_id,
+                product_for as subcategory_id
+            FROM garment_product 
+            WHERE $garmentWhereSql)
+            ORDER BY id DESC
+            LIMIT $limit
+        ";
+
+        $res = mysqli_query($db, $unionQuery);
+        $products = [];
+        $productModel = new ProductModel();
+
+        while ($row = mysqli_fetch_assoc($res)) {
+            $images = $productModel->getProductImages($row['id'], $row['type']);
+            $imgUrl = '';
+            if (!empty($images[0]['img_name'])) {
+                $raw = $images[0]['img_name'];
+                if (str_starts_with($raw, 'http')) {
+                    $imgUrl = $raw;
+                } else {
+                    $clean = ltrim($raw, '/');
+                    $imgUrl = 'https://srishringarr.com/yn/uploads/' . $clean;
+                }
+            }
+
+            // Resolve category name
+            $catName = 'Catalog';
+            if ($row['type'] === 'jewellery') {
+                if (!empty($row['subcategory_id'])) {
+                    $subQ = mysqli_query($db, "SELECT name FROM subcat1 WHERE subcat_id = " . (int)$row['subcategory_id']);
+                    if ($subR = mysqli_fetch_assoc($subQ)) $catName = 'Jewellery > ' . ucwords(strtolower($subR['name']));
+                } elseif (!empty($row['category_id'])) {
+                    $mQ = mysqli_query($db, "SELECT categories_name FROM jewel_subcat WHERE subcat_id = " . (int)$row['category_id']);
+                    if ($mR = mysqli_fetch_assoc($mQ)) $catName = 'Jewellery > ' . ucwords(strtolower($mR['categories_name']));
+                }
+            } else {
+                if (!empty($row['category_id'])) {
+                    $gQ = mysqli_query($db, "SELECT name FROM garments WHERE garment_id = " . (int)$row['category_id']);
+                    if ($gR = mysqli_fetch_assoc($gQ)) $catName = 'Apparel > ' . ucwords(strtolower($gR['name']));
+                }
+            }
+
+            $products[] = [
+                'id' => (int)$row['id'],
+                'type' => $row['type'],
+                'code' => $row['code'],
+                'name' => $row['name'],
+                'short_desc' => $row['short_desc'] ?? '',
+                'description' => $row['description'] ?? '',
+                'image_url' => $imgUrl,
+                'category_name' => $catName
+            ];
+        }
+
+        $countQuery = "
+            SELECT 
+            (SELECT COUNT(*) FROM product WHERE $jewelWhereSql) + 
+            (SELECT COUNT(*) FROM garment_product WHERE $garmentWhereSql) as total
+        ";
+        $countRes = mysqli_query($db, $countQuery);
+        $totalCount = (int)(mysqli_fetch_assoc($countRes)['total'] ?? count($products));
+
+        $this->json([
+            'success' => true,
+            'total_count' => $totalCount,
+            'products' => $products
+        ]);
+    }
+
+    public function aiGenerateBulkContent() {
+        $id = (int)($_GET['id'] ?? 0);
+        $type = $_GET['type'] ?? 'jewellery';
+
+        if (!$id) {
+            $this->json(['error' => 'Product ID is required'], 400);
+            return;
+        }
+
+        $secrets = include(__DIR__ . '/../Config/secrets.php');
+        $apiKey = $secrets['GEMINI_API_KEY'] ?? '';
+
+        if (empty($apiKey)) {
+            $this->json(['error' => 'Gemini API Key is not configured in Config/secrets.php'], 400);
+            return;
+        }
+
+        $productModel = new ProductModel();
+        $product = $productModel->getProductById($id, $type);
+        $images = $productModel->getProductImages($id, $type);
+
+        if (empty($images)) {
+            $this->json(['error' => 'Product has no images to analyze.'], 400);
+            return;
+        }
+
+        $imgRelativePath = $images[0]['img_name'];
+        $cleanPath = ltrim($imgRelativePath, '/');
+        
+        $localPaths = [
+            __DIR__ . '/../../yn/uploads/' . $cleanPath,
+            __DIR__ . '/../../uploads/' . $cleanPath,
+            __DIR__ . '/../uploads/' . $cleanPath,
+            'C:/xampp/htdocs/ss/yn/uploads/' . $cleanPath,
+            'C:/xampp/htdocs/yn/admin/uploads/' . $cleanPath
+        ];
+
+        $imgContent = null;
+        $mimeType = 'image/jpeg';
+
+        foreach ($localPaths as $lp) {
+            if (file_exists($lp)) {
+                $imgContent = file_get_contents($lp);
+                $mime = @mime_content_type($lp);
+                if ($mime) $mimeType = $mime;
+                break;
+            }
+        }
+
+        if (empty($imgContent)) {
+            $remoteUrls = [
+                'https://srishringarr.com/yn/uploads/' . $cleanPath,
+                'https://srishringarr.com/uploads/' . $cleanPath,
+                'https://yosshitaneha.com/admin/uploads/' . $cleanPath
+            ];
+            foreach ($remoteUrls as $url) {
+                $imgContent = @file_get_contents($url);
+                if (!empty($imgContent)) {
+                    $ext = strtolower(pathinfo($cleanPath, PATHINFO_EXTENSION));
+                    if ($ext === 'png') $mimeType = 'image/png';
+                    elseif ($ext === 'webp') $mimeType = 'image/webp';
+                    break;
+                }
+            }
+        }
+
+        if (empty($imgContent)) {
+            $this->json(['error' => 'Failed to load product image for AI analysis.'], 400);
+            return;
+        }
+
+        $base64Image = base64_encode($imgContent);
+        $categoryContext = $type === 'jewellery' ? 'Indian Fine & Bridal Jewellery' : 'Indian Luxury Designer Outfits & Apparel';
+        $currentName = $product['name'] ?? ($product['product_name'] ?? ($product['gproduct_name'] ?? ''));
+        $sku = $product['code'] ?? ($product['product_code'] ?? ($product['gproduct_code'] ?? ''));
+
+        $prompt = "You are an expert luxury Indian fashion and bridal jewellery copywriter for Srishringarr Fashion Studio, Mumbai.\n" .
+                  "Carefully examine the attached product photograph and context.\n\n" .
+                  "Product Type: " . $categoryContext . "\n" .
+                  "SKU Code: " . $sku . "\n" .
+                  "Current Working Title: " . $currentName . "\n\n" .
+                  "Based on visual analysis of the product's colors, fabrics, stones, metal plating, embroidery, pattern, and design silhouette, generate complete e-commerce product copy in JSON format with exactly three fields:\n" .
+                  "1. \"name\": A clear, descriptive, and elegant product title (10 to 14 words long). Use simple, natural English. Include specific color, fabric/material (e.g. Pure Silk, Velvet, Brass/Copper Gold Plated, Kundan, Vilandi, Kalamkari), key design motifs, and style type. Do NOT use overly complex, archaic, or poetic words like 'resplendent', 'ethereal', 'wisteria', 'intricately'.\n" .
+                  "2. \"short_description\": A compelling 1 to 2 sentence highlight summary (20 to 35 words) perfect for search previews and quick overview.\n" .
+                  "3. \"description\": A rich, detailed product description (75 to 120 words). Start with an engaging paragraph describing its artisanal craftsmanship, aesthetic appeal, and suitability for weddings, festive occasions, sangeet, or receptions. Follow with 'Key Features:' and 3 to 5 concise bullet points starting with the bullet character '• ' (e.g., '• Fabric/Material: ...', '• Work/Embroidery: ...', '• Color Palette: ...', '• Occasion: ...'). Do NOT use markdown asterisks (no '**').\n\n" .
+                  "Return ONLY a valid, parseable JSON object with keys \"name\", \"short_description\", and \"description\".";
+
+        $url = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key=' . $apiKey;
+        $payload = json_encode([
+            'contents' => [
+                [
+                    'parts' => [
+                        ['text' => $prompt],
+                        [
+                            'inlineData' => [
+                                'mimeType' => $mimeType,
+                                'data' => $base64Image
+                            ]
+                        ]
+                    ]
+                ]
+            ],
+            'generationConfig' => [
+                'responseMimeType' => 'application/json',
+                'temperature' => 0.4,
+                'maxOutputTokens' => 2048,
+            ]
+        ]);
+
+        $ch = curl_init($url);
+        curl_setopt_array($ch, [
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_POST => true,
+            CURLOPT_HTTPHEADER => ['Content-Type: application/json'],
+            CURLOPT_POSTFIELDS => $payload,
+            CURLOPT_TIMEOUT => 30,
+            CURLOPT_SSL_VERIFYPEER => false,
+        ]);
+
+        $response = curl_exec($ch);
+        $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        @curl_close($ch);
+
+        if ($httpCode !== 200) {
+            $this->json(['error' => 'Gemini API request failed (HTTP ' . $httpCode . '): ' . $response], 500);
+            return;
+        }
+
+        $decoded = json_decode($response, true);
+        $rawText = $decoded['candidates'][0]['content']['parts'][0]['text'] ?? '';
+        $cleanText = trim(preg_replace('/^```json|```$/', '', trim($rawText)));
+        
+        $resultJson = json_decode($cleanText, true);
+        if (!is_array($resultJson) || empty($resultJson['name'])) {
+            if (preg_match('/\{[\s\S]*\}/', $cleanText, $matches)) {
+                $resultJson = json_decode($matches[0], true);
+            }
+        }
+
+        if (!is_array($resultJson) || empty($resultJson['name'])) {
+            $this->json(['error' => 'Could not parse Gemini JSON response: ' . $cleanText], 500);
+            return;
+        }
+
+        // Log AI Generation to ai_analytics
+        $db = \Core\Database::getConnection('con');
+        if ($db) {
+            $promptTokens = (int)($decoded['usageMetadata']['promptTokenCount'] ?? 0);
+            $candidateTokens = (int)($decoded['usageMetadata']['candidatesTokenCount'] ?? 0);
+            $totalTokens = (int)($decoded['usageMetadata']['totalTokenCount'] ?? 0);
+            $costEstimate = max(0.01, (($promptTokens * 0.000000075) + ($candidateTokens * 0.0000003)) * 86);
+            $genOutput = json_encode($resultJson);
+            $opType = 'bulk_content';
+            $numImg = 1;
+            $website = 'srishringarr';
+
+            @mysqli_query($db, "ALTER TABLE ai_analytics ADD COLUMN operation_type VARCHAR(50) DEFAULT 'image'");
+            @mysqli_query($db, "ALTER TABLE ai_analytics ADD COLUMN generated_output TEXT NULL");
+            @mysqli_query($db, "ALTER TABLE ai_analytics ADD COLUMN website VARCHAR(100) DEFAULT 'srishringarr'");
+
+            $stmt = $db->prepare("INSERT INTO ai_analytics (product_id, product_type, operation_type, prompt_text, generated_output, num_images, prompt_tokens, candidate_tokens, total_tokens, cost_estimate, website) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+            if ($stmt) {
+                $stmt->bind_param("issssiiiids", $id, $type, $opType, $prompt, $genOutput, $numImg, $promptTokens, $candidateTokens, $totalTokens, $costEstimate, $website);
+                $stmt->execute();
+                $stmt->close();
+            }
+        }
+
+        $this->json([
+            'success' => true,
+            'id' => $id,
+            'type' => $type,
+            'name' => trim($resultJson['name'] ?? ''),
+            'short_description' => trim($resultJson['short_description'] ?? ''),
+            'description' => trim($resultJson['description'] ?? '')
+        ]);
+    }
+
+    public function saveBulkAiContent() {
+        $rawInput = json_decode(file_get_contents('php://input'), true);
+        $id = (int)($rawInput['id'] ?? $_POST['id'] ?? 0);
+        $type = ($rawInput['type'] ?? $_POST['type'] ?? 'jewellery') === 'garment' ? 'garment' : 'jewellery';
+        $name = trim($rawInput['name'] ?? $_POST['name'] ?? '');
+        $shortDesc = trim($rawInput['short_description'] ?? $_POST['short_description'] ?? '');
+        $desc = trim($rawInput['description'] ?? $_POST['description'] ?? '');
+
+        if (!$id || empty($name)) {
+            $this->json(['error' => 'Product ID and Title cannot be empty.'], 400);
+            return;
+        }
+
+        $db = \Core\Database::getConnection('con');
+        if (!$db) {
+            $this->json(['error' => 'Database connection failed'], 500);
+            return;
+        }
+
+        $escName = mysqli_real_escape_string($db, $name);
+        $escShort = mysqli_real_escape_string($db, $shortDesc);
+        $escDesc = mysqli_real_escape_string($db, $desc);
+
+        if ($type === 'jewellery') {
+            $sql = "UPDATE product SET product_name = '$escName', short_desc = '$escShort', product_desc = '$escDesc' WHERE product_id = $id";
+        } else {
+            $sql = "UPDATE garment_product SET gproduct_name = '$escName', short_desc = '$escShort', gproduct_desc = '$escDesc' WHERE gproduct_id = $id";
+        }
+
+        if (mysqli_query($db, $sql)) {
+            $this->json(['success' => true, 'id' => $id, 'type' => $type, 'message' => 'Product content updated successfully.']);
+        } else {
+            $this->json(['error' => 'Database update error: ' . mysqli_error($db)], 500);
+        }
+    }
 }
