@@ -2470,6 +2470,18 @@ class ProductController extends Controller {
         $jewelWhere = ["1=1"];
         $garmentWhere = ["1=1"];
 
+        // Parse SKUs (split by comma, space, newline, or tab)
+        $skus = [];
+        if ($skuFilter !== '') {
+            $rawSkus = preg_split('/[\r\n,\s]+/', $skuFilter);
+            $skus = array_values(array_unique(array_filter(array_map('trim', $rawSkus))));
+        }
+
+        // Expand limit if user supplied a list of SKUs larger than current limit
+        if (!empty($skus) && count($skus) > 1) {
+            $limit = max($limit, min(500, count($skus)));
+        }
+
         // Dedicated Name Filter
         if ($nameFilter !== '') {
             $escName = mysqli_real_escape_string($db, $nameFilter);
@@ -2494,11 +2506,32 @@ class ProductController extends Controller {
             }
         }
 
-        // Dedicated SKU Filter
-        if ($skuFilter !== '') {
-            $escSku = mysqli_real_escape_string($db, $skuFilter);
-            $jewelWhere[] = "product_code LIKE '%$escSku%'";
-            $garmentWhere[] = "gproduct_code LIKE '%$escSku%'";
+        // Dedicated SKU Filter (Single SKU or Comma/Space-separated multiple SKUs)
+        if (!empty($skus)) {
+            if (count($skus) === 1) {
+                $escSku = mysqli_real_escape_string($db, $skus[0]);
+                $jewelWhere[] = "product_code LIKE '%$escSku%'";
+                $garmentWhere[] = "gproduct_code LIKE '%$escSku%'";
+            } else {
+                $escapedSkus = array_map(function($s) use ($db) {
+                    return "'" . mysqli_real_escape_string($db, $s) . "'";
+                }, $skus);
+                $inList = implode(',', $escapedSkus);
+
+                $jewelOrs = ["product_code IN ($inList)", "TRIM(product_code) IN ($inList)"];
+                $garmentOrs = ["gproduct_code IN ($inList)", "TRIM(gproduct_code) IN ($inList)"];
+
+                foreach ($skus as $s) {
+                    $esc = mysqli_real_escape_string($db, $s);
+                    if (strlen($s) >= 3) {
+                        $jewelOrs[] = "product_code LIKE '%$esc%'";
+                        $garmentOrs[] = "gproduct_code LIKE '%$esc%'";
+                    }
+                }
+
+                $jewelWhere[] = "(" . implode(" OR ", array_unique($jewelOrs)) . ")";
+                $garmentWhere[] = "(" . implode(" OR ", array_unique($garmentOrs)) . ")";
+            }
         }
 
         // General Search (searches everything)
@@ -2536,8 +2569,10 @@ class ProductController extends Controller {
             $jewelWhere[] = "(TRIM(product_name) = '1' OR product_name = '1' OR TRIM(product_desc) = '1' OR product_desc = '1')";
             $garmentWhere[] = "(TRIM(gproduct_name) = '1' OR gproduct_name = '1' OR TRIM(gproduct_desc) = '1' OR gproduct_desc = '1')";
         } elseif ($filterType === 'needs_content') {
-            $jewelWhere[] = "(TRIM(product_name) = '1' OR product_name = '1' OR product_name = product_code OR product_name LIKE 'YN%' OR short_desc IS NULL OR short_desc = '' OR TRIM(short_desc) = '1' OR product_desc IS NULL OR product_desc = '' OR TRIM(product_desc) = '1' OR product_desc LIKE '%Premium Quality%' OR product_desc LIKE '%Collection%')";
-            $garmentWhere[] = "(TRIM(gproduct_name) = '1' OR gproduct_name = '1' OR gproduct_name = gproduct_code OR gproduct_name LIKE 'YN%' OR short_desc IS NULL OR short_desc = '' OR TRIM(short_desc) = '1' OR gproduct_desc IS NULL OR gproduct_desc = '' OR TRIM(gproduct_desc) = '1' OR gproduct_desc LIKE '%Premium Quality%' OR gproduct_desc LIKE '%Collection%')";
+            if (empty($skus)) {
+                $jewelWhere[] = "(TRIM(product_name) = '1' OR product_name = '1' OR product_name = product_code OR product_name LIKE 'YN%' OR short_desc IS NULL OR short_desc = '' OR TRIM(short_desc) = '1' OR product_desc IS NULL OR product_desc = '' OR TRIM(product_desc) = '1' OR product_desc LIKE '%Premium Quality%' OR product_desc LIKE '%Collection%')";
+                $garmentWhere[] = "(TRIM(gproduct_name) = '1' OR gproduct_name = '1' OR gproduct_name = gproduct_code OR gproduct_name LIKE 'YN%' OR short_desc IS NULL OR short_desc = '' OR TRIM(short_desc) = '1' OR gproduct_desc IS NULL OR gproduct_desc = '' OR TRIM(gproduct_desc) = '1' OR gproduct_desc LIKE '%Premium Quality%' OR gproduct_desc LIKE '%Collection%')";
+            }
         } elseif ($filterType === 'missing_desc') {
             $jewelWhere[] = "(product_desc IS NULL OR product_desc = '' OR TRIM(product_desc) = '1' OR product_desc LIKE '%Premium Quality%')";
             $garmentWhere[] = "(gproduct_desc IS NULL OR gproduct_desc = '' OR TRIM(gproduct_desc) = '1' OR gproduct_desc LIKE '%Premium Quality%')";

@@ -146,10 +146,12 @@
 
                             <!-- Dedicated SKU Filter -->
                             <div>
-                                <label class="block text-[11px] font-bold text-zinc-400 mb-1">
-                                    <i class="fas fa-barcode mr-1"></i> Filter by SKU Code:
+                                <label class="block text-[11px] font-bold text-zinc-400 mb-1 flex items-center justify-between">
+                                    <span><i class="fas fa-barcode mr-1 text-purple-400"></i> Filter by SKU Code(s):</span>
+                                    <span id="sku_count_badge" class="hidden text-[10px] px-1.5 py-0.5 rounded bg-purple-500/20 text-purple-300 font-normal"></span>
                                 </label>
-                                <input type="text" id="sku_filter" placeholder="e.g. k2067, set1014..." class="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-1.5 text-xs text-zinc-200 focus:border-purple-500 focus:outline-none transition-colors">
+                                <input type="text" id="sku_filter" placeholder="e.g. k2067, set1014 or space separated..." class="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-1.5 text-xs text-zinc-200 focus:border-purple-500 focus:outline-none transition-colors">
+                                <p class="text-[10px] text-zinc-500 mt-1">Separate multiple SKUs with comma or space</p>
                             </div>
                         </div>
                     </div>
@@ -608,6 +610,37 @@
     loadProductsBtn.addEventListener('click', loadProducts);
     catFilter.addEventListener('change', loadProducts);
     statusFilter.addEventListener('change', loadProducts);
+    limitFilter.addEventListener('change', loadProducts);
+
+    // Live SKU count badge update
+    skuFilter.addEventListener('input', function() {
+        const val = this.value.trim();
+        const badge = document.getElementById('sku_count_badge');
+        if (!badge) return;
+        if (!val) {
+            badge.classList.add('hidden');
+            return;
+        }
+        const skus = val.split(/[\r\n,\s]+/).filter(s => s.trim().length > 0);
+        if (skus.length > 1) {
+            badge.textContent = `${skus.length} SKUs`;
+            badge.classList.remove('hidden');
+        } else {
+            badge.classList.add('hidden');
+        }
+    });
+
+    // Press Enter to load products in text filter inputs
+    [nameFilter, descFilter, skuFilter].forEach(input => {
+        if (input) {
+            input.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    loadProducts();
+                }
+            });
+        }
+    });
 
     document.addEventListener('DOMContentLoaded', loadProducts);
     </script>
