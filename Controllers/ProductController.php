@@ -481,6 +481,11 @@ class ProductController extends Controller {
                 $errMsg = $errObj['error']['message'] ?? 'API request failed';
                 $errors[] = 'API Error on iteration ' . ($i+1) . ': ' . $errMsg;
             }
+            
+            // Add a slight delay to avoid rate limits on multiple rapid requests
+            if ($i < $numImages - 1) {
+                sleep(2);
+            }
         }
 
         // Log Analytics to DB (Imagen 3 rate: $0.03 per image = ~₹2.58 per image at 86 INR/USD)

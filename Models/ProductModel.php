@@ -1329,6 +1329,12 @@ class ProductModel extends Model
                 if (!empty($catData['subcategory_name'])) {
                     $product['subcategory_name'] = $catData['subcategory_name'];
                 }
+                if (!empty($catData['category_names'])) {
+                    $product['category_names'] = $catData['category_names'];
+                }
+                if (!empty($catData['subcategory_names'])) {
+                    $product['subcategory_names'] = $catData['subcategory_names'];
+                }
             }
         }
         return $product;

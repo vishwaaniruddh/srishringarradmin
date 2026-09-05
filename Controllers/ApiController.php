@@ -131,4 +131,64 @@ class ApiController extends Controller {
             $this->json(['error' => 'Failed to update availability status'], 500);
         }
     }
+
+    public function getProduct() {
+        $id = (int)($_GET['id'] ?? 0);
+        $type = $_GET['type'] ?? 'jewellery';
+
+        if (!$id) {
+            $this->json(['error' => 'Product ID is required'], 400);
+            return;
+        }
+
+        $productModel = new \Models\ProductModel();
+        $product = $productModel->getProductById($id, $type);
+        if (!$product) {
+            $this->json(['error' => 'Product not found'], 404);
+            return;
+        }
+
+        $images = $productModel->getProductImages($id, $type);
+        $assignedCategories = $productModel->getProductAssignedCategories($id, $type);
+        $categoriesTree = $productModel->getAllCategoriesWithSubcategories($type);
+        $availableColors = $productModel->getAvailableColors();
+
+        $this->json([
+            'success' => true,
+            'product' => $product,
+            'images' => $images,
+            'assignedCategories' => $assignedCategories,
+            'categoriesTree' => $categoriesTree,
+            'availableColors' => $availableColors
+        ]);
+    }
+
+    public function updateProduct() {
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            $this->json(['error' => 'Method not allowed'], 405);
+            return;
+        }
+
+        $input = json_decode(file_get_contents('php://input'), true) ?: $_POST;
+        $id = (int)($input['id'] ?? 0);
+        $type = $input['type'] ?? 'jewellery';
+
+        if (!$id) {
+            $this->json(['error' => 'Product ID is required'], 400);
+            return;
+        }
+
+        $productModel = new \Models\ProductModel();
+        try {
+            $productModel->updateProduct($type, $id, $input);
+            if (isset($input['categories']) || isset($input['sub_categories'])) {
+                $mainCategories = $input['categories'] ?? [];
+                $subcategories = $input['sub_categories'] ?? [];
+                $productModel->saveProductCategories($id, $type, $mainCategories, $subcategories);
+            }
+            $this->json(['success' => true, 'message' => 'Product updated successfully']);
+        } catch (\Exception $e) {
+            $this->json(['error' => $e->getMessage()], 500);
+        }
+    }
 }
