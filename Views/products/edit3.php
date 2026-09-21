@@ -230,9 +230,10 @@
 
         /* Footer actions */
         .edit-footer {
-            display: flex; justify-content: flex-end; gap: 0.5rem;
+            display: flex; justify-content: space-between; align-items: center; gap: 0.75rem;
             padding-top: 1rem; margin-top: 0.5rem;
             border-top: 1px solid #1a1a1a;
+            flex-wrap: wrap;
         }
         .btn-cancel {
             padding: 0.45rem 1.25rem;
@@ -305,21 +306,36 @@
             <main class="flex-1 overflow-y-auto p-2 lg:p-3">
                 <div class="edit-wrap">
                     <?php if (isset($_GET['success'])): ?>
-                        <div class="alert alert--success"><i class="fas fa-check-circle mr-1"></i> Product updated successfully!</div>
+                        <?php if (isset($_GET['sync_status']) && $_GET['sync_status'] === 'synced'): ?>
+                            <div class="alert alert--success flex items-center justify-between">
+                                <div class="flex items-center gap-2">
+                                    <i class="fas fa-check-circle text-emerald-400"></i>
+                                    <span><strong>Product updated and synced to Child Store (Yosshitaneha) successfully!</strong></span>
+                                </div>
+                                <span class="text-[11px] text-emerald-300 bg-emerald-950/70 border border-emerald-800/60 px-2.5 py-0.5 rounded-full font-medium">Child Store Synced</span>
+                            </div>
+                        <?php elseif (isset($_GET['sync_status']) && $_GET['sync_status'] === 'error'): ?>
+                            <div class="alert" style="background: rgba(245, 158, 11, 0.1); border: 1px solid rgba(245, 158, 11, 0.25); color: #f59e0b; display: flex; align-items: center; justify-content: space-between;">
+                                <div class="flex items-center gap-2">
+                                    <i class="fas fa-exclamation-triangle"></i>
+                                    <span>Product updated, but sync to child store issue: <?php echo htmlspecialchars($_GET['sync_msg'] ?? 'Sync failed'); ?></span>
+                                </div>
+                            </div>
+                        <?php elseif (isset($_GET['sync_status']) && $_GET['sync_status'] === 'skipped'): ?>
+                            <div class="alert alert--success">
+                                <i class="fas fa-check-circle mr-1.5"></i> Product updated successfully! <span class="text-zinc-400 text-xs ml-1">(Child store sync skipped: <?php echo htmlspecialchars($_GET['sync_msg'] ?? ''); ?>)</span>
+                            </div>
+                        <?php elseif (isset($_GET['sync_status']) && $_GET['sync_status'] === 'not_applicable'): ?>
+                            <div class="alert alert--success">
+                                <i class="fas fa-check-circle mr-1.5"></i> Product updated successfully! <span class="text-zinc-400 text-xs ml-1">(Child store sync not applicable for this category)</span>
+                            </div>
+                        <?php else: ?>
+                            <div class="alert alert--success"><i class="fas fa-check-circle mr-1"></i> Product updated successfully!</div>
+                        <?php endif; ?>
                     <?php endif; ?>
                     <?php if (isset($_GET['error'])): ?>
                         <div class="alert alert--error"><i class="fas fa-exclamation-circle mr-1"></i> <?php echo htmlspecialchars($_GET['error']); ?></div>
                     <?php endif; ?>
-                    <div class="mb-3 flex items-center justify-between p-3 bg-zinc-900 border border-zinc-800 rounded-xl">
-                        <div class="flex items-center gap-2">
-                            <span class="text-xs font-bold text-white"><i class="fas fa-sync-alt text-teal-400 mr-1.5"></i> Yosshitaneha Store Sync</span>
-                            <span class="text-[11px] text-zinc-400">(Child Buy Store)</span>
-                        </div>
-                        <button type="button" id="btnSyncSingle" onclick="syncSingleProduct(<?php echo $product['id']; ?>, '<?php echo $type; ?>')" class="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold rounded-lg transition-all flex items-center gap-1.5">
-                            <i class="fas fa-paper-plane" id="syncSingleIcon"></i>
-                            <span>Sync to Child Store</span>
-                        </button>
-                    </div>
 
                     <div class="edit-card">
                         <!-- Tabs -->
@@ -820,12 +836,31 @@
 
                             <!-- Footer Actions -->
                             <div class="edit-footer">
-                                <a href="index.php?controller=product&action=index" class="btn-cancel">
-                                    <i class="fas fa-times"></i> Cancel
-                                </a>
-                                <button type="submit" class="btn-submit">
-                                    <i class="fas fa-save"></i> Update Product
-                                </button>
+                                <div class="sync-indicator flex items-center gap-2" id="syncStatusIndicator">
+                                    <?php if (!empty($isSyncApplicable)): ?>
+                                        <span class="text-[11px] text-teal-400 bg-teal-950/40 border border-teal-800/50 px-2.5 py-1 rounded-md flex items-center gap-1.5" title="Category is configured for Yosshitaneha child store sync">
+                                            <span class="w-1.5 h-1.5 rounded-full bg-teal-400 animate-pulse"></span>
+                                            <span>Child Store Sync: <strong>Applicable</strong></span>
+                                        </span>
+                                    <?php else: ?>
+                                        <span class="text-[11px] text-zinc-400 bg-zinc-800/40 border border-zinc-700/50 px-2.5 py-1 rounded-md flex items-center gap-1.5" title="Category is not enabled for child store sync">
+                                            <span class="w-1.5 h-1.5 rounded-full bg-zinc-500"></span>
+                                            <span>Child Store Sync: <strong>Not Applicable</strong></span>
+                                        </span>
+                                    <?php endif; ?>
+                                </div>
+                                <div class="flex items-center gap-2">
+                                    <a href="index.php?controller=product&action=index" class="btn-cancel">
+                                        <i class="fas fa-times"></i> Cancel
+                                    </a>
+                                    <button type="submit" class="btn-submit" id="btnSubmitProduct">
+                                        <?php if (!empty($isSyncApplicable)): ?>
+                                            <i class="fas fa-sync-alt mr-1 text-teal-600" id="submitBtnIcon"></i> <span id="submitBtnText">Sync & Update</span>
+                                        <?php else: ?>
+                                            <i class="fas fa-save mr-1" id="submitBtnIcon"></i> <span id="submitBtnText">Update Product</span>
+                                        <?php endif; ?>
+                                    </button>
+                                </div>
                             </div>
                         </form>
                     </div>
@@ -1462,35 +1497,68 @@
             }
         }
 
-        function syncSingleProduct(id, type) {
-            const btn = document.getElementById('btnSyncSingle');
-            const icon = document.getElementById('syncSingleIcon');
-            if (btn) btn.disabled = true;
-            if (icon) icon.className = 'fas fa-spinner fa-spin';
+        function checkSyncApplicability() {
+            if (!window.syncSettings) return;
+            const syncAll = !!window.syncSettings.sync_all;
+            const enabled = window.syncSettings.enabled_categories || [];
 
-            const formData = new FormData();
-            formData.append('id', id);
-            formData.append('type', type);
+            if (syncAll || enabled.length === 0) {
+                updateSyncUi(true);
+                return;
+            }
 
-            fetch('index.php?controller=sync&action=syncSingle', {
-                method: 'POST',
-                body: formData
-            })
-            .then(r => r.json())
-            .then(res => {
-                if (btn) btn.disabled = false;
-                if (icon) icon.className = 'fas fa-paper-plane';
-                if (res.success) {
-                    alert("✓ " + res.message);
+            let isApplicable = false;
+            if (currentType === 'garments') {
+                const catSelect = document.getElementById('garment_cat');
+                const subSelect = document.getElementById('garment_subcat');
+                const catId = catSelect ? catSelect.value : '';
+                const subId = subSelect ? subSelect.value : '';
+                if (catId && enabled.includes('garment:' + catId)) isApplicable = true;
+                if (subId && enabled.includes('garment:' + subId)) isApplicable = true;
+            } else {
+                const catSelect = document.getElementById('jewel_cat');
+                const subSelect = document.getElementById('jewel_subcat');
+                const catId = catSelect ? catSelect.value : '';
+                const subId = subSelect ? subSelect.value : '';
+                if (catId && enabled.includes('jewel_parent:' + catId)) isApplicable = true;
+                if (subId && (enabled.includes('jewel_child:' + subId) || enabled.includes('jewel_parent:' + subId))) isApplicable = true;
+            }
+
+            updateSyncUi(isApplicable);
+        }
+
+        function updateSyncUi(isApplicable) {
+            const btnText = document.getElementById('submitBtnText');
+            const btnIcon = document.getElementById('submitBtnIcon');
+            const indicator = document.getElementById('syncStatusIndicator');
+
+            if (btnText && btnIcon) {
+                if (isApplicable) {
+                    btnText.textContent = 'Sync & Update';
+                    btnIcon.className = 'fas fa-sync-alt mr-1 text-teal-600';
                 } else {
-                    alert("❌ " + res.message);
+                    btnText.textContent = 'Update Product';
+                    btnIcon.className = 'fas fa-save mr-1';
                 }
-            })
-            .catch(err => {
-                if (btn) btn.disabled = false;
-                if (icon) icon.className = 'fas fa-paper-plane';
-                alert("Sync request failed: " + err);
-            });
+            }
+
+            if (indicator) {
+                if (isApplicable) {
+                    indicator.innerHTML = `
+                        <span class="text-[11px] text-teal-400 bg-teal-950/40 border border-teal-800/50 px-2.5 py-1 rounded-md flex items-center gap-1.5" title="Category is configured for Yosshitaneha child store sync">
+                            <span class="w-1.5 h-1.5 rounded-full bg-teal-400 animate-pulse"></span>
+                            <span>Child Store Sync: <strong>Applicable</strong></span>
+                        </span>
+                    `;
+                } else {
+                    indicator.innerHTML = `
+                        <span class="text-[11px] text-zinc-400 bg-zinc-800/40 border border-zinc-700/50 px-2.5 py-1 rounded-md flex items-center gap-1.5" title="Category is not enabled for child store sync">
+                            <span class="w-1.5 h-1.5 rounded-full bg-zinc-500"></span>
+                            <span>Child Store Sync: <strong>Not Applicable</strong></span>
+                        </span>
+                    `;
+                }
+            }
         }
     </script>
 </body>

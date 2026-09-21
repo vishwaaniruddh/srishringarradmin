@@ -3,6 +3,7 @@ namespace Controllers;
 
 use Core\Controller;
 use Models\ProductModel;
+use Core\ProductSyncService;
 
 class ProductController extends Controller {
     public function index() {
@@ -943,6 +944,8 @@ class ProductController extends Controller {
         $assignedCategories = $productModel->getProductAssignedCategories($id, $type);
         $availableColors = $productModel->getAvailableColors();
         
+        $isSyncApplicable = ProductSyncService::isCategoryEnabled($type, $product);
+
         $this->view('products/edit', [
             'product' => $product,
             'images' => $images,
@@ -951,7 +954,8 @@ class ProductController extends Controller {
             'garments' => $garments,
             'allCategoriesTree' => $allCategoriesTree,
             'assignedCategories' => $assignedCategories,
-            'availableColors' => $availableColors
+            'availableColors' => $availableColors,
+            'isSyncApplicable' => $isSyncApplicable
         ]);
     }
 
@@ -974,7 +978,28 @@ class ProductController extends Controller {
             $subcategories = $_POST['sub_categories'] ?? [];
             $productModel->saveProductCategories($id, $type, $mainCategories, $subcategories);
 
-            $this->redirect("index.php?controller=product&action=edit&id=$id&type=$type&success=1");
+            // Check if product is applicable for sync to child store
+            $syncParams = '';
+            $updatedProduct = $productModel->getProductById($id, $type);
+            $isSyncApplicable = ProductSyncService::isCategoryEnabled($type, $updatedProduct);
+            if ($isSyncApplicable) {
+                try {
+                    $syncResult = ProductSyncService::syncProduct($id, $type, 'manual');
+                    if (!empty($syncResult['success']) && empty($syncResult['skipped'])) {
+                        $syncParams = '&sync_status=synced';
+                    } elseif (!empty($syncResult['skipped'])) {
+                        $syncParams = '&sync_status=skipped&sync_msg=' . urlencode($syncResult['message'] ?? 'Category skipped');
+                    } else {
+                        $syncParams = '&sync_status=error&sync_msg=' . urlencode($syncResult['message'] ?? 'Sync failed');
+                    }
+                } catch (\Throwable $st) {
+                    $syncParams = '&sync_status=error&sync_msg=' . urlencode($st->getMessage());
+                }
+            } else {
+                $syncParams = '&sync_status=not_applicable';
+            }
+
+            $this->redirect("index.php?controller=product&action=edit&id=$id&type=$type&success=1" . $syncParams);
         } catch (\Exception $e) {
             $this->redirect("index.php?controller=product&action=edit&id=$id&type=$type&error=" . urlencode($e->getMessage()));
         }
@@ -1001,6 +1026,7 @@ class ProductController extends Controller {
         $jewelCategories = $productModel->getJewelCategories();
         $garments = $productModel->getGarments();
         $availableColors = $productModel->getAvailableColors();
+        $isSyncApplicable = ProductSyncService::isCategoryEnabled($type, $product);
         
         $this->view('products/edit3', [
             'product' => $product,
@@ -1008,7 +1034,8 @@ class ProductController extends Controller {
             'type' => $type,
             'jewelCategories' => $jewelCategories,
             'garments' => $garments,
-            'availableColors' => $availableColors
+            'availableColors' => $availableColors,
+            'isSyncApplicable' => $isSyncApplicable
         ]);
     }
 
@@ -1025,7 +1052,29 @@ class ProductController extends Controller {
             $uploadedImages = $this->handleImageUploads($code);
 
             $productModel->updateProduct($type, $id, $_POST, $uploadedImages);
-            $this->redirect("index.php?controller=product&action=edit3&id=$id&type=$type&success=1");
+
+            // Check if product is applicable for sync to child store
+            $syncParams = '';
+            $updatedProduct = $productModel->getProductById($id, $type);
+            $isSyncApplicable = ProductSyncService::isCategoryEnabled($type, $updatedProduct);
+            if ($isSyncApplicable) {
+                try {
+                    $syncResult = ProductSyncService::syncProduct($id, $type, 'manual');
+                    if (!empty($syncResult['success']) && empty($syncResult['skipped'])) {
+                        $syncParams = '&sync_status=synced';
+                    } elseif (!empty($syncResult['skipped'])) {
+                        $syncParams = '&sync_status=skipped&sync_msg=' . urlencode($syncResult['message'] ?? 'Category skipped');
+                    } else {
+                        $syncParams = '&sync_status=error&sync_msg=' . urlencode($syncResult['message'] ?? 'Sync failed');
+                    }
+                } catch (\Throwable $st) {
+                    $syncParams = '&sync_status=error&sync_msg=' . urlencode($st->getMessage());
+                }
+            } else {
+                $syncParams = '&sync_status=not_applicable';
+            }
+
+            $this->redirect("index.php?controller=product&action=edit3&id=$id&type=$type&success=1" . $syncParams);
         } catch (\Exception $e) {
             $this->redirect("index.php?controller=product&action=edit3&id=$id&type=$type&error=" . urlencode($e->getMessage()));
         }
