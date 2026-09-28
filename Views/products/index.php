@@ -389,11 +389,29 @@
                     'Antique': { bg: 'rgba(245, 158, 11, 0.15)', color: '#fbbf24', border: 'rgba(245, 158, 11, 0.4)' },
                     'Kundan': { bg: 'rgba(34, 197, 94, 0.15)', color: '#4ade80', border: 'rgba(34, 197, 94, 0.4)' },
                     'Vilandi': { bg: 'rgba(59, 130, 246, 0.15)', color: '#60a5fa', border: 'rgba(59, 130, 246, 0.4)' },
+                    'Vilandi / Polki': { bg: 'rgba(59, 130, 246, 0.15)', color: '#60a5fa', border: 'rgba(59, 130, 246, 0.4)' },
                     'American Diamond': { bg: 'rgba(236, 72, 153, 0.15)', color: '#f472b6', border: 'rgba(236, 72, 153, 0.4)' },
                     'Imitation': { bg: 'rgba(20, 184, 166, 0.15)', color: '#2dd4bf', border: 'rgba(20, 184, 166, 0.4)' },
+                    'Lehenga Choli': { bg: 'rgba(236, 72, 153, 0.15)', color: '#f472b6', border: 'rgba(236, 72, 153, 0.4)' },
+                    'Evening Gowns': { bg: 'rgba(168, 85, 247, 0.15)', color: '#c084fc', border: 'rgba(168, 85, 247, 0.4)' },
+                    'Indo Western Outfits': { bg: 'rgba(245, 158, 11, 0.15)', color: '#fbbf24', border: 'rgba(245, 158, 11, 0.4)' },
+                    'Trail Gowns / Infinity Gowns': { bg: 'rgba(59, 130, 246, 0.15)', color: '#60a5fa', border: 'rgba(59, 130, 246, 0.4)' },
+                    'Designer Blouses': { bg: 'rgba(20, 184, 166, 0.15)', color: '#2dd4bf', border: 'rgba(20, 184, 166, 0.4)' },
+                    'Kurtis / Tunics': { bg: 'rgba(34, 197, 94, 0.15)', color: '#4ade80', border: 'rgba(34, 197, 94, 0.4)' },
                 };
                 const defaultSubcatColor = { bg: 'rgba(161, 161, 170, 0.15)', color: '#a1a1aa', border: 'rgba(161, 161, 170, 0.4)' };
-                const subcatColor = subcatColors[catDisplay] || defaultSubcatColor;
+                function getCategoryColor(name) {
+                    if (!name) return defaultSubcatColor;
+                    const clean = name.trim();
+                    if (subcatColors[clean]) return subcatColors[clean];
+                    const lower = clean.toLowerCase();
+                    for (const [k, v] of Object.entries(subcatColors)) {
+                        if (k.toLowerCase() === lower) return v;
+                    }
+                    return defaultSubcatColor;
+                }
+                const firstSubcat = subcatName ? subcatName.split(', ')[0].trim() : '';
+                const subcatColor = getCategoryColor(firstSubcat);
 
                 html += `
                     <tr class="product-row" style="animation-delay: ${0.02 * (index + 1)}s;">
@@ -417,7 +435,7 @@
                                     </a>
                                     <div style="display: flex; align-items: center; gap: 0.35rem; flex-wrap: wrap; margin-top: 4px;">
                                         <span class="badge ${typeBadgeClass}" style="font-size: 0.6rem; padding: 0.1rem 0.4rem;">${typeLabel}</span>
-                                        ${isDup && subcatName ? `<span style="font-size: 0.62rem; padding: 0.15rem 0.5rem; border-radius: 4px; font-weight: 700; background: ${subcatColor.bg}; color: ${subcatColor.color}; border: 1px solid ${subcatColor.border};"><i class="fas fa-tag" style="margin-right: 3px; font-size: 0.55rem;"></i>${catDisplay}</span>` : ''}
+                                        ${isDup && firstSubcat ? `<span style="font-size: 0.62rem; padding: 0.15rem 0.5rem; border-radius: 4px; font-weight: 700; background: ${subcatColor.bg}; color: ${subcatColor.color}; border: 1px solid ${subcatColor.border};"><i class="fas fa-tag" style="margin-right: 3px; font-size: 0.55rem;"></i>${firstSubcat}</span>` : ''}
                                     </div>
                                 </div>
                             </div>
@@ -431,7 +449,7 @@
                                 ? `<div style="display: flex; flex-wrap: wrap; gap: 4px;">
                                     ${catDisplay.split(', ').map(name => {
                                         const cleanTag = name.trim();
-                                        const sc = subcatColors[cleanTag] || defaultSubcatColor;
+                                        const sc = getCategoryColor(cleanTag);
                                         return `<span style="display: inline-block; padding: 0.2rem 0.5rem; border-radius: 5px; font-size: 0.72rem; font-weight: 600; background: ${sc.bg}; color: ${sc.color}; border: 1px solid ${sc.border};">${cleanTag}</span>`;
                                     }).join('')}
                                    </div>`

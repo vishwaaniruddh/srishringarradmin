@@ -44,7 +44,7 @@
             background: #0a0a0a !important;
             border: 1px solid var(--border-dark, #1f1f1f) !important;
             border-radius: 10px !important;
-            overflow: hidden;
+            overflow: visible !important;
             box-shadow: none !important;
         }
         .edit-tabs {
@@ -315,31 +315,190 @@
         }
         .toggle-label { font-size: 0.75rem; font-weight: 500; }
 
-        /* Footer actions */
+        /* Sticky Sub-Header Top Bar */
+        .product-sticky-bar {
+            position: sticky;
+            top: 0;
+            z-index: 35;
+            background: rgba(10, 13, 18, 0.94);
+            backdrop-filter: blur(14px);
+            border: 1px solid #27272a;
+            border-radius: 10px;
+            padding: 0.6rem 0.9rem;
+            margin-bottom: 0.75rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 0.75rem;
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+        }
+        .btn-back-link {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.35rem;
+            padding: 0.35rem 0.65rem;
+            background: #18181b;
+            border: 1px solid #27272a;
+            border-radius: 6px;
+            color: #a1a1aa;
+            font-size: 0.72rem;
+            font-weight: 600;
+            text-decoration: none;
+            transition: all 0.15s;
+        }
+        .btn-back-link:hover {
+            background: #27272a;
+            color: #fff;
+            border-color: #3f3f46;
+        }
+        .sku-pill {
+            background: #1e293b;
+            border: 1px solid #334155;
+            color: #f8fafc;
+            font-size: 0.75rem;
+            font-weight: 700;
+            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+            padding: 0.2rem 0.55rem;
+            border-radius: 6px;
+            letter-spacing: 0.04em;
+        }
+        .quick-anchor-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.35rem;
+            padding: 0.28rem 0.55rem;
+            font-size: 0.7rem;
+            font-weight: 600;
+            color: #94a3b8;
+            background: #11141b;
+            border: 1px solid #1e2533;
+            border-radius: 6px;
+            text-decoration: none;
+            transition: all 0.15s;
+        }
+        .quick-anchor-pill:hover {
+            color: #fff;
+            background: #1e293b;
+            border-color: #334155;
+        }
+        .quick-anchor-pill--ai {
+            color: #f472b6;
+            border-color: rgba(244, 114, 182, 0.25);
+        }
+        .quick-anchor-pill--ai:hover {
+            background: rgba(244, 114, 182, 0.12);
+            border-color: #f472b6;
+            color: #fbcfe8;
+        }
+        .btn-top-submit {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.35rem;
+            padding: 0.4rem 0.9rem;
+            font-size: 0.74rem;
+            font-weight: 700;
+            background: #ffffff !important;
+            color: #0f172a !important;
+            border: 1px solid #ffffff !important;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.15s ease;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+            white-space: nowrap;
+        }
+        .btn-top-submit:hover {
+            background: #e2e8f0 !important;
+            transform: translateY(-1px);
+        }
+
+        /* AI Tools Accordion */
+        .ai-accordion-box {
+            background: #090a0f;
+            border: 1px solid #1e2029;
+            border-radius: 10px;
+            margin-top: 0.6rem;
+            margin-bottom: 0.6rem;
+            overflow: hidden;
+            transition: border-color 0.2s;
+        }
+        .ai-accordion-box:hover {
+            border-color: #2e3244;
+        }
+        .ai-accordion-hdr {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 0.75rem;
+            padding: 0.75rem 1rem;
+            cursor: pointer;
+            background: linear-gradient(135deg, rgba(236, 72, 153, 0.04), rgba(129, 140, 248, 0.04));
+            user-select: none;
+            transition: background 0.15s;
+        }
+        .ai-accordion-hdr:hover {
+            background: linear-gradient(135deg, rgba(236, 72, 153, 0.08), rgba(129, 140, 248, 0.08));
+        }
+        .ai-accordion-trigger-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.35rem;
+            padding: 0.25rem 0.6rem;
+            font-size: 0.68rem;
+            font-weight: 600;
+            background: #181924;
+            border: 1px solid #282a3c;
+            border-radius: 6px;
+            color: #e2e8f0;
+            transition: all 0.15s;
+        }
+        .ai-accordion-hdr:hover .ai-accordion-trigger-badge {
+            border-color: #f472b6;
+            color: #fbcfe8;
+        }
+        .ai-accordion-body {
+            padding: 1rem;
+            border-top: 1px solid #1e2029;
+            background: #050608;
+        }
+
+        /* Sticky Footer Actions Bar */
         .edit-footer {
-            display: flex; justify-content: space-between; align-items: center; gap: 0.75rem;
-            padding-top: 1rem; margin-top: 0.5rem;
-            border-top: 1px solid #1a1a1a;
+            position: sticky !important;
+            bottom: 0 !important;
+            z-index: 45 !important;
+            background: rgba(10, 12, 16, 0.96) !important;
+            backdrop-filter: blur(16px) !important;
+            border-top: 1px solid #27272a !important;
+            padding: 0.85rem 1.25rem !important;
+            padding-right: 105px !important; /* CRITICAL: Room to clear #chatbot-fab */
+            margin: 1.5rem -1.25rem -1.25rem -1.25rem !important;
+            display: flex !important;
+            justify-content: space-between !important;
+            align-items: center !important;
+            gap: 1rem !important;
+            box-shadow: 0 -8px 24px rgba(0, 0, 0, 0.6) !important;
+            border-radius: 0 0 10px 10px !important;
             flex-wrap: wrap;
         }
         .btn-cancel {
-            padding: 0.45rem 1.25rem;
-            font-size: 0.75rem; font-weight: 500;
-            background: transparent; border: 1px solid #1f1f1f;
-            border-radius: 6px; color: #666; cursor: pointer;
-            transition: all 0.15s; text-decoration: none;
-            display: inline-flex; align-items: center; gap: 0.3rem;
-        }
-        .btn-cancel:hover { color: #fff; border-color: #333; }
-        .btn-submit {
-            padding: 0.45rem 1.5rem;
+            padding: 0.5rem 1.25rem;
             font-size: 0.75rem; font-weight: 600;
+            background: #18181b; border: 1px solid #27272a;
+            border-radius: 6px; color: #a1a1aa; cursor: pointer;
+            transition: all 0.15s; text-decoration: none;
+            display: inline-flex; align-items: center; gap: 0.35rem;
+        }
+        .btn-cancel:hover { color: #fff; background: #27272a; border-color: #3f3f46; }
+        .btn-submit {
+            padding: 0.5rem 1.5rem;
+            font-size: 0.78rem; font-weight: 700;
             background: #fff !important; color: #000 !important;
             border: 1px solid #fff !important; border-radius: 6px;
             cursor: pointer; transition: all 0.15s;
-            display: inline-flex; align-items: center; gap: 0.3rem;
+            display: inline-flex; align-items: center; gap: 0.35rem;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
         }
-        .btn-submit:hover { background: #e5e5e5 !important; border-color: #e5e5e5 !important; }
+        .btn-submit:hover { background: #e5e5e5 !important; border-color: #e5e5e5 !important; transform: translateY(-1px); }
 
         /* Success/Error alerts */
         .alert { padding: 0.5rem 0.75rem; border-radius: 6px; font-size: 0.75rem; margin-bottom: 0.75rem; }
@@ -362,16 +521,94 @@
         .featured-toggle .toggle-text { font-size: 0.78rem; font-weight: 500; color: #aaa; }
         .featured-toggle .toggle-hint { font-size: 0.65rem; color: #444; margin-top: 0.15rem; }
 
-        /* Sticky mobile footer */
-        @media (max-width: 640px) {
-            .edit-footer {
-                position: sticky; bottom: 0;
-                background: #0a0a0a; padding: 0.75rem 1rem;
-                margin: 0 -1.25rem -1.25rem -1.25rem;
-                border-top: 1px solid #1f1f1f;
-                z-index: 50;
+        @media (max-width: 768px) {
+            main {
+                padding-bottom: 110px !important;
             }
-            .btn-cancel, .btn-submit { flex: 1; justify-content: center; padding: 0.6rem; }
+            .edit-wrap {
+                padding-bottom: 25px !important;
+            }
+
+            /* Fixed full-width docked mobile action bar */
+            .edit-footer {
+                position: fixed !important;
+                bottom: 0 !important;
+                left: 0 !important;
+                right: 0 !important;
+                width: 100% !important;
+                max-width: 100% !important;
+                margin: 0 !important;
+                padding: 0.65rem 1rem !important;
+                padding-right: 1rem !important;
+                background: rgba(10, 12, 16, 0.98) !important;
+                backdrop-filter: blur(20px) !important;
+                border-top: 1px solid #27272a !important;
+                border-radius: 0 !important;
+                box-shadow: 0 -6px 24px rgba(0, 0, 0, 0.75) !important;
+                z-index: 9998 !important;
+                display: flex !important;
+                flex-direction: column !important;
+                gap: 0.45rem !important;
+            }
+            .edit-footer-status {
+                width: 100% !important;
+                display: flex !important;
+                align-items: center !important;
+                justify-content: space-between !important;
+                gap: 0.5rem !important;
+            }
+            .edit-footer-actions {
+                width: 100% !important;
+                display: flex !important;
+                align-items: center !important;
+                gap: 0.5rem !important;
+            }
+            .btn-cancel {
+                flex: 1 !important;
+                height: 42px !important;
+                display: inline-flex !important;
+                align-items: center !important;
+                justify-content: center !important;
+                font-size: 0.8rem !important;
+                font-weight: 600 !important;
+                border-radius: 8px !important;
+                padding: 0 !important;
+            }
+            .btn-submit {
+                flex: 2 !important;
+                height: 42px !important;
+                display: inline-flex !important;
+                align-items: center !important;
+                justify-content: center !important;
+                font-size: 0.85rem !important;
+                font-weight: 700 !important;
+                border-radius: 8px !important;
+                padding: 0 !important;
+                box-shadow: 0 2px 10px rgba(0, 0, 0, 0.4) !important;
+            }
+
+            /* Lift chatbot FAB above docked bottom bar */
+            .chatbot-fab, #chatbot-fab {
+                bottom: 85px !important;
+                right: 14px !important;
+                width: 46px !important;
+                height: 46px !important;
+                z-index: 9999 !important;
+            }
+
+            /* Compact top sticky bar on mobile */
+            .product-sticky-bar {
+                padding: 0.45rem 0.65rem !important;
+                gap: 0.35rem !important;
+            }
+            .product-sticky-bar .sku-pill {
+                font-size: 0.68rem !important;
+                padding: 0.15rem 0.4rem !important;
+            }
+            .btn-top-submit {
+                padding: 0.35rem 0.65rem !important;
+                font-size: 0.7rem !important;
+            }
         }
 
         /* Desc helper text */
@@ -390,7 +627,7 @@
             include __DIR__ . '/../partials/topbar.php'; 
             ?>
 
-            <main class="flex-1 overflow-y-auto p-2 lg:p-3">
+            <main class="flex-1 overflow-y-auto p-2 lg:p-3" style="scroll-behavior: smooth; padding-bottom: 5rem;">
                 <div class="edit-wrap">
                     <?php if (isset($_GET['success'])): ?>
                         <?php if (isset($_GET['sync_status']) && $_GET['sync_status'] === 'synced'): ?>
@@ -424,6 +661,59 @@
                         <div class="alert alert--error"><i class="fas fa-exclamation-circle mr-1"></i> <?php echo htmlspecialchars($_GET['error']); ?></div>
                     <?php endif; ?>
 
+                    <!-- Sticky Top Action & Quick Navigation Bar -->
+                    <div class="product-sticky-bar">
+                        <div class="flex items-center gap-2 sm:gap-3 flex-wrap">
+                            <a href="index.php?controller=product&action=index" class="btn-back-link" title="Back to All Products">
+                                <i class="fas fa-arrow-left"></i>
+                                <span class="hidden sm:inline">Products</span>
+                            </a>
+                            <div class="h-4 w-[1px] bg-zinc-700 hidden sm:block"></div>
+                            <div class="flex items-center gap-1.5 flex-wrap">
+                                <span class="sku-pill"><?php echo htmlspecialchars($product['code']); ?></span>
+                                <span class="text-[11px] font-semibold text-zinc-400 bg-zinc-900 border border-zinc-800 px-2 py-0.5 rounded"><?php echo ucfirst($type); ?></span>
+                                <?php if (!empty($product['s_price'])): ?>
+                                    <span class="text-[11px] font-semibold text-emerald-400 bg-emerald-950/40 border border-emerald-800/50 px-2 py-0.5 rounded">₹<?php echo number_format((float)$product['s_price'], 2); ?></span>
+                                <?php endif; ?>
+                            </div>
+
+                            <!-- Quick Section Jump Navigation -->
+                            <nav class="hidden md:flex items-center gap-1 ml-2">
+                                <a href="#section_basic" class="quick-anchor-pill"><i class="fas fa-info-circle"></i> Info</a>
+                                <a href="#section_ai_tools" onclick="expandAiToolsAccordion()" class="quick-anchor-pill quick-anchor-pill--ai"><i class="fas fa-magic"></i> AI Studio</a>
+                                <a href="#section_categories" class="quick-anchor-pill"><i class="fas fa-sitemap"></i> Categories</a>
+                                <a href="#section_pricing" class="quick-anchor-pill"><i class="fas fa-tag"></i> Pricing</a>
+                                <a href="#section_colors" class="quick-anchor-pill"><i class="fas fa-palette"></i> Colors</a>
+                                <a href="#section_images" class="quick-anchor-pill"><i class="fas fa-images"></i> Gallery</a>
+                            </nav>
+                        </div>
+
+                        <div class="flex items-center gap-2.5">
+                            <div id="syncStatusIndicatorTop" class="hidden sm:flex items-center">
+                                <?php if (!empty($isSyncApplicable)): ?>
+                                    <span class="text-[11px] text-teal-400 bg-teal-950/40 border border-teal-800/50 px-2.5 py-1 rounded-md flex items-center gap-1.5" title="Category is configured for Yosshitaneha child store sync">
+                                        <span class="w-1.5 h-1.5 rounded-full bg-teal-400 animate-pulse"></span>
+                                        <span>Sync: <strong>Applicable</strong></span>
+                                    </span>
+                                <?php else: ?>
+                                    <span class="text-[11px] text-zinc-400 bg-zinc-800/40 border border-zinc-700/50 px-2.5 py-1 rounded-md flex items-center gap-1.5" title="Category is not enabled for child store sync">
+                                        <span class="w-1.5 h-1.5 rounded-full bg-zinc-500"></span>
+                                        <span>Sync: <strong>Not Applicable</strong></span>
+                                    </span>
+                                <?php endif; ?>
+                            </div>
+
+                            <button type="submit" form="productEditForm" class="btn-top-submit" id="btnSubmitProductTop">
+                                <?php if (!empty($isSyncApplicable)): ?>
+                                    <i class="fas fa-sync-alt mr-1 text-teal-600" id="submitBtnIconTop"></i> <span id="submitBtnTextTop">Sync & Update</span>
+                                <?php else: ?>
+                                    <i class="fas fa-save mr-1" id="submitBtnIconTop"></i> <span id="submitBtnTextTop">Update Product</span>
+                                <?php endif; ?>
+                                <kbd class="hidden xl:inline-flex ml-1.5 text-[10px] bg-zinc-200 text-zinc-800 px-1 py-0.5 rounded font-mono font-bold">Ctrl+S</kbd>
+                            </button>
+                        </div>
+                    </div>
+
                     <div class="edit-card">
                         <!-- Tabs -->
                         <div class="edit-tabs">
@@ -435,13 +725,13 @@
                             </button>
                         </div>
 
-                        <form action="index.php?controller=product&action=update" method="POST" enctype="multipart/form-data" class="edit-form" onsubmit="return validateProductForm(this)">
+                        <form action="index.php?controller=product&action=update" method="POST" enctype="multipart/form-data" class="edit-form" onsubmit="return validateProductForm(this)" id="productEditForm">
                             <input type="hidden" name="id" value="<?php echo $product['id']; ?>">
                             <input type="hidden" name="type" id="product_type" value="<?php echo $type; ?>">
                             <input type="hidden" name="code" value="<?php echo htmlspecialchars($product['code']); ?>">
 
                             <!-- Section 1: Product Code -->
-                            <div class="edit-section">
+                            <div class="edit-section" id="section_code">
                                 <div class="section-hdr">
                                     <div class="section-num">1</div>
                                     <div class="section-title">Product Code</div>
@@ -459,7 +749,7 @@
                             </div>
 
                             <!-- Section 2: Basic Information -->
-                            <div class="edit-section" id="form_content">
+                            <div class="edit-section" id="section_basic">
                                 <div class="section-hdr">
                                     <div class="section-num">2</div>
                                     <div class="section-title">Basic Information</div>
@@ -478,9 +768,29 @@
                                         </p>
                                     </div>
 
-                                    <!-- AI Copywriter -->
-                                    <div class="field-span-2">
-                                        <div class="ai-card">
+                                    <!-- Collapsible AI Creative Studio & Copywriter (Gemini) -->
+                                    <div class="field-span-2" id="section_ai_tools">
+                                        <div class="ai-accordion-box">
+                                            <div class="ai-accordion-hdr" onclick="toggleAiToolsAccordion()">
+                                                <div style="display: flex; align-items: center; gap: 0.75rem;">
+                                                    <div style="width: 32px; height: 32px; border-radius: 8px; background: rgba(236, 72, 153, 0.15); border: 1px solid rgba(236, 72, 153, 0.3); display: flex; align-items: center; justify-content: center; color: #f472b6; flex-shrink: 0;">
+                                                        <i class="fas fa-magic" style="font-size: 0.85rem;"></i>
+                                                    </div>
+                                                    <div>
+                                                        <div style="display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;">
+                                                            <span style="font-size: 0.82rem; font-weight: 700; color: #f4f4f5;">AI Creative Studio & Copywriter</span>
+                                                            <span style="font-size: 0.65rem; font-weight: 600; background: rgba(236, 72, 153, 0.15); border: 1px solid rgba(236, 72, 153, 0.3); color: #fbcfe8; padding: 0.1rem 0.45rem; border-radius: 9999px;">Gemini Powered</span>
+                                                        </div>
+                                                        <span style="font-size: 0.68rem; color: #71717a; display: block; margin-top: 1px;">Generate model photos, studio mockups, smart copywriter & video (Click to expand)</span>
+                                                    </div>
+                                                </div>
+                                                <div class="ai-accordion-trigger-badge">
+                                                    <span id="aiAccordionStateText">Show AI Studio</span>
+                                                    <i class="fas fa-chevron-down" id="aiAccordionChevron" style="font-size: 0.65rem; margin-left: 3px;"></i>
+                                                </div>
+                                            </div>
+                                            <div class="ai-accordion-body hidden" id="aiAccordionBody" style="display: none;">
+                                                <div class="ai-card" style="margin-top: 0;">
                                             <div class="ai-card-hdr">
                                                 <i class="fas fa-magic" style="color: #818cf8;"></i>
                                                 <h4>AI Copywriter (Gemini)</h4>
@@ -514,11 +824,9 @@
                                                 </button>
                                             </div>
                                         </div>
-                                    </div>
 
-                                    <!-- Advanced AI Image Studio -->
-                                    <div class="field-span-2">
-                                        <div class="ai-card">
+                                        <!-- Advanced AI Image Studio -->
+                                        <div class="ai-card" style="margin-top: 1rem;">
                                             <div class="ai-card-hdr">
                                                 <i class="fas fa-camera" style="color: #f472b6;"></i>
                                                 <h4>AI Image Studio (Gemini)</h4>
@@ -748,12 +1056,13 @@
                                                 <div style="display:flex; justify-content:center; background:#000; border-radius:6px; padding:0.5rem; border:1px solid #1a1a1a;">
                                                     <div id="aiVideoContainer" style="width:100%; max-width:300px; border-radius:6px; overflow:hidden; border:1px solid rgba(255,255,255,0.05); background:#000;"></div>
                                                 </div>
+                                                </div>
                                             </div>
                                         </div>
                                     </div>
 
                                     <!-- Category & Subcategory: WordPress-Style Multi-Select Checkbox Component -->
-                                    <div class="field-span-2">
+                                    <div class="field-span-2" id="section_categories">
                                         <div style="background: #09090b; border: 1px solid #27272a; border-radius: 12px; padding: 1.25rem; margin-bottom: 0.5rem;">
                                             <!-- Header -->
                                             <div style="display: flex; align-items: center; justify-content: space-between; gap: 1rem; margin-bottom: 0.85rem; flex-wrap: wrap;">
@@ -772,6 +1081,10 @@
                                                     <button type="button" onclick="wpToggleAllCategories(true)" style="background: transparent; border: none; color: #a1a1aa; font-size: 0.7rem; font-weight: 600; cursor: pointer; text-decoration: underline;">Select All</button>
                                                     <span style="color: #3f3f46;">•</span>
                                                     <button type="button" onclick="wpToggleAllCategories(false)" style="background: transparent; border: none; color: #a1a1aa; font-size: 0.7rem; font-weight: 600; cursor: pointer; text-decoration: underline;">Clear</button>
+                                                    <span style="color: #3f3f46;">•</span>
+                                                    <button type="button" onclick="wpToggleAllTrees(true)" style="background: transparent; border: none; color: #a1a1aa; font-size: 0.7rem; font-weight: 600; cursor: pointer; text-decoration: underline;">Expand All</button>
+                                                    <span style="color: #3f3f46;">•</span>
+                                                    <button type="button" onclick="wpToggleAllTrees(false)" style="background: transparent; border: none; color: #a1a1aa; font-size: 0.7rem; font-weight: 600; cursor: pointer; text-decoration: underline;">Collapse All</button>
                                                 </div>
                                             </div>
 
@@ -872,7 +1185,7 @@
                             </div>
 
                             <!-- Section 3: Pricing -->
-                            <div class="edit-section">
+                            <div class="edit-section" id="section_pricing">
                                 <div class="section-hdr">
                                     <div class="section-num">3</div>
                                     <div class="section-title">Pricing</div>
@@ -942,7 +1255,7 @@
                                 </div>
 
                                 <!-- Product Colors (Multiple Selection) -->
-                                <div style="margin-top: 1rem; background: #09090b; border: 1px solid #27272a; border-radius: 10px; padding: 1rem;">
+                                <div id="section_colors" style="margin-top: 1rem; background: #09090b; border: 1px solid #27272a; border-radius: 10px; padding: 1rem;">
                                     <div style="display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; margin-bottom: 0.75rem; flex-wrap: wrap;">
                                         <div style="display: flex; align-items: center; gap: 0.5rem;">
                                             <div style="width: 26px; height: 26px; border-radius: 6px; background: rgba(236, 72, 153, 0.12); color: #f472b6; display: flex; align-items: center; justify-content: center; font-size: 0.75rem;">
@@ -1011,7 +1324,7 @@
                             </div>
 
                             <!-- Section 4: Images -->
-                            <div class="edit-section" style="border-bottom:none; padding-bottom:0;">
+                            <div class="edit-section" id="section_images" style="border-bottom:none; padding-bottom:0;">
                                 <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.75rem; flex-wrap: wrap; gap: 0.5rem;">
                                     <div class="section-hdr" style="margin-bottom:0;">
                                         <div class="section-num">4</div>
@@ -1084,22 +1397,29 @@
                                 </div>
                             </div>
 
-                            <!-- Footer Actions -->
+                            <!-- Footer Actions (Sticky Bottom Bar with Chatbot Clearance) -->
                             <div class="edit-footer">
-                                <div class="sync-indicator flex items-center gap-2" id="syncStatusIndicator">
-                                    <?php if (!empty($isSyncApplicable)): ?>
-                                        <span class="text-[11px] text-teal-400 bg-teal-950/40 border border-teal-800/50 px-2.5 py-1 rounded-md flex items-center gap-1.5" title="Category is configured for Yosshitaneha child store sync">
-                                            <span class="w-1.5 h-1.5 rounded-full bg-teal-400 animate-pulse"></span>
-                                            <span>Child Store Sync: <strong>Applicable</strong></span>
-                                        </span>
-                                    <?php else: ?>
-                                        <span class="text-[11px] text-zinc-400 bg-zinc-800/40 border border-zinc-700/50 px-2.5 py-1 rounded-md flex items-center gap-1.5" title="Category is not enabled for child store sync">
-                                            <span class="w-1.5 h-1.5 rounded-full bg-zinc-500"></span>
-                                            <span>Child Store Sync: <strong>Not Applicable</strong></span>
-                                        </span>
-                                    <?php endif; ?>
+                                <div class="edit-footer-status flex items-center gap-3 flex-wrap">
+                                    <div class="sync-indicator flex items-center gap-2" id="syncStatusIndicator">
+                                        <?php if (!empty($isSyncApplicable)): ?>
+                                            <span class="text-[11px] text-teal-400 bg-teal-950/40 border border-teal-800/50 px-2.5 py-1 rounded-md flex items-center gap-1.5" title="Category is configured for Yosshitaneha child store sync">
+                                                <span class="w-1.5 h-1.5 rounded-full bg-teal-400 animate-pulse"></span>
+                                                <span>Child Store Sync: <strong>Applicable</strong></span>
+                                            </span>
+                                        <?php else: ?>
+                                            <span class="text-[11px] text-zinc-400 bg-zinc-800/40 border border-zinc-700/50 px-2.5 py-1 rounded-md flex items-center gap-1.5" title="Category is not enabled for child store sync">
+                                                <span class="w-1.5 h-1.5 rounded-full bg-zinc-500"></span>
+                                                <span>Child Store Sync: <strong>Not Applicable</strong></span>
+                                            </span>
+                                        <?php endif; ?>
+                                    </div>
+                                    <div class="hidden sm:flex items-center gap-2 text-xs text-zinc-400">
+                                        <span>SKU: <strong class="text-zinc-200"><?php echo htmlspecialchars($product['code']); ?></strong></span>
+                                        <span class="text-zinc-600">•</span>
+                                        <span class="text-zinc-400"><i class="far fa-keyboard mr-1"></i><kbd class="bg-zinc-800 text-zinc-300 px-1 py-0.5 rounded text-[10px] border border-zinc-700">Ctrl+S</kbd> to save</span>
+                                    </div>
                                 </div>
-                                <div class="flex items-center gap-2">
+                                <div class="edit-footer-actions flex items-center gap-2.5">
                                     <a href="index.php?controller=product&action=index" class="btn-cancel">
                                         <i class="fas fa-times"></i> Cancel
                                     </a>
@@ -1794,16 +2114,20 @@
                 }
             }
 
-            const submitBtn = document.getElementById('btnSubmitProduct');
-            if (submitBtn) {
-                const submitBtnIcon = document.getElementById('submitBtnIcon');
-                const submitBtnText = document.getElementById('submitBtnText');
-                if (submitBtnIcon) submitBtnIcon.className = 'fas fa-spinner fa-spin mr-1';
-                if (submitBtnText) {
-                    submitBtnText.textContent = submitBtnText.textContent.includes('Sync') ? 'Syncing & Updating...' : 'Updating...';
+            const buttons = [
+                { btn: document.getElementById('btnSubmitProduct'), icon: document.getElementById('submitBtnIcon'), text: document.getElementById('submitBtnText') },
+                { btn: document.getElementById('btnSubmitProductTop'), icon: document.getElementById('submitBtnIconTop'), text: document.getElementById('submitBtnTextTop') }
+            ];
+
+            buttons.forEach(b => {
+                if (b.btn) {
+                    if (b.icon) b.icon.className = 'fas fa-spinner fa-spin mr-1';
+                    if (b.text) {
+                        b.text.textContent = b.text.textContent.includes('Sync') ? 'Syncing & Updating...' : 'Updating...';
+                    }
+                    setTimeout(() => { b.btn.disabled = true; }, 50);
                 }
-                setTimeout(() => { submitBtn.disabled = true; }, 50);
-            }
+            });
 
             return true;
         }
@@ -1935,6 +2259,56 @@
             });
             wpUpdateCatCounter();
         }
+
+        function wpToggleAllTrees(expand) {
+            document.querySelectorAll('.wp-sub-tree').forEach(tree => {
+                tree.style.display = expand ? 'grid' : 'none';
+            });
+            document.querySelectorAll('.wp-cat-node button i').forEach(icon => {
+                icon.className = expand ? 'fas fa-chevron-down' : 'fas fa-chevron-right';
+            });
+        }
+
+        function toggleAiToolsAccordion() {
+            const body = document.getElementById('aiAccordionBody');
+            const chevron = document.getElementById('aiAccordionChevron');
+            const text = document.getElementById('aiAccordionStateText');
+            if (!body) return;
+            const isHidden = body.style.display === 'none' || body.classList.contains('hidden');
+            if (isHidden) {
+                body.classList.remove('hidden');
+                body.style.display = 'block';
+                if (chevron) chevron.className = 'fas fa-chevron-up text-xs';
+                if (text) text.textContent = 'Collapse AI Tools';
+            } else {
+                body.classList.add('hidden');
+                body.style.display = 'none';
+                if (chevron) chevron.className = 'fas fa-chevron-down text-xs';
+                if (text) text.textContent = 'Show AI Studio';
+            }
+        }
+
+        function expandAiToolsAccordion() {
+            const body = document.getElementById('aiAccordionBody');
+            const chevron = document.getElementById('aiAccordionChevron');
+            const text = document.getElementById('aiAccordionStateText');
+            if (body) {
+                body.classList.remove('hidden');
+                body.style.display = 'block';
+                if (chevron) chevron.className = 'fas fa-chevron-up text-xs';
+                if (text) text.textContent = 'Collapse AI Tools';
+            }
+        }
+
+        document.addEventListener('keydown', (e) => {
+            if ((e.ctrlKey || e.metaKey) && (e.key === 's' || e.key === 'S')) {
+                e.preventDefault();
+                const form = document.getElementById('productEditForm');
+                if (form) {
+                    form.requestSubmit();
+                }
+            }
+        });
 
         function wpFilterCategoryTree() {
             const query = (document.getElementById('wpCategorySearch')?.value || '').trim().toLowerCase();
@@ -2335,33 +2709,36 @@
             const btnIcon = document.getElementById('submitBtnIcon');
             const indicator = document.getElementById('syncStatusIndicator');
 
+            const btnTextTop = document.getElementById('submitBtnTextTop');
+            const btnIconTop = document.getElementById('submitBtnIconTop');
+            const indicatorTop = document.getElementById('syncStatusIndicatorTop');
+
+            const label = isApplicable ? 'Sync & Update' : 'Update Product';
+            const iconClass = isApplicable ? 'fas fa-sync-alt mr-1 text-teal-600' : 'fas fa-save mr-1';
+
             if (btnText && btnIcon) {
-                if (isApplicable) {
-                    btnText.textContent = 'Sync & Update';
-                    btnIcon.className = 'fas fa-sync-alt mr-1 text-teal-600';
-                } else {
-                    btnText.textContent = 'Update Product';
-                    btnIcon.className = 'fas fa-save mr-1';
-                }
+                btnText.textContent = label;
+                btnIcon.className = iconClass;
+            }
+            if (btnTextTop && btnIconTop) {
+                btnTextTop.textContent = label;
+                btnIconTop.className = iconClass;
             }
 
-            if (indicator) {
-                if (isApplicable) {
-                    indicator.innerHTML = `
-                        <span class="text-[11px] text-teal-400 bg-teal-950/40 border border-teal-800/50 px-2.5 py-1 rounded-md flex items-center gap-1.5" title="Category is configured for Yosshitaneha child store sync">
-                            <span class="w-1.5 h-1.5 rounded-full bg-teal-400 animate-pulse"></span>
-                            <span>Child Store Sync: <strong>Applicable</strong></span>
-                        </span>
-                    `;
-                } else {
-                    indicator.innerHTML = `
-                        <span class="text-[11px] text-zinc-400 bg-zinc-800/40 border border-zinc-700/50 px-2.5 py-1 rounded-md flex items-center gap-1.5" title="Category is not enabled for child store sync">
-                            <span class="w-1.5 h-1.5 rounded-full bg-zinc-500"></span>
-                            <span>Child Store Sync: <strong>Not Applicable</strong></span>
-                        </span>
-                    `;
-                }
-            }
+            const html = isApplicable ? `
+                <span class="text-[11px] text-teal-400 bg-teal-950/40 border border-teal-800/50 px-2.5 py-1 rounded-md flex items-center gap-1.5" title="Category is configured for Yosshitaneha child store sync">
+                    <span class="w-1.5 h-1.5 rounded-full bg-teal-400 animate-pulse"></span>
+                    <span>Child Store Sync: <strong>Applicable</strong></span>
+                </span>
+            ` : `
+                <span class="text-[11px] text-zinc-400 bg-zinc-800/40 border border-zinc-700/50 px-2.5 py-1 rounded-md flex items-center gap-1.5" title="Category is not enabled for child store sync">
+                    <span class="w-1.5 h-1.5 rounded-full bg-zinc-500"></span>
+                    <span>Child Store Sync: <strong>Not Applicable</strong></span>
+                </span>
+            `;
+
+            if (indicator) indicator.innerHTML = html;
+            if (indicatorTop) indicatorTop.innerHTML = html;
         }
     </script>
 </body>
