@@ -1,230 +1,482 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <title>Bulk AI Product Content Writer - Srishringarr</title>
+    <title>Bulk AI Content Writer - Srishringarr</title>
     <?php include __DIR__ . '/../partials/head.php'; ?>
+    <style>
+        /* Exact ShadCN UI Standards (Slate / Zinc Theme) */
+        :root {
+            --wp-dark: #09090b;
+            --wp-border: #e4e4e7;
+            --wp-bg: #fafafa;
+            --wp-text: #09090b;
+            --wp-text-muted: #71717a;
+            --font-stack: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+        }
+
+        body {
+            font-family: var(--font-stack) !important;
+            background-color: #fafafa !important;
+            color: #09090b !important;
+            font-size: 13px !important;
+            line-height: 1.5 !important;
+        }
+
+        .page-container {
+            max-width: 1440px;
+            margin: 0 auto;
+        }
+
+        /* ShadCN Card Container */
+        .shadcn-card {
+            background: #ffffff;
+            border: 1px solid #e4e4e7;
+            border-radius: 8px;
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.02);
+            margin-bottom: 20px;
+            overflow: hidden;
+        }
+
+        .shadcn-card-header {
+            padding: 14px 18px;
+            border-bottom: 1px solid #f4f4f5;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: #ffffff;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        /* ShadCN Buttons */
+        .shadcn-btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            padding: 0 12px;
+            height: 32px;
+            font-size: 12.5px;
+            font-weight: 500;
+            line-height: 1;
+            text-align: center;
+            cursor: pointer;
+            border-radius: 6px;
+            border: 1px solid #e4e4e7;
+            background: #ffffff;
+            color: #09090b;
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03);
+            transition: all 0.12s ease;
+            text-decoration: none;
+            font-family: inherit;
+            white-space: nowrap;
+        }
+        .shadcn-btn:hover {
+            background: #f4f4f5;
+            border-color: #d4d4d8;
+            color: #09090b;
+        }
+
+        .shadcn-btn-sm {
+            height: 28px;
+            padding: 0 9px;
+            font-size: 11.5px;
+            border-radius: 5px;
+        }
+
+        .shadcn-btn-primary {
+            background: #09090b !important;
+            border-color: #09090b !important;
+            color: #ffffff !important;
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08);
+        }
+        .shadcn-btn-primary:hover {
+            background: #27272a !important;
+            border-color: #27272a !important;
+            color: #ffffff !important;
+        }
+
+        .shadcn-btn-outline {
+            background: #ffffff;
+            border-color: #e4e4e7;
+            color: #09090b;
+        }
+        .shadcn-btn-outline:hover {
+            background: #f4f4f5;
+        }
+
+        /* Neutral Badges */
+        .shadcn-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            padding: 2px 7px;
+            border-radius: 4px;
+            font-size: 11px;
+            font-weight: 500;
+            line-height: 1.2;
+            flex-shrink: 0;
+            background: #f4f4f5;
+            color: #18181b;
+            border: 1px solid #e4e4e7;
+        }
+
+        .status-dot {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            display: inline-block;
+        }
+        .status-dot-success { background-color: #10b981; }
+        .status-dot-warning { background-color: #f59e0b; }
+        .status-dot-neutral { background-color: #94a3b8; }
+        .status-dot-danger { background-color: #ef4444; }
+
+        /* Form Controls */
+        .field-input, .field-select {
+            height: 34px;
+            background: #ffffff;
+            border: 1px solid #e4e4e7;
+            border-radius: 6px;
+            padding: 0 10px;
+            font-size: 12.5px;
+            color: #09090b;
+            outline: none;
+            transition: border-color 0.12s ease;
+            font-family: inherit;
+        }
+        .field-input:focus, .field-select:focus {
+            border-color: #09090b;
+        }
+
+        .table-textarea {
+            width: 100%;
+            background: #ffffff;
+            border: 1px solid #e4e4e7;
+            border-radius: 6px;
+            padding: 6px 8px;
+            font-size: 12px;
+            color: #09090b;
+            outline: none;
+            transition: border-color 0.12s ease;
+            font-family: inherit;
+            line-height: 1.4;
+            resize: vertical;
+        }
+        .table-textarea:focus {
+            border-color: #09090b;
+            background: #fafafa;
+        }
+
+        /* ShadCN Table Standard */
+        .shadcn-table {
+            width: 100%;
+            border-collapse: collapse;
+            background: #ffffff;
+        }
+        .shadcn-table th {
+            background: #fafafa;
+            padding: 9px 14px;
+            font-size: 11px;
+            font-weight: 500;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+            color: #71717a;
+            border-bottom: 1px solid #e4e4e7;
+            text-align: left;
+            white-space: nowrap;
+        }
+        .shadcn-table td {
+            padding: 10px 14px;
+            vertical-align: top;
+            border-bottom: 1px solid #f4f4f5;
+            font-size: 12.5px;
+            color: #09090b;
+        }
+        .shadcn-table tbody tr:hover td {
+            background-color: #fbfbfb;
+        }
+
+        /* Scrollbars */
+        .custom-scrollbar::-webkit-scrollbar { width: 5px; height: 5px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: #f4f4f5; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #d4d4d8; border-radius: 4px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #a1a1aa; }
+
+        /* Floating Toast */
+        #toast-box {
+            position: fixed;
+            bottom: 24px;
+            right: 24px;
+            z-index: 9999;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            pointer-events: none;
+        }
+        .toast-msg {
+            background: #09090b;
+            color: #ffffff;
+            font-size: 12.5px;
+            font-weight: 500;
+            padding: 9px 15px;
+            border-radius: 6px;
+            box-shadow: 0 4px 14px rgba(0, 0, 0, 0.18);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            pointer-events: auto;
+            animation: toastIn 0.15s ease forwards;
+        }
+        @keyframes toastIn {
+            from { opacity: 0; transform: translateY(8px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+    </style>
 </head>
-<body class="bg-zinc-950 font-sans text-zinc-300 antialiased">
+<body class="bg-gray-50 font-sans text-gray-900">
+
     <div class="flex min-h-screen">
         <!-- Sidebar -->
         <?php include __DIR__ . '/../partials/sidebar.php'; ?>
 
-        <div class="flex-1 flex flex-col min-w-0">
+        <!-- Main Content -->
+        <div class="flex-1 flex flex-col min-w-0 overflow-hidden">
             <!-- Topbar -->
             <?php 
             $pageTitle = 'Bulk AI Content Writer';
             include __DIR__ . '/../partials/topbar.php'; 
             ?>
 
-            <main class="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8">
-                <div class="max-w-7xl mx-auto space-y-6">
-                    
-                    <!-- Header Banner -->
-                    <div class="relative overflow-hidden rounded-2xl bg-gradient-to-r from-purple-950 via-indigo-950 to-zinc-900 border border-purple-800/40 p-6 shadow-xl">
-                        <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-                            <div>
-                                <div class="flex items-center gap-3">
-                                    <div class="p-2.5 bg-purple-500/20 border border-purple-500/30 rounded-xl text-purple-300">
-                                        <i class="fas fa-wand-magic-sparkles text-xl"></i>
-                                    </div>
-                                    <div>
-                                        <h1 class="text-xl sm:text-2xl font-bold text-white tracking-tight flex items-center gap-2.5">
-                                            AI Bulk Product Content Writer
-                                            <span class="text-[10px] font-bold tracking-wider uppercase px-2.5 py-0.5 rounded-full bg-purple-500/20 text-purple-300 border border-purple-500/30">
-                                                Gemini Vision Multimodal
-                                            </span>
-                                        </h1>
-                                        <p class="text-xs text-zinc-400 mt-1">
-                                            Examines photoshoot images and category taxonomy with Gemini Vision to generate SEO titles, summaries, and descriptions in bulk.
-                                        </p>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="flex items-center gap-3">
-                                <?php if ($hasApiKey): ?>
-                                    <span class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
-                                        <i class="fas fa-circle-check"></i> Gemini Connected
-                                    </span>
-                                <?php else: ?>
-                                    <span class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-red-500/10 text-red-400 border border-red-500/20">
-                                        <i class="fas fa-triangle-exclamation"></i> Set API Key in secrets.php
-                                    </span>
-                                <?php endif; ?>
-                            </div>
-                        </div>
-                    </div>
+            <main class="flex-1 overflow-y-auto p-6 lg:p-8 bg-zinc-50/50">
+                <div class="page-container">
 
-                    <!-- Filter Card with Dedicated Filters -->
-                    <div class="bg-zinc-900/60 border border-zinc-800/80 rounded-xl p-5 backdrop-blur-sm shadow-sm space-y-4">
-                        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-12 gap-3 items-end">
-                            
-                            <!-- Category Dropdown -->
-                            <div class="lg:col-span-4">
-                                <label class="block text-xs font-bold text-zinc-300 mb-1.5">
-                                    <i class="fas fa-folder-tree text-purple-400 mr-1"></i> Category Selection
-                                </label>
-                                <select id="cat_filter" class="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-2 text-xs text-zinc-200 focus:border-purple-500 focus:outline-none transition-colors">
-                                    <option value="">-- All Categories (Jewellery & Apparel) --</option>
-                                    <?php if (!empty($categories)): ?>
-                                        <?php foreach ($categories as $groupName => $groupData): ?>
-                                            <optgroup label="<?php echo htmlspecialchars($groupName); ?> (<?php echo $groupData['count']; ?>)">
-                                                <?php foreach ($groupData['children'] as $catKey => $catInfo): ?>
-                                                    <option value="<?php echo htmlspecialchars($catKey); ?>">
-                                                        <?php echo htmlspecialchars($catInfo['name']); ?> (<?php echo $catInfo['count']; ?>)
-                                                    </option>
-                                                <?php endforeach; ?>
-                                            </optgroup>
-                                        <?php endforeach; ?>
+                    <!-- Header Banner -->
+                    <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
+                        <div>
+                            <div class="flex items-center gap-2">
+                                <h1 class="text-xl font-semibold text-zinc-900 tracking-tight">AI Bulk Product Content Writer</h1>
+                                <span class="shadcn-badge font-mono text-[11px]">
+                                    Multimodal Vision
+                                </span>
+                            </div>
+                            <p class="text-xs text-zinc-500 mt-1">Examines photoshoot imagery and category taxonomy with Multimodal Vision AI to generate high-converting SEO titles, summaries, and descriptions in bulk.</p>
+                        </div>
+
+                        <!-- AI Provider Selector & Status -->
+                        <div class="flex items-center gap-2.5 flex-wrap">
+                            <div class="flex items-center gap-2 bg-white border border-zinc-200 p-1.5 rounded-lg shadow-xs">
+                                <span class="text-[11px] font-semibold text-zinc-500 uppercase px-2 tracking-wider">AI Model:</span>
+                                <select id="ai_provider_select" class="field-select" style="height: 28px; font-size: 12px; padding: 0 8px; border: 1px solid #e4e4e7;">
+                                    <?php if (!empty($hasOpenAi)): ?>
+                                        <option value="openai" selected>OpenAI (GPT-4o mini Vision)</option>
+                                    <?php endif; ?>
+                                    <?php if (!empty($hasGemini)): ?>
+                                        <option value="gemini" <?php echo empty($hasOpenAi) ? 'selected' : ''; ?>>Google Gemini (Gemini Flash)</option>
+                                    <?php endif; ?>
+                                    <?php if (empty($hasOpenAi) && empty($hasGemini)): ?>
+                                        <option value="openai">OpenAI (Needs Key in secrets.php)</option>
                                     <?php endif; ?>
                                 </select>
                             </div>
 
-                            <!-- Quality Preset Filter -->
-                            <div class="lg:col-span-4">
-                                <label class="block text-xs font-bold text-zinc-300 mb-1.5">
-                                    <i class="fas fa-filter text-purple-400 mr-1"></i> Quality Preset
-                                </label>
-                                <select id="status_filter" class="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-2 text-xs text-zinc-200 focus:border-purple-500 focus:outline-none transition-colors">
-                                    <option value="name_or_desc_is_1">⚠️ Name or Description is '1' (Raw Imports)</option>
-                                    <option value="name_is_1">🎯 Exact Name is '1'</option>
-                                    <option value="desc_is_1">🎯 Exact Description is '1'</option>
-                                    <option value="needs_content" selected>⚠️ Needs AI Content (Name is '1'/SKU/Missing Desc)</option>
-                                    <option value="missing_desc">📝 Missing Detailed Description</option>
-                                    <option value="missing_short_desc">📄 Missing Short Summary</option>
-                                    <option value="all">📋 All Products</option>
-                                </select>
-                            </div>
-
-                            <!-- Batch Limit -->
-                            <div class="lg:col-span-2">
-                                <label class="block text-xs font-bold text-zinc-300 mb-1.5">
-                                    Batch Limit
-                                </label>
-                                <select id="limit_filter" class="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-2.5 py-2 text-xs text-zinc-200 focus:border-purple-500 focus:outline-none transition-colors">
-                                    <option value="25">25 items</option>
-                                    <option value="50" selected>50 items</option>
-                                    <option value="100">100 items</option>
-                                    <option value="200">200 items</option>
-                                </select>
-                            </div>
-
-                            <!-- Load Button -->
-                            <div class="lg:col-span-2">
-                                <button type="button" id="load_products_btn" class="w-full bg-purple-600 hover:bg-purple-500 text-white font-bold py-2 px-3 rounded-lg text-xs transition-colors flex items-center justify-center gap-1.5 shadow-md">
-                                    <i class="fas fa-sync-alt"></i> Load Products
-                                </button>
-                            </div>
+                            <?php if ($hasApiKey): ?>
+                                <span class="shadcn-badge font-mono text-[11px]">
+                                    <span class="status-dot status-dot-success mr-1"></span>
+                                    AI Active
+                                </span>
+                            <?php else: ?>
+                                <span class="shadcn-badge font-mono text-[11px]">
+                                    <span class="status-dot status-dot-danger mr-1"></span>
+                                    Configure API Key
+                                </span>
+                            <?php endif; ?>
                         </div>
+                    </div>
 
-                        <!-- Dedicated Specific Search Inputs Row -->
-                        <div class="pt-2 border-t border-zinc-800/60 grid grid-cols-1 sm:grid-cols-3 gap-3">
-                            <!-- Dedicated Product Name Filter -->
-                            <div>
-                                <label class="block text-[11px] font-bold text-purple-300 mb-1">
-                                    <i class="fas fa-tag mr-1"></i> Filter by Product Name / Title:
-                                </label>
-                                <div class="relative">
-                                    <input type="text" id="name_filter" placeholder="e.g. 1 (exact '1') or keyword..." class="w-full bg-zinc-950 border border-purple-500/40 rounded-lg pl-3 pr-14 py-1.5 text-xs text-zinc-200 focus:border-purple-400 focus:outline-none transition-colors">
-                                    <button type="button" onclick="setNameFilter('1')" class="absolute right-1 top-1 bottom-1 px-2 text-[10px] font-bold bg-purple-500/20 hover:bg-purple-500/30 text-purple-300 rounded border border-purple-500/30 transition-colors">
-                                        = '1'
+                    <!-- Filter Control Card -->
+                    <div class="shadcn-card mb-6">
+                        <div class="p-5 space-y-4">
+                            <!-- Main Filter Row -->
+                            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-12 gap-3 items-end">
+                                <!-- Category Selection -->
+                                <div class="lg:col-span-4">
+                                    <label class="block text-xs font-semibold text-zinc-700 mb-1.5">
+                                        <i class="fas fa-folder-tree text-zinc-400 mr-1"></i> Category Selection
+                                    </label>
+                                    <select id="cat_filter" class="field-select w-full">
+                                        <option value="">-- All Categories (Jewellery & Apparel) --</option>
+                                        <?php if (!empty($categories)): ?>
+                                            <?php foreach ($categories as $groupName => $groupData): ?>
+                                                <optgroup label="<?php echo htmlspecialchars($groupName); ?> (<?php echo $groupData['count']; ?>)">
+                                                    <?php foreach ($groupData['children'] as $catKey => $catInfo): ?>
+                                                        <option value="<?php echo htmlspecialchars($catKey); ?>">
+                                                            <?php echo htmlspecialchars($catInfo['name']); ?> (<?php echo $catInfo['count']; ?>)
+                                                        </option>
+                                                    <?php endforeach; ?>
+                                                </optgroup>
+                                            <?php endforeach; ?>
+                                        <?php endif; ?>
+                                    </select>
+                                </div>
+
+                                <!-- Quality Preset Filter -->
+                                <div class="lg:col-span-4">
+                                    <label class="block text-xs font-semibold text-zinc-700 mb-1.5">
+                                        <i class="fas fa-filter text-zinc-400 mr-1"></i> Quality Preset
+                                    </label>
+                                    <select id="status_filter" class="field-select w-full">
+                                        <option value="name_or_desc_is_1">⚠️ Name or Description is '1' (Raw Imports)</option>
+                                        <option value="name_is_1">🎯 Exact Name is '1'</option>
+                                        <option value="desc_is_1">🎯 Exact Description is '1'</option>
+                                        <option value="needs_content" selected>⚠️ Needs AI Content (Name is '1'/SKU/Missing Desc)</option>
+                                        <option value="missing_desc">📝 Missing Detailed Description</option>
+                                        <option value="missing_short_desc">📄 Missing Short Summary</option>
+                                        <option value="all">📋 All Products</option>
+                                    </select>
+                                </div>
+
+                                <!-- Batch Limit -->
+                                <div class="lg:col-span-2">
+                                    <label class="block text-xs font-semibold text-zinc-700 mb-1.5">
+                                        Batch Limit
+                                    </label>
+                                    <select id="limit_filter" class="field-select w-full">
+                                        <option value="25">25 items</option>
+                                        <option value="50" selected>50 items</option>
+                                        <option value="100">100 items</option>
+                                        <option value="200">200 items</option>
+                                    </select>
+                                </div>
+
+                                <!-- Load Button -->
+                                <div class="lg:col-span-2">
+                                    <button type="button" id="load_products_btn" class="shadcn-btn shadcn-btn-primary w-full" style="height: 34px;">
+                                        <i class="fas fa-sync-alt text-[10px]"></i>
+                                        <span>Load Products</span>
                                     </button>
                                 </div>
                             </div>
 
-                            <!-- Dedicated Description Filter -->
-                            <div>
-                                <label class="block text-[11px] font-bold text-purple-300 mb-1">
-                                    <i class="fas fa-align-left mr-1"></i> Filter by Description:
-                                </label>
-                                <div class="relative">
-                                    <input type="text" id="desc_filter" placeholder="e.g. 1 or keyword..." class="w-full bg-zinc-950 border border-purple-500/40 rounded-lg pl-3 pr-14 py-1.5 text-xs text-zinc-200 focus:border-purple-400 focus:outline-none transition-colors">
-                                    <button type="button" onclick="setDescFilter('1')" class="absolute right-1 top-1 bottom-1 px-2 text-[10px] font-bold bg-purple-500/20 hover:bg-purple-500/30 text-purple-300 rounded border border-purple-500/30 transition-colors">
-                                        = '1'
-                                    </button>
+                            <!-- Dedicated Specific Search Inputs Row -->
+                            <div class="pt-3 border-t border-zinc-100 grid grid-cols-1 sm:grid-cols-3 gap-3">
+                                <!-- Product Name Filter -->
+                                <div>
+                                    <label class="block text-[11px] font-semibold text-zinc-500 uppercase tracking-wider mb-1">
+                                        <i class="fas fa-tag mr-1 text-zinc-400"></i> Title Filter:
+                                    </label>
+                                    <div class="relative flex items-center">
+                                        <input type="text" id="name_filter" placeholder="e.g. 1 (exact '1') or keyword..." class="field-input w-full pr-14">
+                                        <button type="button" onclick="setNameFilter('1')" class="absolute right-1 px-2 py-0.5 text-[10px] font-mono font-semibold bg-zinc-100 hover:bg-zinc-200 text-zinc-700 rounded border border-zinc-200">
+                                            = '1'
+                                        </button>
+                                    </div>
                                 </div>
-                            </div>
 
-                            <!-- Dedicated SKU Filter -->
-                            <div>
-                                <label class="block text-[11px] font-bold text-zinc-400 mb-1 flex items-center justify-between">
-                                    <span><i class="fas fa-barcode mr-1 text-purple-400"></i> Filter by SKU Code(s):</span>
-                                    <span id="sku_count_badge" class="hidden text-[10px] px-1.5 py-0.5 rounded bg-purple-500/20 text-purple-300 font-normal"></span>
-                                </label>
-                                <input type="text" id="sku_filter" placeholder="e.g. k2067, set1014 or space separated..." class="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-1.5 text-xs text-zinc-200 focus:border-purple-500 focus:outline-none transition-colors">
-                                <p class="text-[10px] text-zinc-500 mt-1">Separate multiple SKUs with comma or space</p>
+                                <!-- Description Filter -->
+                                <div>
+                                    <label class="block text-[11px] font-semibold text-zinc-500 uppercase tracking-wider mb-1">
+                                        <i class="fas fa-align-left mr-1 text-zinc-400"></i> Description Filter:
+                                    </label>
+                                    <div class="relative flex items-center">
+                                        <input type="text" id="desc_filter" placeholder="e.g. 1 or keyword..." class="field-input w-full pr-14">
+                                        <button type="button" onclick="setDescFilter('1')" class="absolute right-1 px-2 py-0.5 text-[10px] font-mono font-semibold bg-zinc-100 hover:bg-zinc-200 text-zinc-700 rounded border border-zinc-200">
+                                            = '1'
+                                        </button>
+                                    </div>
+                                </div>
+
+                                <!-- SKU Filter -->
+                                <div>
+                                    <div class="flex items-center justify-between mb-1">
+                                        <label class="text-[11px] font-semibold text-zinc-500 uppercase tracking-wider">
+                                            <i class="fas fa-barcode mr-1 text-zinc-400"></i> SKU Code(s):
+                                        </label>
+                                        <span id="sku_count_badge" class="hidden text-[10px] px-1.5 py-0.2 rounded bg-zinc-100 text-zinc-600 font-mono"></span>
+                                    </div>
+                                    <input type="text" id="sku_filter" placeholder="e.g. k2067, set1014 or space separated..." class="field-input w-full">
+                                </div>
                             </div>
                         </div>
                     </div>
 
                     <!-- Progress Bar Card (Hidden by default) -->
-                    <div id="progress_card" class="hidden bg-purple-950/40 border border-purple-800/60 rounded-xl p-5 shadow-lg">
-                        <div class="flex justify-between items-center mb-2">
-                            <div class="text-xs font-bold text-purple-200 flex items-center gap-2">
-                                <i class="fas fa-spinner fa-spin text-purple-400"></i>
-                                <span id="progress_title">Gemini Vision is analyzing products...</span>
+                    <div id="progress_card" class="shadcn-card hidden mb-6" style="border-color: #09090b;">
+                        <div class="p-4 space-y-3">
+                            <div class="flex justify-between items-center">
+                                <div class="text-xs font-semibold text-zinc-900 flex items-center gap-2">
+                                    <i class="fas fa-spinner fa-spin text-zinc-600"></i>
+                                    <span id="progress_title">Vision AI is analyzing products...</span>
+                                </div>
+                                <div class="text-xs font-mono font-semibold text-zinc-700" id="progress_counter">0 / 0</div>
                             </div>
-                            <div class="text-xs font-bold text-purple-300" id="progress_counter">0 / 0</div>
-                        </div>
 
-                        <div class="w-full h-2 bg-zinc-800 rounded-full overflow-hidden mb-2">
-                            <div id="progress_bar" class="h-full bg-gradient-to-r from-purple-500 to-indigo-500 rounded-full transition-all duration-300" style="width: 0%;"></div>
-                        </div>
+                            <div class="w-full bg-zinc-100 h-2 rounded-full overflow-hidden border border-zinc-200">
+                                <div id="progress_bar" class="h-full bg-zinc-900 rounded-full transition-all duration-300" style="width: 0%;"></div>
+                            </div>
 
-                        <div class="flex justify-between items-center text-xs text-zinc-400">
-                            <span id="current_task_status">Starting queue...</span>
-                            <button type="button" id="stop_queue_btn" class="px-2.5 py-1 bg-red-500/20 hover:bg-red-500/30 text-red-300 border border-red-500/30 rounded text-xs font-bold transition-colors">
-                                <i class="fas fa-stop mr-1"></i> Stop Queue
-                            </button>
+                            <div class="flex justify-between items-center text-xs text-zinc-500">
+                                <span id="current_task_status">Starting queue...</span>
+                                <button type="button" id="stop_queue_btn" class="shadcn-btn shadcn-btn-sm">
+                                    <i class="fas fa-stop text-[10px] text-zinc-400"></i>
+                                    <span>Stop Queue</span>
+                                </button>
+                            </div>
                         </div>
                     </div>
 
                     <!-- Action Bar -->
-                    <div class="bg-zinc-900/60 border border-zinc-800/80 rounded-xl p-4 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-                        <div class="flex items-center gap-3">
-                            <label class="flex items-center gap-2 text-xs font-bold text-zinc-300 cursor-pointer">
-                                <input type="checkbox" id="select_all_cb" class="rounded bg-zinc-950 border-zinc-700 text-purple-600 focus:ring-0 w-4 h-4 cursor-pointer">
-                                <span>Select All Visible</span>
-                            </label>
-                            <span id="selected_count_badge" class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-purple-500/20 text-purple-300 border border-purple-500/30">0 selected</span>
-                            <span id="matched_total_badge" class="text-xs text-zinc-500">Found 0 products</span>
-                        </div>
+                    <div class="shadcn-card mb-4">
+                        <div class="p-3.5 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+                            <div class="flex items-center gap-3 flex-wrap">
+                                <label class="flex items-center gap-2 text-xs font-semibold text-zinc-800 cursor-pointer select-none">
+                                    <input type="checkbox" id="select_all_cb" class="w-4 h-4 accent-zinc-900 rounded cursor-pointer">
+                                    <span>Select All Visible</span>
+                                </label>
+                                <span id="selected_count_badge" class="shadcn-badge font-mono text-[10px]">0 selected</span>
+                                <span id="matched_total_badge" class="text-xs text-zinc-400">Found 0 products</span>
+                            </div>
 
-                        <div class="flex items-center gap-2.5 flex-wrap">
-                            <button type="button" id="generate_selected_btn" disabled class="px-4 py-2 bg-purple-600 hover:bg-purple-500 disabled:opacity-40 disabled:cursor-not-allowed text-white font-bold text-xs rounded-lg transition-all flex items-center gap-2 shadow-md">
-                                <i class="fas fa-wand-magic-sparkles"></i> Generate AI Content (<span id="btn_gen_count">0</span>)
-                            </button>
+                            <div class="flex items-center gap-2 flex-wrap">
+                                <button type="button" id="generate_selected_btn" disabled class="shadcn-btn shadcn-btn-primary disabled:opacity-40 disabled:cursor-not-allowed">
+                                    <i class="fas fa-wand-magic-sparkles text-[10px]"></i>
+                                    <span>Generate AI Content (<span id="btn_gen_count">0</span>)</span>
+                                </button>
 
-                            <button type="button" id="auto_generate_save_btn" disabled class="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-40 disabled:cursor-not-allowed text-white font-bold text-xs rounded-lg transition-all flex items-center gap-2 shadow-md">
-                                <i class="fas fa-bolt"></i> 1-Click Generate &amp; Save (<span id="btn_auto_count">0</span>)
-                            </button>
+                                <button type="button" id="auto_generate_save_btn" disabled class="shadcn-btn shadcn-btn-outline disabled:opacity-40 disabled:cursor-not-allowed">
+                                    <i class="fas fa-bolt text-[10px] text-zinc-500"></i>
+                                    <span>1-Click Generate &amp; Save (<span id="btn_auto_count">0</span>)</span>
+                                </button>
 
-                            <button type="button" id="save_all_btn" disabled class="px-4 py-2 bg-zinc-800 hover:bg-zinc-700 disabled:opacity-40 disabled:cursor-not-allowed text-white font-bold text-xs rounded-lg transition-all flex items-center gap-2 border border-zinc-700 shadow-md">
-                                <i class="fas fa-save"></i> Save All to DB (<span id="btn_save_count">0</span>)
-                            </button>
+                                <button type="button" id="save_all_btn" disabled class="shadcn-btn shadcn-btn-outline disabled:opacity-40 disabled:cursor-not-allowed">
+                                    <i class="fas fa-save text-[10px] text-zinc-500"></i>
+                                    <span>Save All to DB (<span id="btn_save_count">0</span>)</span>
+                                </button>
+                            </div>
                         </div>
                     </div>
 
-                    <!-- Products Table -->
-                    <div class="bg-zinc-900 border border-zinc-800 rounded-xl overflow-hidden shadow-sm">
-                        <div class="max-h-[700px] overflow-y-auto">
-                            <table class="w-full text-left text-xs text-zinc-300">
-                                <thead class="bg-zinc-950 text-zinc-400 uppercase tracking-wider text-[10px] sticky top-0 z-10 border-b border-zinc-800">
+                    <!-- Products Table Card -->
+                    <div class="shadcn-card mb-6">
+                        <div class="overflow-x-auto max-h-[720px] overflow-y-auto custom-scrollbar">
+                            <table class="shadcn-table">
+                                <thead class="sticky top-0 z-10">
                                     <tr>
-                                        <th class="py-3 px-4 w-10 text-center"></th>
-                                        <th class="py-3 px-4 w-16">Image</th>
-                                        <th class="py-3 px-4 w-28">SKU / Type</th>
-                                        <th class="py-3 px-4 w-72">Product Title (Name)</th>
-                                        <th class="py-3 px-4 w-64">Short Summary</th>
-                                        <th class="py-3 px-4">Detailed Description &amp; Features</th>
-                                        <th class="py-3 px-4 w-32 text-center">Status</th>
-                                        <th class="py-3 px-4 w-24 text-center">Action</th>
+                                        <th style="width: 40px; text-align: center;"></th>
+                                        <th style="width: 65px;">Image</th>
+                                        <th style="width: 130px;">SKU / Type</th>
+                                        <th style="width: 290px;">Product Title (Name)</th>
+                                        <th style="width: 260px;">Short Summary</th>
+                                        <th>Detailed Description &amp; Features</th>
+                                        <th style="width: 120px; text-align: center;">Status</th>
+                                        <th style="width: 100px; text-align: center;">Action</th>
                                     </tr>
                                 </thead>
-                                <tbody id="product_tbody" class="divide-y divide-zinc-800/60">
+                                <tbody id="product_tbody">
                                     <tr>
-                                        <td colspan="8" class="text-center py-16 text-zinc-500">
-                                            <i class="fas fa-mouse-pointer text-3xl mb-3 block text-zinc-700"></i>
-                                            Select a category and click <b class="text-zinc-300">"Load Products"</b> to start generating AI titles and descriptions.
+                                        <td colspan="8" class="text-center py-16 text-zinc-400 text-xs">
+                                            <i class="fas fa-mouse-pointer text-2xl mb-2 block text-zinc-300"></i>
+                                            Select a category or quality filter and click <b class="text-zinc-700">"Load Products"</b> to review or generate content in bulk.
                                         </td>
                                     </tr>
                                 </tbody>
@@ -236,6 +488,9 @@
             </main>
         </div>
     </div>
+
+    <!-- Toast Container -->
+    <div id="toast-box"></div>
 
     <?php include __DIR__ . '/../partials/scripts.php'; ?>
     <script>
@@ -268,6 +523,25 @@
     const progressBar = document.getElementById('progress_bar');
     const currentTaskStatus = document.getElementById('current_task_status');
     const stopQueueBtn = document.getElementById('stop_queue_btn');
+    const aiProviderSelect = document.getElementById('ai_provider_select');
+
+    // Toast notification helper
+    function showToast(text, isError = false) {
+        const toastBox = document.getElementById('toast-box');
+        const msg = document.createElement('div');
+        msg.className = 'toast-msg';
+        msg.innerHTML = `
+            <i class="fas ${isError ? 'fa-exclamation-circle text-rose-400' : 'fa-check-circle text-emerald-400'}"></i>
+            <span>${text}</span>
+        `;
+        toastBox.appendChild(msg);
+        setTimeout(() => {
+            msg.style.transition = 'opacity 0.2s ease, transform 0.2s ease';
+            msg.style.opacity = '0';
+            msg.style.transform = 'translateY(6px)';
+            setTimeout(() => msg.remove(), 250);
+        }, 3500);
+    }
 
     function setNameFilter(val) {
         nameFilter.value = val;
@@ -288,8 +562,8 @@
         const limit = limitFilter.value;
 
         loadProductsBtn.disabled = true;
-        loadProductsBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
-        tbody.innerHTML = `<tr><td colspan="8" class="text-center py-12 text-purple-400"><i class="fas fa-spinner fa-spin text-2xl mb-2 block"></i> Fetching products...</td></tr>`;
+        loadProductsBtn.innerHTML = '<i class="fas fa-spinner fa-spin text-[10px]"></i>';
+        tbody.innerHTML = `<tr><td colspan="8" class="text-center py-12 text-zinc-400 text-xs"><i class="fas fa-spinner fa-spin text-xl mb-2 block text-zinc-300"></i> Fetching products from catalog...</td></tr>`;
 
         try {
             const url = `index.php?controller=product&action=bulkAiLoadProducts&category=${encodeURIComponent(catVal)}&filter_type=${encodeURIComponent(filter)}&name_filter=${encodeURIComponent(nameVal)}&desc_filter=${encodeURIComponent(descVal)}&sku_filter=${encodeURIComponent(skuVal)}&limit=${encodeURIComponent(limit)}`;
@@ -297,10 +571,10 @@
             const data = await res.json();
 
             loadProductsBtn.disabled = false;
-            loadProductsBtn.innerHTML = '<i class="fas fa-sync-alt"></i> Load Products';
+            loadProductsBtn.innerHTML = '<i class="fas fa-sync-alt text-[10px]"></i><span>Load Products</span>';
 
             if (!data.success) {
-                tbody.innerHTML = `<tr><td colspan="8" class="text-center py-8 text-red-400"><i class="fas fa-exclamation-circle mr-1"></i> ${data.error || 'Failed to load products.'}</td></tr>`;
+                tbody.innerHTML = `<tr><td colspan="8" class="text-center py-8 text-zinc-500 text-xs"><i class="fas fa-exclamation-circle mr-1"></i> ${data.error || 'Failed to load products.'}</td></tr>`;
                 return;
             }
 
@@ -309,14 +583,16 @@
             renderTable(loadedProducts);
         } catch (err) {
             loadProductsBtn.disabled = false;
-            loadProductsBtn.innerHTML = '<i class="fas fa-sync-alt"></i> Load Products';
-            tbody.innerHTML = `<tr><td colspan="8" class="text-center py-8 text-red-400">Network error: ${err.message}</td></tr>`;
+            loadProductsBtn.innerHTML = '<i class="fas fa-sync-alt text-[10px]"></i><span>Load Products</span>';
+            tbody.innerHTML = `<tr><td colspan="8" class="text-center py-8 text-zinc-500 text-xs">Network error: ${err.message}</td></tr>`;
         }
     }
 
+    loadProductsBtn.addEventListener('click', loadProducts);
+
     function renderTable(products) {
         if (products.length === 0) {
-            tbody.innerHTML = `<tr><td colspan="8" class="text-center py-12 text-zinc-500"><i class="fas fa-box-open text-2xl mb-2 block text-zinc-700"></i> No products match the filter criteria.</td></tr>`;
+            tbody.innerHTML = `<tr><td colspan="8" class="text-center py-12 text-zinc-400 text-xs"><i class="fas fa-box-open text-2xl mb-2 block text-zinc-300"></i> No products match the filter criteria.</td></tr>`;
             updateSelectionUI();
             return;
         }
@@ -326,38 +602,39 @@
             const imgUrl = p.image_url ? p.image_url : 'assets/placeholder.png';
 
             html += `
-                <tr id="row-${p.type}-${p.id}" data-id="${p.id}" data-type="${p.type}" class="hover:bg-zinc-800/30 transition-colors align-top">
-                    <td class="py-3 px-4 text-center pt-4">
-                        <input type="checkbox" class="row-checkbox rounded bg-zinc-950 border-zinc-700 text-purple-600 focus:ring-0 w-4 h-4 cursor-pointer" value="${p.id}" data-type="${p.type}" checked>
+                <tr id="row-${p.type}-${p.id}" data-id="${p.id}" data-type="${p.type}">
+                    <td class="text-center pt-3">
+                        <input type="checkbox" class="row-checkbox w-4 h-4 accent-zinc-900 rounded cursor-pointer" value="${p.id}" data-type="${p.type}" checked>
                     </td>
-                    <td class="py-3 px-4 pt-3.5">
-                        <img src="${imgUrl}" alt="${p.code}" onerror="this.onerror=null; this.src='data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' width=\'48\' height=\'56\' viewBox=\'0 0 48 56\'%3E%3Crect width=\'48\' height=\'56\' fill=\'%2318181b\'/%3E%3Ctext x=\'50%25\' y=\'50%25\' dominant-baseline=\'middle\' text-anchor=\'middle\' fill=\'%2371717a\' font-size=\'9\'%3ENo Image%3C/text%3E%3C/svg%3E';" class="w-12 h-14 object-cover rounded-lg border border-zinc-800 bg-zinc-950 shadow-xs">
+                    <td class="pt-2.5">
+                        <img src="${imgUrl}" alt="${p.code}" onerror="this.onerror=null; this.src='data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' width=\'48\' height=\'56\' viewBox=\'0 0 48 56\'%3E%3Crect width=\'48\' height=\'56\' fill=\'%23f4f4f5\'/%3E%3Ctext x=\'50%25\' y=\'50%25\' dominant-baseline=\'middle\' text-anchor=\'middle\' fill=\'%2371717a\' font-size=\'9\'%3ENo Image%3C/text%3E%3C/svg%3E';" class="w-12 h-14 object-cover rounded border border-zinc-200 bg-zinc-50">
                     </td>
-                    <td class="py-3 px-4 pt-3.5">
-                        <strong class="text-purple-400 font-mono text-xs block">${p.code}</strong>
-                        <span class="inline-block text-[9px] px-1.5 py-0.5 rounded bg-zinc-800 text-zinc-400 uppercase font-bold tracking-tight mt-1">${p.type}</span>
-                        <div class="text-[10px] text-zinc-500 mt-1 truncate max-w-[120px]">${p.category_name}</div>
+                    <td class="pt-2.5">
+                        <strong class="font-mono text-xs text-zinc-900 block">${p.code}</strong>
+                        <span class="shadcn-badge font-mono text-[9px] uppercase mt-1">${p.type}</span>
+                        <div class="text-[11px] text-zinc-400 mt-1 truncate max-w-[130px]" title="${p.category_name}">${p.category_name}</div>
                     </td>
-                    <td class="py-3 px-4 pt-3">
-                        <textarea id="name-${p.type}-${p.id}" rows="2" class="w-full bg-zinc-950 border border-zinc-800 rounded-lg p-2 text-xs text-zinc-200 font-medium focus:border-purple-500 focus:outline-none transition-colors">${p.name}</textarea>
+                    <td class="pt-2">
+                        <textarea id="name-${p.type}-${p.id}" rows="2" class="table-textarea font-medium">${p.name}</textarea>
                     </td>
-                    <td class="py-3 px-4 pt-3">
-                        <textarea id="short-desc-${p.type}-${p.id}" rows="2" placeholder="AI short summary..." class="w-full bg-zinc-950 border border-zinc-800 rounded-lg p-2 text-[11px] text-zinc-300 focus:border-purple-500 focus:outline-none transition-colors">${p.short_desc || ''}</textarea>
+                    <td class="pt-2">
+                        <textarea id="short-desc-${p.type}-${p.id}" rows="2" placeholder="AI short summary..." class="table-textarea text-zinc-600">${p.short_desc || ''}</textarea>
                     </td>
-                    <td class="py-3 px-4 pt-3">
-                        <textarea id="desc-${p.type}-${p.id}" rows="2" placeholder="AI detailed description & features..." class="w-full bg-zinc-950 border border-zinc-800 rounded-lg p-2 text-[11px] text-zinc-300 focus:border-purple-500 focus:outline-none transition-colors">${p.description || ''}</textarea>
+                    <td class="pt-2">
+                        <textarea id="desc-${p.type}-${p.id}" rows="2" placeholder="AI detailed description & features..." class="table-textarea text-zinc-600">${p.description || ''}</textarea>
                     </td>
-                    <td class="py-3 px-4 text-center pt-4" id="status-cell-${p.type}-${p.id}">
-                        <span class="inline-flex items-center px-2 py-1 rounded-full text-[10px] font-bold bg-zinc-800 text-zinc-400 border border-zinc-700/60">
-                            ⏳ Pending
+                    <td class="text-center pt-3" id="status-cell-${p.type}-${p.id}">
+                        <span class="shadcn-badge font-mono text-[10px]">
+                            <span class="status-dot status-dot-neutral"></span>
+                            <span>Pending</span>
                         </span>
                     </td>
-                    <td class="py-3 px-4 text-center pt-3 space-y-1.5">
-                        <button type="button" onclick="generateSingle(${p.id}, '${p.type}')" class="w-full py-1 px-2 bg-purple-600/20 hover:bg-purple-600/30 text-purple-300 border border-purple-500/30 rounded text-[11px] font-bold transition-colors">
-                            <i class="fas fa-wand-magic-sparkles"></i> AI
+                    <td class="text-center pt-2.5 space-y-1">
+                        <button type="button" onclick="generateSingle(${p.id}, '${p.type}')" class="shadcn-btn shadcn-btn-sm w-full" title="Generate with AI Vision">
+                            <i class="fas fa-wand-magic-sparkles text-[10px]"></i> AI
                         </button>
-                        <button type="button" onclick="saveSingle(${p.id}, '${p.type}')" class="w-full py-1 px-2 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 border border-zinc-700 rounded text-[11px] font-semibold transition-colors">
-                            <i class="fas fa-save"></i> Save
+                        <button type="button" onclick="saveSingle(${p.id}, '${p.type}')" class="shadcn-btn shadcn-btn-sm w-full" title="Save changes to Database">
+                            <i class="fas fa-save text-[10px]"></i> Save
                         </button>
                     </td>
                 </tr>
@@ -401,13 +678,14 @@
         const nameInput = document.getElementById(`name-${type}-${productId}`);
         const shortDescInput = document.getElementById(`short-desc-${type}-${productId}`);
         const descInput = document.getElementById(`desc-${type}-${productId}`);
+        const selectedProvider = aiProviderSelect ? aiProviderSelect.value : 'openai';
 
         if (statusCell) {
-            statusCell.innerHTML = `<span class="inline-flex items-center gap-1 px-2 py-1 rounded-full text-[10px] font-bold bg-purple-500/20 text-purple-300 border border-purple-500/30"><i class="fas fa-spinner fa-spin"></i> Vision AI...</span>`;
+            statusCell.innerHTML = `<span class="shadcn-badge font-mono text-[10px]"><i class="fas fa-spinner fa-spin text-zinc-500"></i> AI Vision...</span>`;
         }
 
         try {
-            const res = await fetch(`index.php?controller=product&action=aiGenerateBulkContent&id=${productId}&type=${type}`);
+            const res = await fetch(`index.php?controller=product&action=aiGenerateBulkContent&id=${productId}&type=${type}&ai_provider=${selectedProvider}`);
             const data = await res.json();
 
             if (data.success) {
@@ -416,19 +694,19 @@
                 if (descInput && data.description) descInput.value = data.description;
 
                 if (statusCell) {
-                    statusCell.innerHTML = `<span class="inline-flex items-center px-2 py-1 rounded-full text-[10px] font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">🟢 Generated</span>`;
+                    statusCell.innerHTML = `<span class="shadcn-badge text-zinc-900 font-mono text-[10px]"><span class="status-dot status-dot-success"></span> Generated</span>`;
                 }
                 updateSaveButtonCount();
                 return true;
             } else {
                 if (statusCell) {
-                    statusCell.innerHTML = `<span class="inline-flex items-center px-2 py-1 rounded-full text-[10px] font-bold bg-red-500/20 text-red-400 border border-red-500/30" title="${data.error || 'Failed'}">❌ Error</span>`;
+                    statusCell.innerHTML = `<span class="shadcn-badge text-zinc-700 font-mono text-[10px]" title="${data.error || 'Failed'}"><span class="status-dot status-dot-danger"></span> Error</span>`;
                 }
                 return false;
             }
         } catch (err) {
             if (statusCell) {
-                statusCell.innerHTML = `<span class="inline-flex items-center px-2 py-1 rounded-full text-[10px] font-bold bg-red-500/20 text-red-400 border border-red-500/30">❌ Network</span>`;
+                statusCell.innerHTML = `<span class="shadcn-badge text-zinc-700 font-mono text-[10px]"><span class="status-dot status-dot-danger"></span> Network</span>`;
             }
             return false;
         }
@@ -445,12 +723,12 @@
         const desc = descInput ? descInput.value.trim() : '';
 
         if (!name) {
-            alert('Product title cannot be empty.');
+            showToast('Product title cannot be empty', true);
             return false;
         }
 
         if (statusCell) {
-            statusCell.innerHTML = `<span class="inline-flex items-center gap-1 px-2 py-1 rounded-full text-[10px] font-bold bg-zinc-800 text-zinc-400"><i class="fas fa-spinner fa-spin"></i> Saving...</span>`;
+            statusCell.innerHTML = `<span class="shadcn-badge font-mono text-[10px]"><i class="fas fa-spinner fa-spin"></i> Saving...</span>`;
         }
 
         try {
@@ -469,18 +747,19 @@
 
             if (data.success) {
                 if (statusCell) {
-                    statusCell.innerHTML = `<span class="inline-flex items-center gap-1 px-2 py-1 rounded-full text-[10px] font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30"><i class="fas fa-check"></i> Saved to DB</span>`;
+                    statusCell.innerHTML = `<span class="shadcn-badge text-zinc-900 font-mono text-[10px]"><span class="status-dot status-dot-success"></span> Saved</span>`;
                 }
+                showToast(`Product #${productId} saved to catalog.`);
                 return true;
             } else {
-                alert('Save failed: ' + (data.error || 'Unknown error'));
+                showToast('Save failed: ' + (data.error || 'Unknown error'), true);
                 if (statusCell) {
-                    statusCell.innerHTML = `<span class="inline-flex items-center px-2 py-1 rounded-full text-[10px] font-bold bg-red-500/20 text-red-400">❌ Save Error</span>`;
+                    statusCell.innerHTML = `<span class="shadcn-badge text-zinc-700 font-mono text-[10px]"><span class="status-dot status-dot-danger"></span> Error</span>`;
                 }
                 return false;
             }
         } catch (err) {
-            alert('Network error: ' + err.message);
+            showToast('Network error: ' + err.message, true);
             return false;
         }
     }
@@ -510,7 +789,7 @@
         autoGenerateSaveBtn.disabled = true;
 
         progressCard.classList.remove('hidden');
-        progressTitle.textContent = autoSave ? 'Gemini Vision is Generating & Auto-Saving...' : 'Gemini Vision is Generating AI Content...';
+        progressTitle.textContent = autoSave ? 'AI Vision is Generating & Auto-Saving...' : 'AI Vision is Generating Content...';
 
         const total = checked.length;
         let completed = 0;
@@ -541,21 +820,18 @@
             }
 
             completed++;
-            await new Promise(r => setTimeout(r, 500));
+            await new Promise(r => setTimeout(r, 400));
         }
 
         isQueueRunning = false;
         currentTaskStatus.textContent = `Completed ${completed} items (${successCount} successful).`;
+        showToast(`Batch completed: ${successCount} of ${completed} processed successfully.`);
         updateSelectionUI();
         updateSaveButtonCount();
     }
 
     generateSelectedBtn.addEventListener('click', () => runBatchQueue(false));
-    autoGenerateSaveBtn.addEventListener('click', () => {
-        if (confirm(`Run Gemini Vision and DIRECTLY save updated titles & descriptions to the database for ${document.querySelectorAll('.row-checkbox:checked').length} products?`)) {
-            runBatchQueue(true);
-        }
-    });
+    autoGenerateSaveBtn.addEventListener('click', () => runBatchQueue(true));
 
     stopQueueBtn.addEventListener('click', () => {
         stopRequested = true;
@@ -567,82 +843,29 @@
         const toSave = [];
 
         rows.forEach(r => {
-            const pId = r.getAttribute('data-id');
-            const pType = r.getAttribute('data-type') || 'jewellery';
-            const nameInput = document.getElementById(`name-${pType}-${pId}`);
-            const shortDescInput = document.getElementById(`short-desc-${pType}-${pId}`);
-            const descInput = document.getElementById(`desc-${pType}-${pId}`);
-
-            if (pId && nameInput && nameInput.value.trim()) {
-                toSave.push({
-                    id: pId,
-                    type: pType,
-                    name: nameInput.value.trim(),
-                    short_description: shortDescInput ? shortDescInput.value.trim() : '',
-                    description: descInput ? descInput.value.trim() : ''
-                });
+            const id = r.getAttribute('data-id');
+            const type = r.getAttribute('data-type');
+            if (id && type) {
+                toSave.push({ id, type });
             }
         });
 
-        if (toSave.length === 0) {
-            alert('No generated products found to save.');
-            return;
-        }
-
-        if (!confirm(`Save all ${toSave.length} product titles and descriptions to the database?`)) {
-            return;
-        }
+        if (toSave.length === 0) return;
 
         saveAllBtn.disabled = true;
-        saveAllBtn.innerHTML = `<i class="fas fa-spinner fa-spin"></i> Saving ${toSave.length}...`;
+        saveAllBtn.innerHTML = '<i class="fas fa-spinner fa-spin text-[10px]"></i> Saving...';
 
-        let saved = 0;
-        for (let item of toSave) {
+        let savedCount = 0;
+        for (const item of toSave) {
             const ok = await saveSingle(item.id, item.type);
-            if (ok) saved++;
+            if (ok) savedCount++;
+            await new Promise(r => setTimeout(r, 100));
         }
 
         saveAllBtn.disabled = false;
-        saveAllBtn.innerHTML = `<i class="fas fa-save"></i> Save All to DB (<span id="btn_save_count">${saved}</span>)`;
-        alert(`Successfully saved ${saved} products to the database!`);
+        saveAllBtn.innerHTML = '<i class="fas fa-save text-[10px]"></i><span>Save All to DB</span> (<span id="btn_save_count">0</span>)';
+        showToast(`Saved ${savedCount} products to database.`);
     });
-
-    loadProductsBtn.addEventListener('click', loadProducts);
-    catFilter.addEventListener('change', loadProducts);
-    statusFilter.addEventListener('change', loadProducts);
-    limitFilter.addEventListener('change', loadProducts);
-
-    // Live SKU count badge update
-    skuFilter.addEventListener('input', function() {
-        const val = this.value.trim();
-        const badge = document.getElementById('sku_count_badge');
-        if (!badge) return;
-        if (!val) {
-            badge.classList.add('hidden');
-            return;
-        }
-        const skus = val.split(/[\r\n,\s]+/).filter(s => s.trim().length > 0);
-        if (skus.length > 1) {
-            badge.textContent = `${skus.length} SKUs`;
-            badge.classList.remove('hidden');
-        } else {
-            badge.classList.add('hidden');
-        }
-    });
-
-    // Press Enter to load products in text filter inputs
-    [nameFilter, descFilter, skuFilter].forEach(input => {
-        if (input) {
-            input.addEventListener('keydown', (e) => {
-                if (e.key === 'Enter') {
-                    e.preventDefault();
-                    loadProducts();
-                }
-            });
-        }
-    });
-
-    document.addEventListener('DOMContentLoaded', loadProducts);
     </script>
 </body>
 </html>

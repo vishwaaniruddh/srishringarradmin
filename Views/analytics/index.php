@@ -1,68 +1,218 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <title>Analytics Dashboard - Srishringarr</title>
+    <title>Analytics & Traffic Monitor - Srishringarr</title>
     <?php include __DIR__ . '/../partials/head.php'; ?>
     <style>
+        /* Exact ShadCN UI Standards (Matching yn/admin & products catalog) */
+        :root {
+            --wp-dark: #09090b;
+            --wp-blue: #2563eb;
+            --wp-border: #e4e4e7;
+            --wp-border-muted: #f4f4f5;
+            --wp-bg: #fafafa;
+            --wp-card: #ffffff;
+            --wp-text: #09090b;
+            --wp-text-muted: #71717a;
+            --font-stack: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+        }
+
+        body {
+            font-family: var(--font-stack) !important;
+            background-color: var(--wp-bg) !important;
+            color: var(--wp-text) !important;
+            font-size: 13px !important;
+            line-height: 1.5 !important;
+        }
+
+        .page-container {
+            max-width: 1440px;
+            margin: 0 auto;
+        }
+
+        /* Card Surface */
+        .card-surface {
+            background: #ffffff !important;
+            border: 1px solid #e4e4e7 !important;
+            border-radius: 8px !important;
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03) !important;
+        }
+
+        /* Shadcn Buttons */
+        .shadcn-btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            font-weight: 500;
+            font-size: 12.5px;
+            height: 32px;
+            padding: 0 12px;
+            border-radius: 6px;
+            transition: all 0.12s ease;
+            text-decoration: none !important;
+            cursor: pointer;
+            white-space: nowrap;
+            line-height: 1;
+        }
+        .shadcn-btn-primary {
+            background-color: #09090b !important;
+            color: #ffffff !important;
+            border: 1px solid #09090b !important;
+        }
+        .shadcn-btn-primary:hover {
+            background-color: #27272a !important;
+            border-color: #27272a !important;
+            color: #ffffff !important;
+        }
+        .shadcn-btn-outline {
+            background-color: #ffffff !important;
+            color: #09090b !important;
+            border: 1px solid #e4e4e7 !important;
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03);
+        }
+        .shadcn-btn-outline:hover {
+            background-color: #f4f4f5 !important;
+            border-color: #d4d4d8 !important;
+        }
+
+        /* Shadcn Badges */
+        .shadcn-badge {
+            display: inline-flex;
+            align-items: center;
+            padding: 2px 7px;
+            border-radius: 4px;
+            font-size: 10.5px;
+            font-weight: 500;
+            letter-spacing: 0.02em;
+            line-height: 1.2;
+            background: #f4f4f5;
+            color: #18181b;
+            border: 1px solid #e4e4e7;
+        }
+
+        /* KPI Stat Cards */
+        .stat-card {
+            background: #ffffff;
+            border: 1px solid #e4e4e7;
+            border-radius: 8px;
+            padding: 16px;
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03);
+            transition: all 0.15s ease;
+        }
+        .stat-card:hover {
+            border-color: #d4d4d8;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.04);
+            transform: translateY(-1px);
+        }
+        .stat-icon-wrap {
+            width: 32px;
+            height: 32px;
+            border-radius: 6px;
+            background: #f4f4f5;
+            border: 1px solid #e4e4e7;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #09090b;
+            font-size: 13px;
+            flex-shrink: 0;
+        }
+
+        /* Trending Product Cards */
         .trending-card {
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-            position: relative;
+            background: #ffffff;
+            border: 1px solid #e4e4e7;
+            border-radius: 8px;
             overflow: hidden;
-        }
-        .trending-card::before {
-            content: '';
-            position: absolute;
-            inset: 0;
-            background: linear-gradient(135deg, rgba(99,102,241,0.06), transparent 60%);
-            opacity: 0;
-            transition: opacity 0.3s;
-            pointer-events: none;
-        }
-        .trending-card:hover::before {
-            opacity: 1;
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03);
+            transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            text-decoration: none !important;
+            color: inherit !important;
         }
         .trending-card:hover {
-            border-color: rgba(99,102,241,0.4);
+            border-color: #09090b;
             transform: translateY(-2px);
-            box-shadow: 0 8px 30px -12px rgba(99,102,241,0.15);
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.06);
         }
         .trending-card .rank-badge {
             position: absolute;
-            top: 12px;
-            left: 12px;
+            top: 10px;
+            left: 10px;
             z-index: 10;
+            width: 24px;
+            height: 24px;
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 11px;
+            font-weight: 700;
+            color: #ffffff;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.15);
+        }
+        .rank-1 { background: #09090b; }
+        .rank-2 { background: #3f3f46; }
+        .rank-3 { background: #71717a; }
+        .rank-default { background: #a1a1aa; }
+
+        .trending-card .product-img-wrap {
+            width: 100%;
+            aspect-ratio: 1;
+            background: #f4f4f5;
+            position: relative;
+            overflow: hidden;
+            border-bottom: 1px solid #f4f4f5;
         }
         .trending-card .product-img {
             width: 100%;
-            aspect-ratio: 1;
+            height: 100%;
             object-fit: cover;
-            transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            transition: transform 0.35s ease;
         }
         .trending-card:hover .product-img {
-            transform: scale(1.05);
+            transform: scale(1.04);
         }
         .trending-card .visit-site-btn {
+            position: absolute;
+            bottom: 8px;
+            left: 8px;
+            right: 8px;
             opacity: 0;
             transform: translateY(6px);
-            transition: all 0.3s;
+            transition: all 0.2s ease;
+            z-index: 5;
         }
         .trending-card:hover .visit-site-btn {
             opacity: 1;
             transform: translateY(0);
         }
-        .rank-1 { background: linear-gradient(135deg, #f59e0b, #d97706); }
-        .rank-2 { background: linear-gradient(135deg, #94a3b8, #64748b); }
-        .rank-3 { background: linear-gradient(135deg, #b45309, #92400e); }
-        .rank-default { background: linear-gradient(135deg, #3f3f46, #27272a); }
-        .timeline-line { position: relative; }
+
+        /* Timeline and Session Cards */
+        .session-card {
+            background: #ffffff;
+            border: 1px solid #e4e4e7;
+            border-radius: 8px;
+            transition: all 0.15s ease;
+            overflow: hidden;
+        }
+        .session-card:hover {
+            border-color: #d4d4d8;
+        }
+        .timeline-line {
+            position: relative;
+        }
         .timeline-line::before {
             content: '';
             position: absolute;
             left: 15px;
-            top: 0;
-            bottom: 0;
+            top: 6px;
+            bottom: 6px;
             width: 2px;
-            background: linear-gradient(to bottom, #3f3f46, transparent);
+            background: #e4e4e7;
         }
         .timeline-dot {
             width: 10px;
@@ -70,80 +220,91 @@
             border-radius: 50%;
             position: absolute;
             left: 11px;
-            top: 6px;
+            top: 7px;
+            background: #71717a;
+            border: 2px solid #ffffff;
+            box-shadow: 0 0 0 1px #e4e4e7;
         }
-        .session-card { transition: all 0.2s; }
-        .session-card:hover { border-color: #3f3f46; }
+        .dot-product_view { background: #2563eb !important; }
+        .dot-shop_view { background: #16a34a !important; }
+        .dot-category_view { background: #d97706 !important; }
+        .dot-page_view { background: #71717a !important; }
+        .dot-cart_add, .dot-cart_view { background: #db2777 !important; }
+        .dot-checkout_start { background: #9333ea !important; }
+        .dot-search { background: #0284c7 !important; }
+
+        /* Event Badges */
         .event-badge {
-            font-size: 9px;
-            padding: 2px 6px;
+            font-size: 10px;
+            padding: 2px 7px;
             border-radius: 4px;
-            font-weight: 700;
+            font-weight: 600;
             text-transform: uppercase;
-            letter-spacing: 0.05em;
+            letter-spacing: 0.03em;
             white-space: nowrap;
+            line-height: 1.3;
         }
-        .badge-product_view { background: rgba(99,102,241,0.15); color: #818cf8; border: 1px solid rgba(99,102,241,0.25); }
-        .badge-shop_view { background: rgba(16,185,129,0.15); color: #34d399; border: 1px solid rgba(16,185,129,0.25); }
-        .badge-category_view { background: rgba(245,158,11,0.15); color: #fbbf24; border: 1px solid rgba(245,158,11,0.25); }
-        .badge-page_view { background: rgba(113,113,122,0.15); color: #a1a1aa; border: 1px solid rgba(113,113,122,0.25); }
-        .badge-cart_add { background: rgba(236,72,153,0.15); color: #f472b6; border: 1px solid rgba(236,72,153,0.25); }
-        .badge-cart_view { background: rgba(236,72,153,0.1); color: #f9a8d4; border: 1px solid rgba(236,72,153,0.2); }
-        .badge-checkout_start { background: rgba(168,85,247,0.15); color: #c084fc; border: 1px solid rgba(168,85,247,0.25); }
-        .badge-search { background: rgba(14,165,233,0.15); color: #38bdf8; border: 1px solid rgba(14,165,233,0.25); }
-        .dot-product_view { background: #818cf8; }
-        .dot-shop_view { background: #34d399; }
-        .dot-category_view { background: #fbbf24; }
-        .dot-page_view { background: #71717a; }
-        .dot-cart_add, .dot-cart_view { background: #f472b6; }
-        .dot-checkout_start { background: #c084fc; }
-        .dot-search { background: #38bdf8; }
-        .stat-card {
-            transition: all 0.25s cubic-bezier(0.4,0,0.2,1);
-        }
-        .stat-card:hover {
-            border-color: #3f3f46;
-            transform: translateY(-1px);
-        }
+        .badge-product_view { background: #eff6ff; color: #1d4ed8; border: 1px solid #bfdbfe; }
+        .badge-shop_view { background: #f0fdf4; color: #15803d; border: 1px solid #bbf7d0; }
+        .badge-category_view { background: #fffbeb; color: #b45309; border: 1px solid #fde68a; }
+        .badge-page_view { background: #f4f4f5; color: #52525b; border: 1px solid #e4e4e7; }
+        .badge-cart_add, .badge-cart_view { background: #fdf2f8; color: #be185d; border: 1px solid #fbcfe8; }
+        .badge-checkout_start { background: #faf5ff; color: #7e22ce; border: 1px solid #e9d5ff; }
+        .badge-search { background: #f0f9ff; color: #0369a1; border: 1px solid #bae6fd; }
+
+        /* Progress Bar */
         .mini-bar {
             height: 4px;
             border-radius: 2px;
-            transition: width 0.8s cubic-bezier(0.4,0,0.2,1);
-        }
-        @keyframes fadeInUp {
-            from { opacity: 0; transform: translateY(12px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-        .animate-in {
-            animation: fadeInUp 0.4s ease-out forwards;
+            transition: width 0.6s cubic-bezier(0.16, 1, 0.3, 1);
         }
     </style>
 </head>
-<body class="bg-zinc-950 font-sans text-zinc-300 antialiased">
+<body>
+
     <div class="flex min-h-screen">
-        <!-- Sidebar -->
+        <!-- Shared Dark Sidebar -->
         <?php include __DIR__ . '/../partials/sidebar.php'; ?>
 
-        <div class="flex-1 flex flex-col min-w-0">
-            <!-- Topbar -->
+        <!-- Main Content Area -->
+        <div class="flex-1 flex flex-col min-w-0 overflow-hidden">
+            <!-- Shared Topbar -->
             <?php 
-            $pageTitle = 'Analytics & Trending';
+            $pageTitle = 'Analytics & Reports';
             include __DIR__ . '/../partials/topbar.php'; 
             ?>
 
-            <main class="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8">
-                <div class="max-w-7xl mx-auto">
+            <!-- Page Content -->
+            <main class="flex-1 overflow-y-auto p-6 lg:p-8 bg-gray-50/50">
+                <div class="page-container">
 
-                    <!-- Date Filter Bar -->
-                    <div class="bg-zinc-950 border border-zinc-900 rounded-xl p-4 mb-6">
-                        <form method="GET" action="index.php" class="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+                    <!-- Header Banner -->
+                    <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 20px; gap: 14px; flex-wrap: wrap;">
+                        <div>
+                            <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+                                <h1 style="font-size: 20px; font-weight: 600; color: #09090b; letter-spacing: -0.02em; margin: 0; line-height: 1.2;">
+                                    Traffic &amp; Visitor Analytics
+                                </h1>
+                                <span class="shadcn-badge">
+                                    <i class="fa-solid fa-chart-line" style="margin-right: 5px; color: #2563eb;"></i> LIVE MONITOR
+                                </span>
+                            </div>
+                            <p style="font-size: 13px; color: #71717a; margin: 4px 0 0 0;">
+                                Real-time storefront visitor activity, trending products, user journeys, and funnel conversions.
+                            </p>
+                        </div>
+                    </div>
+
+                    <!-- Date Filter Bar (ShadCN Card Surface) -->
+                    <div class="card-surface" style="padding: 14px 16px; margin-bottom: 24px;">
+                        <form method="GET" action="index.php" style="display: flex; justify-content: space-between; align-items: center; gap: 14px; flex-wrap: wrap;">
                             <input type="hidden" name="controller" value="analytics">
                             <input type="hidden" name="action" value="index">
 
-                            <!-- Quick Preset Badges -->
-                            <div class="flex flex-wrap items-center gap-2">
-                                <span class="text-xs font-semibold text-zinc-400 mr-1 flex items-center gap-1.5">
-                                    <i class="fas fa-calendar-alt text-indigo-400"></i> Date Range:
+                            <!-- Preset Tabs -->
+                            <div style="display: flex; align-items: center; gap: 6px; flex-wrap: wrap;">
+                                <span style="font-size: 12px; font-weight: 600; color: #71717a; margin-right: 4px; display: inline-flex; align-items: center; gap: 6px;">
+                                    <i class="fa-regular fa-calendar" style="font-size: 11px;"></i> Period:
                                 </span>
                                 <?php 
                                 $presets = [
@@ -158,167 +319,183 @@
                                     $isActive = ($activePreset === $key);
                                 ?>
                                     <a href="index.php?controller=analytics&action=index&preset=<?php echo $key; ?>" 
-                                       class="px-2.5 py-1 rounded-lg text-xs font-medium border transition-colors <?php echo $isActive ? 'bg-indigo-600 border-indigo-500 text-white shadow-sm' : 'bg-zinc-900 border-zinc-800 text-zinc-400 hover:text-white hover:bg-zinc-800'; ?>">
+                                       class="shadcn-btn <?php echo $isActive ? 'shadcn-btn-primary' : 'shadcn-btn-outline'; ?>"
+                                       style="height: 30px; font-size: 12px; padding: 0 11px;">
                                         <?php echo $label; ?>
                                     </a>
                                 <?php endforeach; ?>
                             </div>
 
-                            <!-- Custom Date Range -->
-                            <div class="flex flex-wrap items-center gap-2">
-                                <div class="flex items-center gap-1.5 bg-zinc-900 border border-zinc-800 rounded-lg px-2 py-1">
-                                    <span class="text-[10px] uppercase font-bold text-zinc-500">From</span>
+                            <!-- Custom Date Range Form -->
+                            <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+                                <div style="display: flex; align-items: center; gap: 6px; background: #ffffff; border: 1px solid #e4e4e7; border-radius: 6px; padding: 4px 8px; height: 32px;">
+                                    <span style="font-size: 10.5px; font-weight: 600; color: #71717a; text-transform: uppercase;">From</span>
                                     <input type="date" name="start_date" value="<?php echo htmlspecialchars($startDate ?? ''); ?>" 
-                                           class="bg-transparent border-0 text-zinc-200 text-xs focus:outline-none focus:ring-0 p-0 cursor-pointer">
+                                           style="border: none; background: transparent; font-size: 12px; color: #09090b; outline: none; font-family: inherit; cursor: pointer;">
                                 </div>
-                                <div class="flex items-center gap-1.5 bg-zinc-900 border border-zinc-800 rounded-lg px-2 py-1">
-                                    <span class="text-[10px] uppercase font-bold text-zinc-500">To</span>
+                                <div style="display: flex; align-items: center; gap: 6px; background: #ffffff; border: 1px solid #e4e4e7; border-radius: 6px; padding: 4px 8px; height: 32px;">
+                                    <span style="font-size: 10.5px; font-weight: 600; color: #71717a; text-transform: uppercase;">To</span>
                                     <input type="date" name="end_date" value="<?php echo htmlspecialchars($endDate ?? ''); ?>" 
-                                           class="bg-transparent border-0 text-zinc-200 text-xs focus:outline-none focus:ring-0 p-0 cursor-pointer">
+                                           style="border: none; background: transparent; font-size: 12px; color: #09090b; outline: none; font-family: inherit; cursor: pointer;">
                                 </div>
-                                <button type="submit" class="bg-indigo-600 hover:bg-indigo-500 text-white font-medium text-xs px-3.5 py-1.5 rounded-lg transition-colors flex items-center gap-1.5 shadow-sm">
-                                    <i class="fas fa-filter text-[10px]"></i> Apply
+                                <button type="submit" class="shadcn-btn shadcn-btn-primary" style="height: 32px;">
+                                    <i class="fa-solid fa-filter" style="font-size: 10px;"></i> Apply
                                 </button>
                                 <?php if ($startDate || $endDate || $preset): ?>
-                                    <a href="index.php?controller=analytics&action=index" class="bg-zinc-900 hover:bg-zinc-800 text-zinc-400 hover:text-zinc-200 text-xs px-3 py-1.5 rounded-lg border border-zinc-800 transition-colors flex items-center gap-1">
-                                        <i class="fas fa-times text-[10px]"></i> Reset
+                                    <a href="index.php?controller=analytics&action=index" class="shadcn-btn shadcn-btn-outline" style="height: 32px; color: #71717a;" title="Clear date filter">
+                                        <i class="fa-solid fa-xmark" style="font-size: 11px;"></i> Reset
                                     </a>
                                 <?php endif; ?>
                             </div>
                         </form>
 
                         <?php if ($startDate || $endDate): ?>
-                            <div class="mt-3 pt-3 border-t border-zinc-900 flex items-center gap-2 text-xs text-zinc-400">
-                                <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
-                                Filtering: 
-                                <span class="text-zinc-200 font-semibold">
-                                    <?php echo $startDate ? date('d M Y', strtotime($startDate)) : 'Start'; ?> 
+                            <div style="margin-top: 10px; padding-top: 10px; border-top: 1px solid #f4f4f5; display: flex; align-items: center; gap: 6px; font-size: 12px; color: #71717a;">
+                                <span style="width: 6px; height: 6px; border-radius: 50%; background: #16a34a; display: inline-block;"></span>
+                                Active Filter: 
+                                <strong style="color: #09090b;">
+                                    <?php echo $startDate ? date('d M Y', strtotime($startDate)) : 'Beginning'; ?> 
                                     &rarr; 
                                     <?php echo $endDate ? date('d M Y', strtotime($endDate)) : 'Today'; ?>
-                                </span>
+                                </strong>
                             </div>
                         <?php endif; ?>
                     </div>
 
                     <!-- Stats Overview Row -->
-                    <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-8">
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 14px; margin-bottom: 24px;">
                         <?php
                         $statsCards = [
-                            ['label' => 'Unique Visitors', 'value' => $totalSessions, 'icon' => 'fa-users', 'color' => 'indigo'],
-                            ['label' => 'Total Page Views', 'value' => $totalPageViews, 'icon' => 'fa-eye', 'color' => 'emerald'],
-                            ['label' => 'Product Views', 'value' => $totalProductViews, 'icon' => 'fa-gem', 'color' => 'amber'],
-                            ['label' => 'Cart Adds', 'value' => $funnel['cart_adds'], 'icon' => 'fa-shopping-cart', 'color' => 'pink'],
+                            ['label' => 'Unique Visitors', 'value' => $totalSessions, 'icon' => 'fa-solid fa-users', 'sub' => 'Distinct IP addresses'],
+                            ['label' => 'Total Page Views', 'value' => $totalPageViews, 'icon' => 'fa-solid fa-eye', 'sub' => 'Total pages served'],
+                            ['label' => 'Product Views', 'value' => $totalProductViews, 'icon' => 'fa-solid fa-gem', 'sub' => 'Catalog engagement'],
+                            ['label' => 'Cart Additions', 'value' => $funnel['cart_adds'], 'icon' => 'fa-solid fa-cart-shopping', 'sub' => 'High purchase intent'],
                         ];
                         foreach ($statsCards as $sc):
                         ?>
-                        <div class="stat-card bg-zinc-950 border border-zinc-900 rounded-xl p-4">
-                            <div class="flex items-center gap-2 mb-2">
-                                <span class="w-7 h-7 rounded-lg bg-<?php echo $sc['color']; ?>-500/10 border border-<?php echo $sc['color']; ?>-500/20 flex items-center justify-center">
-                                    <i class="fas <?php echo $sc['icon']; ?> text-<?php echo $sc['color']; ?>-400 text-[10px]"></i>
+                        <div class="stat-card">
+                            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">
+                                <span style="font-size: 11px; font-weight: 600; color: #71717a; text-transform: uppercase; letter-spacing: 0.04em;">
+                                    <?php echo $sc['label']; ?>
                                 </span>
-                                <span class="text-[10px] font-bold text-zinc-500 uppercase tracking-wider"><?php echo $sc['label']; ?></span>
+                                <div class="stat-icon-wrap">
+                                    <i class="<?php echo $sc['icon']; ?>"></i>
+                                </div>
                             </div>
-                            <p class="text-xl font-bold text-white"><?php echo number_format($sc['value']); ?></p>
+                            <div style="font-size: 24px; font-weight: 700; color: #09090b; letter-spacing: -0.02em; line-height: 1.1; margin-bottom: 4px;">
+                                <?php echo number_format($sc['value']); ?>
+                            </div>
+                            <div style="font-size: 11.5px; color: #a1a1aa;">
+                                <?php echo $sc['sub']; ?>
+                            </div>
                         </div>
                         <?php endforeach; ?>
                     </div>
 
                     <!-- ============================================= -->
-                    <!-- TRENDING PRODUCTS - Hero Section               -->
+                    <!-- TRENDING PRODUCTS - Hero Catalog Showcase      -->
                     <!-- ============================================= -->
-                    <div class="mb-8">
-                        <div class="flex items-center justify-between mb-5">
-                            <div class="flex items-center gap-3">
-                                <span class="w-9 h-9 rounded-xl bg-gradient-to-br from-amber-500/20 to-orange-500/20 border border-amber-500/30 flex items-center justify-center">
-                                    <i class="fas fa-fire text-amber-400 text-sm"></i>
-                                </span>
+                    <div style="margin-bottom: 28px;">
+                        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px;">
+                            <div style="display: flex; align-items: center; gap: 8px;">
+                                <div style="width: 28px; height: 28px; border-radius: 6px; background: rgba(245, 158, 11, 0.12); border: 1px solid rgba(245, 158, 11, 0.25); display: flex; align-items: center; justify-content: center; color: #d97706; font-size: 13px;">
+                                    <i class="fa-solid fa-fire"></i>
+                                </div>
                                 <div>
-                                    <h2 class="text-base font-bold text-white tracking-tight">Trending Products</h2>
-                                    <p class="text-[11px] text-zinc-500 mt-0.5">Most viewed products by your customers — click to view on website</p>
+                                    <h2 style="font-size: 15px; font-weight: 600; color: #09090b; letter-spacing: -0.01em; margin: 0; line-height: 1.2;">
+                                        Trending Products
+                                    </h2>
+                                    <p style="font-size: 12px; color: #71717a; margin: 2px 0 0 0;">
+                                        Top products with the highest customer views and engagement.
+                                    </p>
                                 </div>
                             </div>
-                            <span class="text-[10px] uppercase font-bold text-zinc-600 tracking-wider">Top 10</span>
+                            <span class="shadcn-badge">
+                                TOP 10 ITEMS
+                            </span>
                         </div>
 
                         <?php if (empty($topProducts)): ?>
-                            <div class="bg-zinc-950 border border-zinc-900 rounded-xl p-12 text-center">
-                                <i class="fas fa-chart-line text-zinc-800 text-3xl mb-3"></i>
-                                <p class="text-xs text-zinc-500">No product views logged yet for the selected period.</p>
+                            <div class="card-surface" style="padding: 48px; text-align: center;">
+                                <i class="fa-solid fa-chart-line" style="font-size: 28px; color: #d4d4d8; margin-bottom: 10px;"></i>
+                                <p style="font-size: 13px; color: #71717a; margin: 0;">No product views logged yet for the selected time range.</p>
                             </div>
                         <?php else: ?>
                             <!-- Product Grid -->
-                            <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
+                            <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); gap: 14px;">
                                 <?php foreach ($topProducts as $i => $p): 
                                     $rank = $i + 1;
                                     $rankClass = $rank === 1 ? 'rank-1' : ($rank === 2 ? 'rank-2' : ($rank === 3 ? 'rank-3' : 'rank-default'));
                                     $convRate = $p['view_count'] > 0 ? round(($p['cart_adds'] / $p['view_count']) * 100, 1) : 0;
                                 ?>
                                 <a href="<?php echo htmlspecialchars($p['website_url']); ?>" target="_blank" rel="noopener" 
-                                   class="trending-card bg-zinc-950 border border-zinc-900 rounded-xl block group" 
-                                   style="animation-delay: <?php echo $i * 60; ?>ms"
+                                   class="trending-card" 
                                    title="View on website: <?php echo htmlspecialchars($p['product_name']); ?>">
                                     
                                     <!-- Rank Badge -->
-                                    <span class="rank-badge <?php echo $rankClass; ?> text-white text-[10px] font-extrabold w-6 h-6 rounded-lg flex items-center justify-center shadow-lg">
+                                    <span class="rank-badge <?php echo $rankClass; ?>">
                                         <?php echo $rank; ?>
                                     </span>
 
                                     <!-- Product Image -->
-                                    <div class="relative overflow-hidden rounded-t-xl bg-zinc-900">
+                                    <div class="product-img-wrap">
                                         <img src="<?php echo htmlspecialchars($p['image_url']); ?>" 
                                              alt="<?php echo htmlspecialchars($p['product_name']); ?>" 
                                              class="product-img"
                                              loading="lazy"
                                              onerror="this.src='https://srishringarr.com/static/images/default.jpg'">
                                         
-                                        <!-- Hover overlay button -->
-                                        <div class="visit-site-btn absolute bottom-2 left-2 right-2">
-                                            <span class="flex items-center justify-center gap-1.5 bg-indigo-600/90 backdrop-blur-sm text-white text-[10px] font-bold py-1.5 rounded-lg w-full">
-                                                <i class="fas fa-external-link-alt text-[9px]"></i> View on Website
+                                        <!-- Hover Visit Site Button -->
+                                        <div class="visit-site-btn">
+                                            <span style="display: flex; align-items: center; justify-content: center; gap: 6px; background: rgba(9, 9, 11, 0.9); backdrop-filter: blur(4px); color: #ffffff; font-size: 11px; font-weight: 600; padding: 6px 10px; border-radius: 6px; box-shadow: 0 4px 10px rgba(0,0,0,0.15);">
+                                                <i class="fa-solid fa-arrow-up-right-from-square" style="font-size: 10px;"></i> View on Storefront
                                             </span>
                                         </div>
                                     </div>
 
                                     <!-- Product Info -->
-                                    <div class="p-3">
-                                        <h4 class="text-xs font-semibold text-white leading-tight line-clamp-2 mb-1.5 group-hover:text-indigo-300 transition-colors">
+                                    <div style="padding: 12px; display: flex; flex-direction: column; flex: 1;">
+                                        <h4 style="font-size: 12.5px; font-weight: 600; color: #09090b; line-height: 1.35; margin: 0 0 4px 0; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; min-height: 34px;">
                                             <?php echo htmlspecialchars($p['product_name']); ?>
                                         </h4>
                                         
                                         <?php if (!empty($p['product_sku'])): ?>
-                                            <p class="text-[10px] text-zinc-600 font-mono mb-2"><?php echo htmlspecialchars($p['product_sku']); ?></p>
+                                            <p style="font-size: 11px; font-family: monospace; color: #71717a; margin: 0 0 10px 0;">
+                                                <?php echo htmlspecialchars($p['product_sku']); ?>
+                                            </p>
+                                        <?php else: ?>
+                                            <div style="height: 15px; margin-bottom: 10px;"></div>
                                         <?php endif; ?>
 
-                                        <!-- Mini Stats -->
-                                        <div class="flex items-center gap-3 text-[10px] text-zinc-500 mb-2">
-                                            <span class="flex items-center gap-1" title="Total Views">
-                                                <i class="fas fa-eye text-indigo-400/60"></i>
-                                                <span class="font-bold text-zinc-300"><?php echo number_format($p['view_count']); ?></span>
+                                        <!-- Mini Stats Row -->
+                                        <div style="display: flex; align-items: center; gap: 10px; font-size: 11px; color: #71717a; margin-bottom: 8px; margin-top: auto;">
+                                            <span style="display: inline-flex; align-items: center; gap: 4px;" title="Total Page Views">
+                                                <i class="fa-solid fa-eye" style="color: #2563eb; font-size: 10px;"></i>
+                                                <strong style="color: #09090b;"><?php echo number_format($p['view_count']); ?></strong>
                                             </span>
-                                            <span class="flex items-center gap-1" title="Unique Visitors">
-                                                <i class="fas fa-user text-emerald-400/60"></i>
-                                                <span class="font-bold text-zinc-300"><?php echo number_format($p['unique_visitors']); ?></span>
+                                            <span style="display: inline-flex; align-items: center; gap: 4px;" title="Unique Visitors">
+                                                <i class="fa-solid fa-user" style="color: #16a34a; font-size: 10px;"></i>
+                                                <strong style="color: #09090b;"><?php echo number_format($p['unique_visitors']); ?></strong>
                                             </span>
-                                            <span class="flex items-center gap-1" title="Added to Cart">
-                                                <i class="fas fa-cart-plus text-pink-400/60"></i>
-                                                <span class="font-bold text-zinc-300"><?php echo number_format($p['cart_adds']); ?></span>
+                                            <span style="display: inline-flex; align-items: center; gap: 4px;" title="Cart Adds">
+                                                <i class="fa-solid fa-cart-shopping" style="color: #db2777; font-size: 10px;"></i>
+                                                <strong style="color: #09090b;"><?php echo number_format($p['cart_adds']); ?></strong>
                                             </span>
                                         </div>
 
-                                        <!-- View-to-Cart Conversion Bar -->
-                                        <div class="w-full bg-zinc-900 rounded-full overflow-hidden h-1 mb-1">
-                                            <div class="mini-bar <?php echo $convRate > 5 ? 'bg-emerald-500' : ($convRate > 0 ? 'bg-amber-500' : 'bg-zinc-800'); ?>" 
-                                                 style="width: <?php echo min($convRate, 100); ?>%"></div>
+                                        <!-- View-to-Cart Conversion Progress Bar -->
+                                        <div style="width: 100%; background: #f4f4f5; border-radius: 999px; overflow: hidden; height: 4px; margin-bottom: 4px;">
+                                            <div class="mini-bar" style="width: <?php echo min($convRate, 100); ?>%; background: <?php echo $convRate > 5 ? '#16a34a' : ($convRate > 0 ? '#d97706' : '#d4d4d8'); ?>;"></div>
                                         </div>
-                                        <div class="flex justify-between text-[9px]">
-                                            <span class="text-zinc-600">View → Cart</span>
-                                            <span class="font-bold <?php echo $convRate > 5 ? 'text-emerald-400' : ($convRate > 0 ? 'text-amber-400' : 'text-zinc-600'); ?>"><?php echo $convRate; ?>%</span>
+                                        <div style="display: flex; justify-content: space-between; font-size: 10px; color: #71717a;">
+                                            <span>Cart Conv. Rate</span>
+                                            <strong style="color: <?php echo $convRate > 5 ? '#16a34a' : ($convRate > 0 ? '#d97706' : '#71717a'); ?>;"><?php echo $convRate; ?>%</strong>
                                         </div>
                                     </div>
 
-                                    <!-- Type badge -->
-                                    <div class="absolute top-3 right-3 z-10">
-                                        <span class="text-[8px] font-bold uppercase px-1.5 py-0.5 rounded bg-black/50 backdrop-blur-sm text-zinc-300 border border-zinc-700/50">
+                                    <!-- Product Category / Type Pill -->
+                                    <div style="position: absolute; top: 10px; right: 10px; z-index: 10;">
+                                        <span style="font-size: 9px; font-weight: 600; text-transform: uppercase; padding: 2px 6px; border-radius: 4px; background: rgba(255, 255, 255, 0.9); backdrop-filter: blur(4px); color: #09090b; border: 1px solid rgba(0,0,0,0.08); box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
                                             <?php echo htmlspecialchars($p['product_type']); ?>
                                         </span>
                                     </div>
@@ -328,42 +505,47 @@
                         <?php endif; ?>
                     </div>
 
-                    <!-- Middle Row: Funnel + Categories + Searches -->
-                    <div class="grid grid-cols-1 lg:grid-cols-3 gap-5 mb-8">
+                    <!-- Middle Row: Funnel + Trending Categories + Search Intent -->
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 16px; margin-bottom: 28px;">
                         
-                        <!-- Conversion Funnel -->
-                        <div class="bg-zinc-950 border border-zinc-900 rounded-xl p-5 lg:col-span-1">
-                            <h3 class="text-sm font-bold text-white uppercase tracking-wider mb-5 flex items-center">
-                                <i class="fas fa-filter text-indigo-400 mr-2 text-xs"></i>
-                                Conversion Funnel
-                            </h3>
+                        <!-- 1. Conversion Funnel -->
+                        <div class="card-surface" style="padding: 18px;">
+                            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px;">
+                                <h3 style="font-size: 13.5px; font-weight: 600; color: #09090b; margin: 0; display: flex; align-items: center; gap: 8px;">
+                                    <i class="fa-solid fa-filter" style="color: #2563eb; font-size: 12px;"></i> Conversion Funnel
+                                </h3>
+                                <span class="shadcn-badge">TRAFFIC PIPELINE</span>
+                            </div>
                             
-                            <div class="space-y-4">
+                            <div style="display: flex; flex-direction: column; gap: 12px;">
                                 <?php 
                                 $stages = [
-                                    ['name' => 'Product Views', 'count' => $funnel['product_views'], 'color' => 'bg-indigo-500', 'icon' => 'fa-eye'],
-                                    ['name' => 'Cart Additions', 'count' => $funnel['cart_adds'], 'color' => 'bg-violet-500', 'icon' => 'fa-cart-plus'],
-                                    ['name' => 'Checkout Started', 'count' => $funnel['checkout_starts'], 'color' => 'bg-purple-500', 'icon' => 'fa-credit-card'],
-                                    ['name' => 'Orders Placed', 'count' => $funnel['purchases'], 'color' => 'bg-emerald-500', 'icon' => 'fa-check-circle']
+                                    ['name' => 'Product Views', 'count' => $funnel['product_views'], 'color' => '#2563eb', 'icon' => 'fa-solid fa-eye'],
+                                    ['name' => 'Cart Additions', 'count' => $funnel['cart_adds'], 'color' => '#8b5cf6', 'icon' => 'fa-solid fa-cart-shopping'],
+                                    ['name' => 'Checkout Started', 'count' => $funnel['checkout_starts'], 'color' => '#d946ef', 'icon' => 'fa-solid fa-credit-card'],
+                                    ['name' => 'Orders Placed', 'count' => $funnel['purchases'], 'color' => '#16a34a', 'icon' => 'fa-solid fa-circle-check']
                                 ];
                                 $maxCount = max(1, $funnel['product_views']);
                                 foreach ($stages as $si => $stage): 
                                     $pct = round(($stage['count'] / $maxCount) * 100);
                                 ?>
                                     <div>
-                                        <div class="flex justify-between text-xs font-medium mb-1.5">
-                                            <span class="text-zinc-400 flex items-center gap-1.5">
-                                                <i class="fas <?php echo $stage['icon']; ?> text-[10px] opacity-50"></i>
+                                        <div style="display: flex; justify-content: space-between; font-size: 12px; margin-bottom: 4px;">
+                                            <span style="color: #52525b; display: flex; align-items: center; gap: 6px; font-weight: 500;">
+                                                <i class="<?php echo $stage['icon']; ?>" style="font-size: 10px; color: <?php echo $stage['color']; ?>;"></i>
                                                 <?php echo $stage['name']; ?>
                                             </span>
-                                            <span class="text-white font-bold"><?php echo number_format($stage['count']); ?> <span class="text-zinc-600 font-normal">(<?php echo $pct; ?>%)</span></span>
+                                            <span style="font-weight: 600; color: #09090b;">
+                                                <?php echo number_format($stage['count']); ?> 
+                                                <span style="font-weight: 400; color: #a1a1aa; font-size: 11px;">(<?php echo $pct; ?>%)</span>
+                                            </span>
                                         </div>
-                                        <div class="w-full bg-zinc-900 h-2 rounded-full overflow-hidden border border-zinc-900">
-                                            <div class="<?php echo $stage['color']; ?> h-full rounded-full transition-all duration-700" style="width: <?php echo $pct; ?>%"></div>
+                                        <div style="width: 100%; background: #f4f4f5; height: 6px; border-radius: 999px; overflow: hidden;">
+                                            <div style="height: 100%; border-radius: 999px; background: <?php echo $stage['color']; ?>; width: <?php echo $pct; ?>%; transition: width 0.6s ease;"></div>
                                         </div>
                                         <?php if ($si < count($stages) - 1): ?>
-                                            <div class="flex justify-center my-1">
-                                                <i class="fas fa-chevron-down text-zinc-800 text-[8px]"></i>
+                                            <div style="display: flex; justify-content: center; margin: 4px 0 0 0;">
+                                                <i class="fa-solid fa-chevron-down" style="font-size: 8px; color: #d4d4d8;"></i>
                                             </div>
                                         <?php endif; ?>
                                     </div>
@@ -371,38 +553,42 @@
                             </div>
                         </div>
 
-                        <!-- Popular Categories -->
-                        <div class="bg-zinc-950 border border-zinc-900 rounded-xl p-5">
-                            <h3 class="text-sm font-bold text-white uppercase tracking-wider mb-5 flex items-center">
-                                <i class="fas fa-tags text-emerald-400 mr-2 text-xs"></i>
-                                Trending Categories
-                            </h3>
+                        <!-- 2. Trending Categories -->
+                        <div class="card-surface" style="padding: 18px;">
+                            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px;">
+                                <h3 style="font-size: 13.5px; font-weight: 600; color: #09090b; margin: 0; display: flex; align-items: center; gap: 8px;">
+                                    <i class="fa-solid fa-tags" style="color: #16a34a; font-size: 12px;"></i> Trending Categories
+                                </h3>
+                                <span class="shadcn-badge">MOST VISITED</span>
+                            </div>
                             
                             <?php if (empty($topCategories)): ?>
-                                <p class="text-xs text-zinc-550 py-8 text-center">No category views logged yet.</p>
+                                <p style="font-size: 12px; color: #71717a; text-align: center; padding: 32px 0;">No category views recorded yet.</p>
                             <?php else: ?>
-                                <div class="space-y-2">
+                                <div style="display: flex; flex-direction: column; gap: 6px;">
                                     <?php 
                                     $maxCatCount = max(1, $topCategories[0]['count']);
                                     foreach ($topCategories as $ci => $cat): 
                                         $catPct = round(($cat['count'] / $maxCatCount) * 100);
                                     ?>
                                         <a href="<?php echo htmlspecialchars($cat['website_url']); ?>" target="_blank" rel="noopener" 
-                                           class="flex items-center justify-between py-2.5 px-3 rounded-lg border border-zinc-900 hover:border-zinc-700 hover:bg-zinc-900/50 transition-all group text-xs">
-                                            <div class="flex items-center gap-2 min-w-0">
-                                                <span class="w-5 h-5 rounded bg-emerald-500/10 flex items-center justify-center text-emerald-400 text-[9px] font-bold flex-shrink-0">
+                                           style="display: flex; align-items: center; justify-content: space-between; padding: 8px 10px; border-radius: 6px; border: 1px solid #e4e4e7; background: #ffffff; text-decoration: none; transition: all 0.12s ease;"
+                                           onmouseover="this.style.background='#f8fafc';this.style.borderColor='#cbd5e1'" 
+                                           onmouseout="this.style.background='#ffffff';this.style.borderColor='#e4e4e7'">
+                                            <div style="display: flex; align-items: center; gap: 8px; min-width: 0;">
+                                                <span style="width: 20px; height: 20px; border-radius: 4px; background: #f0fdf4; border: 1px solid #bbf7d0; display: flex; align-items: center; justify-content: center; color: #16a34a; font-size: 10px; font-weight: 700; flex-shrink: 0;">
                                                     <?php echo $ci + 1; ?>
                                                 </span>
-                                                <span class="text-zinc-300 font-medium truncate group-hover:text-emerald-300 transition-colors">
+                                                <span style="font-size: 12.5px; font-weight: 500; color: #09090b; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
                                                     <?php echo htmlspecialchars($cat['label']); ?>
                                                 </span>
-                                                <i class="fas fa-external-link-alt text-zinc-700 text-[8px] group-hover:text-emerald-400/50 transition-colors"></i>
+                                                <i class="fa-solid fa-arrow-up-right-from-square" style="font-size: 8px; color: #a1a1aa; flex-shrink: 0;"></i>
                                             </div>
-                                            <div class="flex items-center gap-2 flex-shrink-0 ml-2">
-                                                <div class="w-12 bg-zinc-900 h-1.5 rounded-full overflow-hidden">
-                                                    <div class="bg-emerald-500/60 h-full rounded-full" style="width: <?php echo $catPct; ?>%"></div>
+                                            <div style="display: flex; align-items: center; gap: 8px; flex-shrink: 0; margin-left: 8px;">
+                                                <div style="width: 48px; background: #f4f4f5; height: 4px; border-radius: 999px; overflow: hidden;">
+                                                    <div style="background: #16a34a; height: 100%; border-radius: 999px; width: <?php echo $catPct; ?>%;"></div>
                                                 </div>
-                                                <span class="px-2 py-0.5 bg-zinc-900 border border-zinc-800 text-zinc-400 rounded-md font-bold text-[10px]">
+                                                <span class="shadcn-badge" style="font-weight: 600;">
                                                     <?php echo number_format($cat['count']); ?>
                                                 </span>
                                             </div>
@@ -412,34 +598,40 @@
                             <?php endif; ?>
                         </div>
 
-                        <!-- Top Search Intent -->
-                        <div class="bg-zinc-950 border border-zinc-900 rounded-xl p-5">
-                            <h3 class="text-sm font-bold text-white uppercase tracking-wider mb-5 flex items-center">
-                                <i class="fas fa-search text-amber-400 mr-2 text-xs"></i>
-                                Search Intent
-                            </h3>
+                        <!-- 3. Top Search Intent -->
+                        <div class="card-surface" style="padding: 18px;">
+                            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px;">
+                                <h3 style="font-size: 13.5px; font-weight: 600; color: #09090b; margin: 0; display: flex; align-items: center; gap: 8px;">
+                                    <i class="fa-solid fa-magnifying-glass" style="color: #d97706; font-size: 12px;"></i> Search Intent
+                                </h3>
+                                <span class="shadcn-badge">USER QUERIES</span>
+                            </div>
 
                             <?php if (empty($topSearches)): ?>
-                                <p class="text-xs text-zinc-550 py-8 text-center">No search queries logged yet.</p>
+                                <p style="font-size: 12px; color: #71717a; text-align: center; padding: 32px 0;">No search queries logged yet.</p>
                             <?php else: ?>
-                                <div class="space-y-2">
+                                <div style="display: flex; flex-direction: column; gap: 6px;">
                                     <?php 
                                     $maxSearchCount = max(1, $topSearches[0]['search_count']);
                                     foreach ($topSearches as $si => $s): 
                                         $sPct = round(($s['search_count'] / $maxSearchCount) * 100);
                                     ?>
-                                        <div class="flex items-center justify-between py-2 px-3 rounded-lg border border-zinc-900 text-xs hover:border-zinc-800 transition-all">
-                                            <div class="flex items-center gap-2 min-w-0">
-                                                <span class="w-5 h-5 rounded bg-amber-500/10 flex items-center justify-center text-amber-400 text-[9px] font-bold flex-shrink-0">
+                                        <div style="display: flex; align-items: center; justify-content: space-between; padding: 8px 10px; border-radius: 6px; border: 1px solid #e4e4e7; background: #ffffff;">
+                                            <div style="display: flex; align-items: center; gap: 8px; min-width: 0;">
+                                                <span style="width: 20px; height: 20px; border-radius: 4px; background: #fffbeb; border: 1px solid #fde68a; display: flex; align-items: center; justify-content: center; color: #d97706; font-size: 10px; font-weight: 700; flex-shrink: 0;">
                                                     <?php echo $si + 1; ?>
                                                 </span>
-                                                <span class="text-white font-medium truncate">"<?php echo htmlspecialchars($s['query']); ?>"</span>
+                                                <span style="font-size: 12.5px; font-weight: 500; color: #09090b; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                                                    &ldquo;<?php echo htmlspecialchars($s['query']); ?>&rdquo;
+                                                </span>
                                             </div>
-                                            <div class="flex items-center gap-2 flex-shrink-0 ml-2">
-                                                <div class="w-12 bg-zinc-900 h-1.5 rounded-full overflow-hidden">
-                                                    <div class="bg-amber-500/60 h-full rounded-full" style="width: <?php echo $sPct; ?>%"></div>
+                                            <div style="display: flex; align-items: center; gap: 8px; flex-shrink: 0; margin-left: 8px;">
+                                                <div style="width: 48px; background: #f4f4f5; height: 4px; border-radius: 999px; overflow: hidden;">
+                                                    <div style="background: #d97706; height: 100%; border-radius: 999px; width: <?php echo $sPct; ?>%;"></div>
                                                 </div>
-                                                <span class="text-zinc-500 font-bold whitespace-nowrap"><?php echo $s['search_count']; ?>×</span>
+                                                <span class="shadcn-badge" style="font-weight: 600;">
+                                                    <?php echo $s['search_count']; ?>&times;
+                                                </span>
                                             </div>
                                         </div>
                                     <?php endforeach; ?>
@@ -448,60 +640,70 @@
                         </div>
                     </div>
 
-                    <!-- User Session Journeys -->
-                    <div class="bg-zinc-950 border border-zinc-900 rounded-xl p-5 mb-8">
-                        <h3 class="text-sm font-bold text-white uppercase tracking-wider mb-6 flex items-center">
-                            <i class="fas fa-route text-violet-400 mr-2 text-xs"></i>
-                            User Session Journeys
-                            <span class="ml-2 text-[10px] text-zinc-500 font-normal normal-case">(Last 20 sessions)</span>
-                        </h3>
+                    <!-- ============================================= -->
+                    <!-- USER SESSION JOURNEYS (Accordion Timeline)     -->
+                    <!-- ============================================= -->
+                    <div class="card-surface" style="padding: 18px; margin-bottom: 24px;">
+                        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px;">
+                            <h3 style="font-size: 14px; font-weight: 600; color: #09090b; margin: 0; display: flex; align-items: center; gap: 8px;">
+                                <i class="fa-solid fa-route" style="color: #8b5cf6; font-size: 13px;"></i> User Session Journeys
+                                <span style="font-size: 11px; color: #71717a; font-weight: 400;">(Recent 20 live sessions)</span>
+                            </h3>
+                            <span class="shadcn-badge">CLICK SESSION TO EXPAND</span>
+                        </div>
 
                         <?php if (empty($sessions)): ?>
-                            <p class="text-xs text-zinc-500 py-8 text-center">No sessions recorded yet.</p>
+                            <div style="text-align: center; padding: 40px; color: #71717a; font-size: 13px;">
+                                <i class="fa-solid fa-users-slash" style="font-size: 24px; color: #d4d4d8; margin-bottom: 8px;"></i>
+                                <p style="margin: 0;">No visitor sessions recorded yet.</p>
+                            </div>
                         <?php else: ?>
-                            <div class="space-y-4">
+                            <div style="display: flex; flex-direction: column; gap: 8px;">
                                 <?php foreach ($sessions as $i => $sess): ?>
-                                    <div class="session-card border border-zinc-900 rounded-lg overflow-hidden">
-                                        <!-- Session Header -->
-                                        <button onclick="document.getElementById('sess-<?php echo $i; ?>').classList.toggle('hidden')" 
-                                                class="w-full flex items-center justify-between p-4 text-left hover:bg-zinc-900/50 transition-colors">
-                                            <div class="flex items-center gap-3">
-                                                <span class="w-8 h-8 rounded-full bg-gradient-to-br from-indigo-500/20 to-violet-500/20 border border-indigo-500/30 flex items-center justify-center text-[10px] font-bold text-indigo-400">
-                                                    <i class="fas fa-user text-[10px]"></i>
-                                                </span>
+                                    <div class="session-card">
+                                        <!-- Session Header Button -->
+                                        <button type="button" 
+                                                onclick="toggleSession('sess-<?php echo $i; ?>', this)" 
+                                                style="width: 100%; display: flex; align-items: center; justify-content: space-between; padding: 12px 14px; text-align: left; background: transparent; border: none; cursor: pointer; transition: background 0.12s ease;"
+                                                onmouseover="this.style.background='#f8fafc'" 
+                                                onmouseout="this.style.background='transparent'">
+                                            <div style="display: flex; align-items: center; gap: 10px;">
+                                                <div style="width: 32px; height: 32px; border-radius: 6px; background: #f4f4f5; border: 1px solid #e4e4e7; display: flex; align-items: center; justify-content: center; font-size: 12px; color: #09090b;">
+                                                    <i class="fa-solid fa-user"></i>
+                                                </div>
                                                 <div>
-                                                    <p class="text-xs font-semibold text-white">
-                                                        Session #<?php echo substr($sess['session_id'], 0, 8); ?>…
+                                                    <p style="font-size: 13px; font-weight: 600; color: #09090b; margin: 0; line-height: 1.2;">
+                                                        Session #<?php echo substr($sess['session_id'], 0, 8); ?>&hellip;
                                                     </p>
-                                                    <p class="text-[10px] text-zinc-500 mt-0.5">
+                                                    <p style="font-size: 11px; color: #71717a; margin: 2px 0 0 0;">
                                                         <?php echo date('d M Y, h:i A', strtotime($sess['first_seen'])); ?>
-                                                        → <?php echo date('h:i A', strtotime($sess['last_seen'])); ?>
+                                                        &rarr; <?php echo date('h:i A', strtotime($sess['last_seen'])); ?>
                                                     </p>
                                                 </div>
                                             </div>
-                                            <div class="flex items-center gap-3">
-                                                <span class="px-2 py-0.5 bg-zinc-900 border border-zinc-800 rounded text-[10px] font-bold text-zinc-400">
-                                                    <?php echo $sess['total_events']; ?> events
+                                            <div style="display: flex; align-items: center; gap: 10px;">
+                                                <span class="shadcn-badge" style="font-weight: 600;">
+                                                    <?php echo $sess['total_events']; ?> EVENTS
                                                 </span>
-                                                <i class="fas fa-chevron-down text-zinc-600 text-[10px] transition-transform"></i>
+                                                <i class="fa-solid fa-chevron-down chevron-icon" style="font-size: 10px; color: #71717a; transition: transform 0.2s ease; <?php echo $i === 0 ? 'transform: rotate(180deg);' : ''; ?>"></i>
                                             </div>
                                         </button>
 
-                                        <!-- Session Timeline -->
-                                        <div id="sess-<?php echo $i; ?>" class="<?php echo $i === 0 ? '' : 'hidden'; ?> px-4 pb-4">
-                                            <div class="timeline-line pl-10 space-y-0">
+                                        <!-- Session Timeline Details -->
+                                        <div id="sess-<?php echo $i; ?>" style="<?php echo $i === 0 ? 'display: block;' : 'display: none;'; ?> padding: 4px 16px 16px 16px; border-top: 1px solid #f4f4f5;">
+                                            <div class="timeline-line" style="padding-left: 36px; padding-top: 8px;">
                                                 <?php foreach ($sess['events'] as $ev): 
                                                     $type = $ev['event_type'];
                                                     $path = $ev['page_path'];
                                                     $time = date('h:i:s A', strtotime($ev['created_at']));
                                                     
-                                                    // Build human-readable label
+                                                    // Human label
                                                     $label = $path;
                                                     if ($type === 'product_view' && $ev['target_id']) {
                                                         $slug = basename($path);
                                                         $slug = preg_replace('/-\d+$/', '', $slug);
                                                         $label = ucwords(str_replace('-', ' ', $slug));
-                                                        $label = "Viewed product: $label (ID: {$ev['target_id']})";
+                                                        $label = "Viewed: $label (ID #{$ev['target_id']})";
                                                     } elseif ($type === 'category_view') {
                                                         $parts = array_filter(explode('/', trim($path, '/')));
                                                         $label = 'Browsed: ' . ucwords(implode(' → ', array_map(function($p) { return str_replace('-', ' ', $p); }, $parts)));
@@ -512,45 +714,51 @@
                                                             if (!empty($qp['q'])) {
                                                                 $label = 'Searched: "' . $qp['q'] . '"';
                                                             } else {
-                                                                $label = 'Browsed shop';
+                                                                $label = 'Browsed shop catalog';
                                                             }
                                                         } else {
-                                                            $label = 'Browsed shop';
+                                                            $label = 'Browsed shop catalog';
                                                         }
                                                     } elseif ($type === 'cart_add') {
-                                                        $label = 'Added to cart';
+                                                        $label = 'Added item to cart';
                                                     } elseif ($type === 'cart_view') {
-                                                        $label = 'Viewed cart';
+                                                        $label = 'Viewed shopping cart';
                                                     } elseif ($type === 'checkout_start') {
-                                                        $label = 'Started checkout';
+                                                        $label = 'Initiated checkout';
                                                     } elseif ($type === 'page_view') {
                                                         $cleanPath = trim($path, '/');
                                                         $label = 'Visited: /' . ($cleanPath ?: 'home');
                                                     }
                                                 ?>
-                                                    <div class="relative py-2">
+                                                    <div style="position: relative; padding: 7px 0;">
                                                         <span class="timeline-dot dot-<?php echo $type; ?>"></span>
-                                                        <div class="flex items-start justify-between gap-2">
-                                                            <div class="flex items-center gap-2 min-w-0 flex-wrap">
-                                                                <span class="event-badge badge-<?php echo $type; ?>"><?php echo str_replace('_', ' ', $type); ?></span>
+                                                        <div style="display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap;">
+                                                            <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+                                                                <span class="event-badge badge-<?php echo $type; ?>">
+                                                                    <?php echo str_replace('_', ' ', $type); ?>
+                                                                </span>
                                                                 <?php if ($type === 'product_view' && !empty($ev['website_url'])): ?>
                                                                     <a href="<?php echo htmlspecialchars($ev['website_url']); ?>" target="_blank" rel="noopener" 
-                                                                       class="text-xs text-indigo-300 hover:text-indigo-200 font-medium truncate transition-colors hover:underline flex items-center gap-1" 
-                                                                       title="View on website">
+                                                                       style="font-size: 12.5px; color: #2563eb; text-decoration: none; font-weight: 500; display: inline-flex; align-items: center; gap: 4px;"
+                                                                       onmouseover="this.style.textDecoration='underline'" 
+                                                                       onmouseout="this.style.textDecoration='none'">
                                                                         <?php echo htmlspecialchars($label); ?>
-                                                                        <i class="fas fa-external-link-alt text-[8px] text-indigo-400/50 flex-shrink-0"></i>
+                                                                        <i class="fa-solid fa-arrow-up-right-from-square" style="font-size: 8px;"></i>
                                                                     </a>
                                                                     <?php if (!empty($ev['product_sku'])): ?>
-                                                                        <span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-zinc-800 border border-zinc-700 text-[9px] font-mono text-zinc-400 flex-shrink-0" title="Product SKU">
-                                                                            <i class="fas fa-barcode text-[7px] text-zinc-500"></i>
+                                                                        <span style="font-size: 10px; font-family: monospace; background: #f4f4f5; border: 1px solid #e4e4e7; padding: 1px 6px; border-radius: 4px; color: #52525b;">
                                                                             <?php echo htmlspecialchars($ev['product_sku']); ?>
                                                                         </span>
                                                                     <?php endif; ?>
                                                                 <?php else: ?>
-                                                                    <span class="text-xs text-zinc-300 truncate"><?php echo htmlspecialchars($label); ?></span>
+                                                                    <span style="font-size: 12.5px; color: #334155;">
+                                                                        <?php echo htmlspecialchars($label); ?>
+                                                                    </span>
                                                                 <?php endif; ?>
                                                             </div>
-                                                            <span class="text-[10px] text-zinc-600 whitespace-nowrap flex-shrink-0"><?php echo $time; ?></span>
+                                                            <span style="font-size: 11px; color: #a1a1aa; white-space: nowrap;">
+                                                                <?php echo $time; ?>
+                                                            </span>
                                                         </div>
                                                     </div>
                                                 <?php endforeach; ?>
@@ -561,11 +769,26 @@
                             </div>
                         <?php endif; ?>
                     </div>
+
                 </div>
             </main>
         </div>
     </div>
 
-    <?php include __DIR__ . '/../partials/scripts.php'; ?>
+    <script>
+    function toggleSession(id, btn) {
+        const el = document.getElementById(id);
+        const icon = btn.querySelector('.chevron-icon');
+        if (!el) return;
+        
+        if (el.style.display === 'none' || el.style.display === '') {
+            el.style.display = 'block';
+            if (icon) icon.style.transform = 'rotate(180deg)';
+        } else {
+            el.style.display = 'none';
+            if (icon) icon.style.transform = 'rotate(0deg)';
+        }
+    }
+    </script>
 </body>
 </html>

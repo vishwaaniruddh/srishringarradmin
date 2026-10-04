@@ -3,38 +3,38 @@
 <head>
     <title>Dashboard - Srishringarr</title>
     <?php include 'partials/head.php'; ?>
-    <!-- Google Fonts for premium typography -->
-    <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;700&family=Work+Sans:wght@400;700&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=block" rel="stylesheet">
     <style>
-        /* Dashboard Premium Theme Overrides */
+        /* Dashboard ShadCN Light Theme Overrides */
         .dash-body {
-            background: #0a0a0a !important;
-            font-family: 'Work Sans', sans-serif !important;
+            background: #fafafa !important;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif !important;
         }
         .dash-main {
-            background: #0a0a0a !important;
+            background: #fafafa !important;
         }
 
-        /* Card surfaces */
+        /* Card surfaces — white with subtle border */
         .card-surface {
-            background: #1a1a1a !important;
-            border: 1px solid #2e2e2e !important;
-            border-radius: 12px !important;
+            background: #ffffff !important;
+            border: 1px solid #e4e4e7 !important;
+            border-radius: 8px !important;
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03) !important;
         }
         .card-surface:hover {
-            border-color: #3a3a3a !important;
+            border-color: #d4d4d8 !important;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.04) !important;
         }
 
-        /* Glow hover effect */
+        /* Glow hover effect — light version */
         .glow-hover {
-            transition: all 0.3s ease !important;
+            transition: all 0.15s ease !important;
         }
         .glow-hover:hover {
-            box-shadow: inset 0 0 20px rgba(244,125,49,0.05) !important;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.04) !important;
         }
 
-        /* Custom scrollbar */
+        /* Custom scrollbar — light */
         .custom-scrollbar::-webkit-scrollbar {
             width: 4px;
             height: 4px;
@@ -43,35 +43,39 @@
             background: transparent;
         }
         .custom-scrollbar::-webkit-scrollbar-thumb {
-            background: #2e2e2e;
+            background: #d4d4d8;
             border-radius: 10px;
         }
         .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-            background: #444;
+            background: #a1a1aa;
         }
 
-        /* Input dark style */
+        /* Input light style */
         .input-dark {
-            background: #0f0f0f !important;
-            border: 1px solid #2e2e2e !important;
-            color: #e5e2e1 !important;
+            background: #ffffff !important;
+            border: 1px solid #e4e4e7 !important;
+            color: #09090b !important;
             outline: none !important;
         }
         .input-dark:focus {
-            border-color: #f47d31 !important;
-            box-shadow: 0 0 0 2px rgba(244,125,49,0.1) !important;
+            border-color: #09090b !important;
+            box-shadow: 0 0 0 1px #09090b !important;
+        }
+        .input-dark::placeholder {
+            color: #a1a1aa !important;
         }
 
-        /* Zebra table rows */
+        /* Zebra table rows — light */
         .table-row-zebra:nth-child(even) {
-            background: #151515;
+            background: #fafafa;
         }
 
-        /* Override vercel.css for dashboard-specific elements */
+        /* Override for dashboard-specific elements */
         .dash-main .bg-white,
         .dash-main .rounded-2xl {
             background-color: transparent !important;
             border: none !important;
+            box-shadow: none !important;
         }
 
         /* Animate pulse for live indicator */
@@ -83,13 +87,13 @@
             animation: dash-pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
         }
 
-        /* Loading skeleton */
+        /* Loading skeleton — light */
         @keyframes shimmer {
             0% { background-position: -200% 0; }
             100% { background-position: 200% 0; }
         }
         .skeleton {
-            background: linear-gradient(90deg, #1a1a1a 25%, #252525 50%, #1a1a1a 75%);
+            background: linear-gradient(90deg, #f4f4f5 25%, #e4e4e7 50%, #f4f4f5 75%);
             background-size: 200% 100%;
             animation: shimmer 1.5s infinite;
             border-radius: 4px;
@@ -116,64 +120,36 @@
 
         <!-- Main Content -->
         <div class="flex-1 flex flex-col min-w-0 overflow-hidden">
-            <!-- Top Header - Premium -->
-            <header class="h-16 bg-black border-b border-zinc-800 flex items-center justify-between px-6 z-10 flex-shrink-0">
-                <div class="flex items-center gap-4">
-                    <button id="open-sidebar" class="lg:hidden mr-2 text-zinc-400 hover:text-white">
-                        <i class="fas fa-bars text-lg"></i>
-                    </button>
-                    <!-- Search Bar -->
-                    <div class="relative hidden md:block">
-                        <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500 text-[18px]">search</span>
-                        <input class="input-dark pl-10 pr-4 py-2 rounded-lg text-sm w-56 font-['Work_Sans']" placeholder="Search orders, SKUs..." type="text">
-                    </div>
-                </div>
-                <div class="flex items-center gap-3">
-                    <button id="refresh-stats" class="flex items-center gap-2 bg-zinc-900 hover:bg-zinc-800 text-white px-4 py-2 rounded-lg transition-colors text-xs font-semibold border border-zinc-800">
-                        <span class="material-symbols-outlined text-[18px]">refresh</span>
-                        <span class="hidden xl:inline">Refresh Data</span>
-                    </button>
-                    <div class="flex items-center gap-1 text-zinc-500">
-                        <button class="p-2 hover:bg-zinc-900 rounded-lg transition-colors relative" title="Notifications">
-                            <span class="material-symbols-outlined text-[20px]">notifications</span>
-                            <span class="absolute top-1.5 right-1.5 w-1.5 h-1.5 rounded-full bg-red-500"></span>
-                        </button>
-                        <button class="p-2 hover:bg-zinc-900 rounded-lg transition-colors" title="Settings">
-                            <span class="material-symbols-outlined text-[20px]">settings</span>
-                        </button>
-                        <button class="p-2 hover:bg-zinc-900 rounded-lg transition-colors" title="Messages">
-                            <span class="material-symbols-outlined text-[20px]">chat_bubble</span>
-                        </button>
-                    </div>
-                    <div class="flex items-center gap-3 pl-3 border-l border-zinc-800 cursor-pointer hover:bg-zinc-900 p-2 rounded-lg transition-colors">
-                        <div class="text-right hidden md:block">
-                            <p class="text-sm font-semibold text-white font-['Manrope']"><?php echo htmlspecialchars(ucfirst($_SESSION['admin_username'] ?? 'Admin')); ?></p>
-                            <p class="text-[9px] font-bold text-orange-500 uppercase tracking-wider">SUPER ADMIN</p>
-                        </div>
-                        <?php $initials = strtoupper(substr($_SESSION['admin_username'] ?? 'A', 0, 2)); ?>
-                        <div class="w-9 h-9 rounded-full bg-orange-600 flex items-center justify-center text-white font-bold text-sm font-['Manrope']"><?php echo $initials; ?></div>
-                    </div>
-                </div>
-            </header>
+            <!-- Top Header (Shared Component) -->
+            <?php 
+            $pageTitle = 'Dashboard';
+            include __DIR__ . '/partials/topbar.php'; 
+            ?>
 
             <!-- Dashboard Content -->
             <main class="dash-main dash-content-wrapper flex-1 p-6">
                 <!-- Dashboard Header -->
                 <div class="flex flex-col md:flex-row md:items-center justify-between mb-5 gap-4">
                     <div>
-                        <h2 class="text-[26px] font-bold text-white font-['Manrope'] tracking-tight">Operational Dashboard</h2>
-                        <p class="text-zinc-500 mt-1 text-sm font-['Work_Sans']">Real-time overview of revenue streams, inventory status, and pending actions.</p>
+                        <h2 style="font-size: 20px; font-weight: 600; color: #09090b; letter-spacing: -0.02em;">Operational Dashboard</h2>
+                        <p style="color: #71717a; margin-top: 4px; font-size: 13px;">Real-time overview of revenue streams, inventory status, and pending actions.</p>
                     </div>
-                    <!-- Date Range Picker -->
-                    <div class="flex items-center gap-1 bg-zinc-900 border border-zinc-800 rounded-lg p-1">
-                        <button class="px-4 py-2 rounded-md text-[10px] font-bold uppercase tracking-wider text-white bg-zinc-800">Today</button>
-                        <button class="px-4 py-2 rounded-md text-[10px] font-bold uppercase tracking-wider text-zinc-500 hover:text-white hover:bg-zinc-800 transition-colors">7D</button>
-                        <button class="px-4 py-2 rounded-md text-[10px] font-bold uppercase tracking-wider text-zinc-500 hover:text-white hover:bg-zinc-800 transition-colors">30D</button>
-                        <div class="h-4 w-px bg-zinc-700 mx-1"></div>
-                        <button class="flex items-center gap-2 px-3 py-2 rounded-md text-zinc-500 hover:text-white transition-colors">
-                            <span class="material-symbols-outlined text-[16px]">calendar_today</span>
-                            <span class="text-[11px] font-mono">Custom</span>
+                    <!-- Right Actions: Refresh Data & Date Range Picker -->
+                    <div class="flex items-center gap-2">
+                        <button id="refresh-stats" type="button" class="shadcn-btn" style="height: 32px; font-size: 12px; padding: 0 10px; display: inline-flex; align-items: center; gap: 6px; background: #ffffff; border: 1px solid #e4e4e7; border-radius: 6px; cursor: pointer; color: #09090b; font-weight: 500; box-shadow: 0 1px 2px rgba(0,0,0,0.03);">
+                            <i class="fa-solid fa-arrows-rotate" style="font-size: 11px;"></i>
+                            <span>Refresh Data</span>
                         </button>
+                        <div class="flex items-center gap-1 rounded-md p-1" style="background: #ffffff; border: 1px solid #e4e4e7;">
+                            <button class="px-3 py-1 rounded-md text-[11px] font-semibold tracking-tight shadow-sm" style="background: #09090b !important; color: #ffffff !important;">Today</button>
+                            <button class="px-3 py-1 rounded-md text-[11px] font-medium tracking-tight transition-colors" style="color: #71717a;" onmouseover="this.style.background='#f4f4f5';this.style.color='#09090b'" onmouseout="this.style.background='transparent';this.style.color='#71717a'">7D</button>
+                            <button class="px-3 py-1 rounded-md text-[11px] font-medium tracking-tight transition-colors" style="color: #71717a;" onmouseover="this.style.background='#f4f4f5';this.style.color='#09090b'" onmouseout="this.style.background='transparent';this.style.color='#71717a'">30D</button>
+                            <div class="h-4 w-px mx-1" style="background: #e4e4e7;"></div>
+                            <button class="flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] font-medium transition-colors" style="color: #71717a;" onmouseover="this.style.color='#09090b'" onmouseout="this.style.color='#71717a'">
+                                <i class="fa-regular fa-calendar" style="font-size: 12px;"></i>
+                                <span>Custom</span>
+                            </button>
+                        </div>
                     </div>
                 </div>
 
@@ -286,39 +262,39 @@
                 <!-- Main Operational Section (2 Columns) -->
                 <div class="grid grid-cols-1 lg:grid-cols-12 gap-4 mb-6">
                     <!-- Recent Bookings Table (Wide) -->
-                    <div class="lg:col-span-8 card-surface flex flex-col" style="height: 400px;">
-                        <div class="p-4 border-b border-zinc-800 flex justify-between items-center bg-zinc-900/50 rounded-t-xl flex-shrink-0">
-                            <h3 class="text-base font-semibold text-white font-['Manrope'] flex items-center gap-2">
-                                <span class="material-symbols-outlined text-[20px] text-orange-500">receipt_long</span>
+                    <div class="lg:col-span-8 card-surface flex flex-col" style="height: 400px; background: #ffffff; border: 1px solid #e4e4e7; border-radius: 8px;">
+                        <div class="p-4 flex justify-between items-center rounded-t-lg flex-shrink-0" style="border-bottom: 1px solid #e4e4e7; background: #ffffff;">
+                            <h3 class="text-sm font-semibold flex items-center gap-2" style="color: #09090b;">
+                                <span class="material-symbols-outlined text-[18px]" style="color: #09090b;">receipt_long</span>
                                 Recent Bookings (Action Required)
                             </h3>
                             <div class="flex gap-2 items-center">
                                 <div class="relative">
-                                    <span class="material-symbols-outlined absolute left-2 top-1/2 -translate-y-1/2 text-zinc-500 text-[14px]">filter_list</span>
-                                    <select class="input-dark pl-7 pr-6 py-1 text-[11px] rounded-md appearance-none bg-zinc-800 border-zinc-700 text-zinc-300">
+                                    <span class="material-symbols-outlined absolute left-2.5 top-1/2 -translate-y-1/2 text-[14px]" style="color: #71717a;">filter_list</span>
+                                    <select class="pl-7 pr-6 py-1 text-[11px] rounded-md appearance-none" style="background: #ffffff; border: 1px solid #e4e4e7; color: #09090b;">
                                         <option>All Statuses</option>
                                         <option>Pending Pickup</option>
                                         <option>Overdue Return</option>
                                     </select>
                                 </div>
-                                <a class="text-xs text-orange-500 hover:underline font-semibold" href="index.php?controller=orders">View All</a>
+                                <a class="text-xs hover:underline font-semibold" style="color: #2563eb;" href="index.php?controller=orders">View All</a>
                             </div>
                         </div>
                         <div class="overflow-x-auto flex-1 custom-scrollbar">
                             <table class="w-full text-left border-collapse whitespace-nowrap">
-                                <thead class="sticky top-0 bg-zinc-900/80 z-10">
-                                    <tr class="border-b border-zinc-800">
-                                        <th class="py-2 px-4 text-[10px] text-zinc-600 font-bold uppercase tracking-wider font-['Work_Sans']">BILL/CUST</th>
-                                        <th class="py-2 px-4 text-[10px] text-zinc-600 font-bold uppercase tracking-wider font-['Work_Sans']">ITEM DETAILS</th>
-                                        <th class="py-2 px-4 text-[10px] text-zinc-600 font-bold uppercase tracking-wider font-['Work_Sans']">RENTAL DATES</th>
-                                        <th class="py-2 px-4 text-[10px] text-zinc-600 font-bold uppercase tracking-wider font-['Work_Sans'] text-right">AMOUNT / SEC DEP</th>
-                                        <th class="py-2 px-4 text-[10px] text-zinc-600 font-bold uppercase tracking-wider font-['Work_Sans'] text-right">STATUS</th>
+                                <thead class="sticky top-0 z-10" style="background: #f9fafb; border-bottom: 1px solid #e4e4e7;">
+                                    <tr>
+                                        <th class="py-2.5 px-4 text-[10px] font-semibold uppercase tracking-wider" style="color: #71717a; border-bottom: 1px solid #e4e4e7; background: #f9fafb;">BILL/CUST</th>
+                                        <th class="py-2.5 px-4 text-[10px] font-semibold uppercase tracking-wider" style="color: #71717a; border-bottom: 1px solid #e4e4e7; background: #f9fafb;">ITEM DETAILS</th>
+                                        <th class="py-2.5 px-4 text-[10px] font-semibold uppercase tracking-wider" style="color: #71717a; border-bottom: 1px solid #e4e4e7; background: #f9fafb;">RENTAL DATES</th>
+                                        <th class="py-2.5 px-4 text-[10px] font-semibold uppercase tracking-wider text-right" style="color: #71717a; border-bottom: 1px solid #e4e4e7; background: #f9fafb;">AMOUNT / SEC DEP</th>
+                                        <th class="py-2.5 px-4 text-[10px] font-semibold uppercase tracking-wider text-right" style="color: #71717a; border-bottom: 1px solid #e4e4e7; background: #f9fafb;">STATUS</th>
                                     </tr>
                                 </thead>
                                 <tbody id="recent-bookings-body" class="text-sm">
-                                    <tr><td colspan="5" class="px-4 py-8 text-center text-zinc-600 text-xs">
+                                    <tr><td colspan="5" class="px-4 py-8 text-center text-xs" style="color: #71717a;">
                                         <div class="flex flex-col items-center gap-2">
-                                            <span class="material-symbols-outlined text-[24px] text-zinc-700">hourglass_empty</span>
+                                            <span class="material-symbols-outlined text-[24px]" style="color: #a1a1aa;">hourglass_empty</span>
                                             Loading bookings...
                                         </div>
                                     </td></tr>
@@ -328,97 +304,97 @@
                     </div>
 
                     <!-- Stock Value & Availability -->
-                    <div class="lg:col-span-4 card-surface p-4 flex flex-col" style="height: 400px;">
+                    <div class="lg:col-span-4 card-surface p-4 flex flex-col" style="height: 400px; background: #ffffff; border: 1px solid #e4e4e7; border-radius: 8px;">
                         <div class="flex justify-between items-center mb-4 flex-shrink-0">
-                            <h3 class="text-base font-semibold text-white font-['Manrope'] flex items-center gap-2">
-                                <span class="material-symbols-outlined text-[20px] text-yellow-500">inventory_2</span>
+                            <h3 class="text-sm font-semibold flex items-center gap-2" style="color: #09090b;">
+                                <span class="material-symbols-outlined text-[18px]" style="color: #d97706;">inventory_2</span>
                                 Stock Value & Availability
                             </h3>
                         </div>
                         <!-- Summary Card -->
-                        <div class="mb-4 bg-zinc-800/80 p-3 rounded-lg flex justify-between items-center border border-zinc-700 flex-shrink-0">
+                        <div class="mb-4 p-3.5 rounded-lg flex justify-between items-center flex-shrink-0" style="background: #f4f4f5; border: 1px solid #e4e4e7;">
                             <div>
-                                <p class="text-[10px] font-bold uppercase tracking-wider text-zinc-500">ESTIMATED STOCK VALUE</p>
-                                <p class="text-[20px] font-bold text-white font-['Manrope'] mt-1">₹1.42 Cr</p>
+                                <p class="text-[10px] font-bold uppercase tracking-wider" style="color: #71717a;">ESTIMATED STOCK VALUE</p>
+                                <p class="text-[20px] font-bold mt-1" style="color: #09090b; letter-spacing: -0.02em;">₹1.42 Cr</p>
                             </div>
                             <div class="text-right">
-                                <p class="text-[10px] font-bold uppercase tracking-wider text-zinc-500">TOTAL UNITS</p>
-                                <p class="font-mono text-base text-zinc-200 mt-1" id="metric-total-units">---</p>
+                                <p class="text-[10px] font-bold uppercase tracking-wider" style="color: #71717a;">TOTAL UNITS</p>
+                                <p class="font-mono text-base font-semibold mt-1" id="metric-total-units" style="color: #09090b;">---</p>
                             </div>
                         </div>
                         <!-- Category Breakdowns -->
-                        <div class="flex-1 overflow-y-auto custom-scrollbar pr-2 space-y-3">
+                        <div class="flex-1 overflow-y-auto custom-scrollbar pr-2 space-y-3.5">
                             <!-- Bridal Lehengas -->
                             <div>
                                 <div class="flex justify-between items-end mb-1">
-                                    <span class="text-sm text-white font-semibold flex items-center gap-1">
-                                        <span class="material-symbols-outlined text-[14px] text-orange-500">checkroom</span> Bridal Lehengas
+                                    <span class="text-xs font-semibold flex items-center gap-1.5" style="color: #09090b;">
+                                        <span class="material-symbols-outlined text-[14px]" style="color: #d97706;">checkroom</span> Bridal Lehengas
                                     </span>
-                                    <span class="font-mono text-xs text-zinc-400">85 / 120 Avail</span>
+                                    <span class="font-mono text-[11px]" style="color: #71717a;">85 / 120 Avail</span>
                                 </div>
-                                <div class="w-full bg-zinc-800 rounded-full h-1.5 mb-1 overflow-hidden flex">
+                                <div class="w-full rounded-full h-1.5 mb-1 overflow-hidden flex" style="background: #e4e4e7;">
                                     <div class="bg-green-500 h-1.5 rounded-l-full" style="width: 70%"></div>
                                     <div class="bg-amber-500 h-1.5" style="width: 20%"></div>
                                     <div class="bg-red-500 h-1.5 rounded-r-full" style="width: 10%"></div>
                                 </div>
-                                <div class="flex justify-between text-[9px] font-bold uppercase tracking-wider text-zinc-500">
+                                <div class="flex justify-between text-[9px] font-bold uppercase tracking-wider" style="color: #71717a;">
                                     <span>VALUE: ₹45.2L</span>
                                     <span class="flex gap-2">
-                                        <span class="text-green-500">■ IN</span>
-                                        <span class="text-amber-500">■ OUT</span>
-                                        <span class="text-red-500">■ MAINT</span>
+                                        <span class="text-green-600">■ IN</span>
+                                        <span class="text-amber-600">■ OUT</span>
+                                        <span class="text-red-600">■ MAINT</span>
                                     </span>
                                 </div>
                             </div>
                             <!-- Heavy Kundan Sets -->
                             <div>
                                 <div class="flex justify-between items-end mb-1">
-                                    <span class="text-sm text-white font-semibold flex items-center gap-1">
-                                        <span class="material-symbols-outlined text-[14px] text-yellow-500">diamond</span> Heavy Kundan Sets
+                                    <span class="text-xs font-semibold flex items-center gap-1.5" style="color: #09090b;">
+                                        <span class="material-symbols-outlined text-[14px]" style="color: #d97706;">diamond</span> Heavy Kundan Sets
                                     </span>
-                                    <span class="font-mono text-xs text-zinc-400">42 / 60 Avail</span>
+                                    <span class="font-mono text-[11px]" style="color: #71717a;">42 / 60 Avail</span>
                                 </div>
-                                <div class="w-full bg-zinc-800 rounded-full h-1.5 mb-1 overflow-hidden flex">
+                                <div class="w-full rounded-full h-1.5 mb-1 overflow-hidden flex" style="background: #e4e4e7;">
                                     <div class="bg-green-500 h-1.5 rounded-l-full" style="width: 70%"></div>
                                     <div class="bg-amber-500 h-1.5" style="width: 25%"></div>
                                     <div class="bg-red-500 h-1.5 rounded-r-full" style="width: 5%"></div>
                                 </div>
-                                <div class="flex justify-between text-[9px] font-bold uppercase tracking-wider text-zinc-500">
+                                <div class="flex justify-between text-[9px] font-bold uppercase tracking-wider" style="color: #71717a;">
                                     <span>VALUE: ₹32.8L</span>
                                 </div>
                             </div>
                             <!-- AD/CZ Jewellery -->
                             <div>
                                 <div class="flex justify-between items-end mb-1">
-                                    <span class="text-sm text-white font-semibold flex items-center gap-1">
-                                        <span class="material-symbols-outlined text-[14px] text-emerald-400">diamond</span> AD/CZ Jewellery
+                                    <span class="text-xs font-semibold flex items-center gap-1.5" style="color: #09090b;">
+                                        <span class="material-symbols-outlined text-[14px]" style="color: #059669;">diamond</span> AD/CZ Jewellery
                                     </span>
-                                    <span class="font-mono text-xs text-zinc-400">312 / 450 Avail</span>
+                                    <span class="font-mono text-[11px]" style="color: #71717a;">312 / 450 Avail</span>
                                 </div>
-                                <div class="w-full bg-zinc-800 rounded-full h-1.5 mb-1 overflow-hidden flex">
+                                <div class="w-full rounded-full h-1.5 mb-1 overflow-hidden flex" style="background: #e4e4e7;">
                                     <div class="bg-green-500 h-1.5 rounded-l-full" style="width: 69%"></div>
                                     <div class="bg-amber-500 h-1.5" style="width: 30%"></div>
                                     <div class="bg-red-500 h-1.5 rounded-r-full" style="width: 1%"></div>
                                 </div>
-                                <div class="flex justify-between text-[9px] font-bold uppercase tracking-wider text-zinc-500">
+                                <div class="flex justify-between text-[9px] font-bold uppercase tracking-wider" style="color: #71717a;">
                                     <span>VALUE: ₹21.5L</span>
                                 </div>
                             </div>
                             <!-- Indo-Western Gowns -->
                             <div>
                                 <div class="flex justify-between items-end mb-1">
-                                    <span class="text-sm text-white font-semibold flex items-center gap-1">
-                                        <span class="material-symbols-outlined text-[14px] text-zinc-400">checkroom</span> Indo-Western Gowns
+                                    <span class="text-xs font-semibold flex items-center gap-1.5" style="color: #09090b;">
+                                        <span class="material-symbols-outlined text-[14px]" style="color: #71717a;">checkroom</span> Indo-Western Gowns
                                     </span>
-                                    <span class="font-mono text-xs text-zinc-400">18 / 45 Avail</span>
+                                    <span class="font-mono text-[11px]" style="color: #71717a;">18 / 45 Avail</span>
                                 </div>
-                                <div class="w-full bg-zinc-800 rounded-full h-1.5 mb-1 overflow-hidden flex">
+                                <div class="w-full rounded-full h-1.5 mb-1 overflow-hidden flex" style="background: #e4e4e7;">
                                     <div class="bg-amber-500 h-1.5 rounded-l-full" style="width: 40%"></div>
                                     <div class="bg-amber-500/60 h-1.5" style="width: 50%"></div>
                                     <div class="bg-red-500 h-1.5 rounded-r-full" style="width: 10%"></div>
                                 </div>
-                                <div class="flex justify-between text-[9px] font-bold uppercase tracking-wider text-zinc-500">
-                                    <span>VALUE: ₹18.0L <span class="text-amber-500 lowercase ml-1">(high demand)</span></span>
+                                <div class="flex justify-between text-[9px] font-bold uppercase tracking-wider" style="color: #71717a;">
+                                    <span>VALUE: ₹18.0L <span class="text-amber-600 lowercase ml-1">(high demand)</span></span>
                                 </div>
                             </div>
                         </div>
@@ -428,69 +404,69 @@
                 <!-- Bottom Section (Charts & Widgets) -->
                 <div class="grid grid-cols-1 lg:grid-cols-12 gap-4 mb-6">
                     <!-- Revenue Performance Chart -->
-                    <div class="lg:col-span-8 card-surface p-4 flex flex-col relative overflow-hidden" style="height: 320px;">
+                    <div class="lg:col-span-8 card-surface p-4 flex flex-col relative overflow-hidden" style="height: 320px; background: #ffffff; border: 1px solid #e4e4e7; border-radius: 8px;">
                         <div class="flex justify-between items-center z-10 relative mb-4 flex-shrink-0">
-                            <h3 class="text-base font-semibold text-white font-['Manrope'] flex items-center gap-2">
-                                <span class="material-symbols-outlined text-[20px] text-orange-500">bar_chart</span>
+                            <h3 class="text-sm font-semibold flex items-center gap-2" style="color: #09090b;">
+                                <span class="material-symbols-outlined text-[18px]" style="color: #d97706;">bar_chart</span>
                                 Revenue Performance (30 Days)
                             </h3>
-                            <div class="flex bg-zinc-800 rounded-lg p-0.5 border border-zinc-700">
-                                <button class="px-3 py-1 text-xs font-semibold rounded-md bg-zinc-900 text-white shadow-sm border border-zinc-700">Rental Trends</button>
-                                <button class="px-3 py-1 text-xs font-semibold rounded-md text-zinc-500 hover:text-white transition-colors">Sales Performance</button>
+                            <div class="flex rounded-md p-0.5" style="background: #f4f4f5; border: 1px solid #e4e4e7;">
+                                <button class="px-2.5 py-1 text-xs font-semibold rounded shadow-sm" style="background: #ffffff; color: #09090b; border: 1px solid #e4e4e7;">Rental Trends</button>
+                                <button class="px-2.5 py-1 text-xs font-medium rounded transition-colors" style="color: #71717a;" onmouseover="this.style.color='#09090b'" onmouseout="this.style.color='#71717a'">Sales Performance</button>
                             </div>
                         </div>
                         <!-- Legend -->
                         <div class="flex gap-4 z-10 relative text-xs mb-2 pl-6 flex-shrink-0">
-                            <span class="flex items-center gap-1 text-zinc-500"><span class="inline-block w-2 h-2 rounded-full bg-orange-500"></span> Bookings (Qty)</span>
-                            <span class="flex items-center gap-1 text-zinc-500"><span class="inline-block w-2 h-2 rounded-full bg-zinc-600"></span> Returns (Qty)</span>
-                            <span class="flex items-center gap-1 text-zinc-500 ml-4"><span class="inline-block w-4 h-[2px] bg-yellow-500"></span> Revenue Trend (₹)</span>
+                            <span class="flex items-center gap-1.5" style="color: #71717a;"><span class="inline-block w-2 h-2 rounded-full" style="background: #f97316;"></span> Bookings (Qty)</span>
+                            <span class="flex items-center gap-1.5" style="color: #71717a;"><span class="inline-block w-2 h-2 rounded-full" style="background: #cbd5e1;"></span> Returns (Qty)</span>
+                            <span class="flex items-center gap-1.5 ml-4" style="color: #71717a;"><span class="inline-block w-4 h-[2px]" style="background: #eab308;"></span> Revenue Trend (₹)</span>
                         </div>
                         <!-- Bar Chart -->
-                        <div class="flex-1 relative flex items-end justify-between px-2 pb-6 border-l border-b border-zinc-800/50 mt-2 ml-6">
+                        <div class="flex-1 relative flex items-end justify-between px-2 pb-6 mt-2 ml-6" style="border-left: 1px solid #e4e4e7; border-bottom: 1px solid #e4e4e7;">
                             <!-- Y Axis Labels -->
-                            <div class="absolute -left-8 top-0 bottom-6 flex flex-col justify-between text-[9px] font-mono text-zinc-600 py-0">
+                            <div class="absolute -left-8 top-0 bottom-6 flex flex-col justify-between text-[9px] font-mono py-0" style="color: #a1a1aa;">
                                 <span>50k</span>
                                 <span>25k</span>
                                 <span>0</span>
                             </div>
                             <!-- Bars -->
-                            <div class="w-[8%] h-[30%] bg-zinc-800/30 rounded-t-sm relative group cursor-pointer">
-                                <div class="absolute bottom-0 w-full h-[60%] bg-orange-500/80 rounded-t-sm"></div>
-                                <div class="opacity-0 group-hover:opacity-100 absolute -top-8 left-1/2 -translate-x-1/2 bg-black p-1 rounded border border-zinc-700 text-[9px] font-mono text-white whitespace-nowrap z-20">B: 12 | R: 8 | ₹15k</div>
+                            <div class="w-[8%] h-[30%] rounded-t-sm relative group cursor-pointer" style="background: #f4f4f5;">
+                                <div class="absolute bottom-0 w-full h-[60%] rounded-t-sm" style="background: #f97316;"></div>
+                                <div class="opacity-0 group-hover:opacity-100 absolute -top-8 left-1/2 -translate-x-1/2 p-1 rounded text-[9px] font-mono whitespace-nowrap z-20" style="background: #09090b; color: #ffffff; border: 1px solid #27272a;">B: 12 | R: 8 | ₹15k</div>
                             </div>
-                            <div class="w-[8%] h-[45%] bg-zinc-800/30 rounded-t-sm relative group cursor-pointer">
-                                <div class="absolute bottom-0 w-full h-[80%] bg-orange-500/80 rounded-t-sm"></div>
+                            <div class="w-[8%] h-[45%] rounded-t-sm relative group cursor-pointer" style="background: #f4f4f5;">
+                                <div class="absolute bottom-0 w-full h-[80%] rounded-t-sm" style="background: #f97316;"></div>
                             </div>
-                            <div class="w-[8%] h-[20%] bg-zinc-800/30 rounded-t-sm relative group cursor-pointer">
-                                <div class="absolute bottom-0 w-full h-[40%] bg-orange-500/80 rounded-t-sm"></div>
+                            <div class="w-[8%] h-[20%] rounded-t-sm relative group cursor-pointer" style="background: #f4f4f5;">
+                                <div class="absolute bottom-0 w-full h-[40%] rounded-t-sm" style="background: #f97316;"></div>
                             </div>
-                            <div class="w-[8%] h-[60%] bg-zinc-800/30 rounded-t-sm relative group cursor-pointer">
-                                <div class="absolute bottom-0 w-full h-[90%] bg-orange-500 rounded-t-sm" style="box-shadow: 0 0 10px rgba(244,125,49,0.5)"></div>
-                                <div class="opacity-0 group-hover:opacity-100 absolute -top-8 left-1/2 -translate-x-1/2 bg-black p-1 rounded border border-zinc-700 text-[9px] font-mono text-white whitespace-nowrap z-20">B: 24 | R: 18 | ₹32k</div>
+                            <div class="w-[8%] h-[60%] rounded-t-sm relative group cursor-pointer" style="background: #f4f4f5;">
+                                <div class="absolute bottom-0 w-full h-[90%] rounded-t-sm" style="background: #f97316; box-shadow: 0 0 10px rgba(244,125,49,0.3)"></div>
+                                <div class="opacity-0 group-hover:opacity-100 absolute -top-8 left-1/2 -translate-x-1/2 p-1 rounded text-[9px] font-mono whitespace-nowrap z-20" style="background: #09090b; color: #ffffff; border: 1px solid #27272a;">B: 24 | R: 18 | ₹32k</div>
                             </div>
-                            <div class="w-[8%] h-[75%] bg-zinc-800/30 rounded-t-sm relative group cursor-pointer">
-                                <div class="absolute bottom-0 w-full h-[70%] bg-orange-500/80 rounded-t-sm"></div>
+                            <div class="w-[8%] h-[75%] rounded-t-sm relative group cursor-pointer" style="background: #f4f4f5;">
+                                <div class="absolute bottom-0 w-full h-[70%] rounded-t-sm" style="background: #f97316;"></div>
                             </div>
-                            <div class="w-[8%] h-[50%] bg-zinc-800/30 rounded-t-sm relative group cursor-pointer">
-                                <div class="absolute bottom-0 w-full h-[50%] bg-orange-500/80 rounded-t-sm"></div>
+                            <div class="w-[8%] h-[50%] rounded-t-sm relative group cursor-pointer" style="background: #f4f4f5;">
+                                <div class="absolute bottom-0 w-full h-[50%] rounded-t-sm" style="background: #f97316;"></div>
                             </div>
-                            <div class="w-[8%] h-[85%] bg-zinc-800/30 rounded-t-sm relative group cursor-pointer">
-                                <div class="absolute bottom-0 w-full h-[60%] bg-orange-500/80 rounded-t-sm"></div>
+                            <div class="w-[8%] h-[85%] rounded-t-sm relative group cursor-pointer" style="background: #f4f4f5;">
+                                <div class="absolute bottom-0 w-full h-[60%] rounded-t-sm" style="background: #f97316;"></div>
                             </div>
-                            <div class="w-[8%] h-[40%] bg-zinc-800/30 rounded-t-sm relative group cursor-pointer">
-                                <div class="absolute bottom-0 w-full h-[85%] bg-orange-500/80 rounded-t-sm"></div>
+                            <div class="w-[8%] h-[40%] rounded-t-sm relative group cursor-pointer" style="background: #f4f4f5;">
+                                <div class="absolute bottom-0 w-full h-[85%] rounded-t-sm" style="background: #f97316;"></div>
                             </div>
                             <!-- SVG Trend Line -->
                             <svg class="absolute inset-0 w-full h-full pointer-events-none" preserveAspectRatio="none">
-                                <path d="M 10 70 Q 50 60, 100 80 T 200 40 T 300 30 T 400 50 T 500 20 T 600 35 T 700 15 T 780 40" fill="none" stroke="#e9c349" stroke-width="2"></path>
-                                <circle cx="10" cy="70" fill="#e9c349" r="3"></circle>
-                                <circle cx="200" cy="40" fill="#e9c349" r="3"></circle>
-                                <circle cx="400" cy="50" fill="#e9c349" r="3"></circle>
-                                <circle cx="500" cy="20" fill="#e9c349" r="3"></circle>
-                                <circle cx="700" cy="15" fill="#e9c349" r="3"></circle>
+                                <path d="M 10 70 Q 50 60, 100 80 T 200 40 T 300 30 T 400 50 T 500 20 T 600 35 T 700 15 T 780 40" fill="none" stroke="#eab308" stroke-width="2"></path>
+                                <circle cx="10" cy="70" fill="#eab308" r="3"></circle>
+                                <circle cx="200" cy="40" fill="#eab308" r="3"></circle>
+                                <circle cx="400" cy="50" fill="#eab308" r="3"></circle>
+                                <circle cx="500" cy="20" fill="#eab308" r="3"></circle>
+                                <circle cx="700" cy="15" fill="#eab308" r="3"></circle>
                             </svg>
                             <!-- X Axis Labels -->
-                            <div class="absolute bottom-0 left-0 right-0 flex justify-between text-[9px] font-mono text-zinc-600 px-2 translate-y-full pt-1">
+                            <div class="absolute bottom-0 left-0 right-0 flex justify-between text-[9px] font-mono px-2 translate-y-full pt-1" style="color: #a1a1aa;">
                                 <span>Jun 1</span>
                                 <span>Jun 8</span>
                                 <span>Jun 15</span>
@@ -503,51 +479,51 @@
                     <!-- Store Activity & Quick Actions -->
                     <div class="lg:col-span-4 flex flex-col gap-4" style="height: 320px;">
                         <!-- Staff Activity Widget -->
-                        <div class="card-surface p-4 flex-1 flex flex-col">
-                            <h3 class="text-base font-semibold text-white font-['Manrope'] mb-3 flex items-center gap-2 flex-shrink-0">
-                                <span class="material-symbols-outlined text-[18px] text-zinc-400">group</span>
+                        <div class="card-surface p-4 flex-1 flex flex-col" style="background: #ffffff; border: 1px solid #e4e4e7; border-radius: 8px;">
+                            <h3 class="text-sm font-semibold mb-3 flex items-center gap-2 flex-shrink-0" style="color: #09090b;">
+                                <span class="material-symbols-outlined text-[18px]" style="color: #71717a;">group</span>
                                 Today's Store Activity
                             </h3>
                             <div class="space-y-3 flex-1 overflow-y-auto custom-scrollbar pr-1">
-                                <div class="flex items-center justify-between border-b border-zinc-800/50 pb-2">
-                                    <div class="flex items-center gap-2">
-                                        <div class="w-6 h-6 rounded-full bg-zinc-800 flex items-center justify-center text-[10px] font-bold text-zinc-300">RK</div>
+                                <div class="flex items-center justify-between pb-2" style="border-bottom: 1px solid #f4f4f5;">
+                                    <div class="flex items-center gap-2.5">
+                                        <div class="w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold" style="background: #f1f5f9; border: 1px solid #e2e8f0; color: #475569;">RK</div>
                                         <div class="flex flex-col">
-                                            <span class="text-xs font-semibold text-white">Rahul K.</span>
-                                            <span class="text-[9px] text-zinc-500">Processed 4 Bookings</span>
+                                            <span class="text-xs font-semibold" style="color: #09090b;">Rahul K.</span>
+                                            <span class="text-[9px]" style="color: #71717a;">Processed 4 Bookings</span>
                                         </div>
                                     </div>
-                                    <span class="font-mono text-xs text-green-500">+₹12.5k</span>
+                                    <span class="font-mono text-xs text-green-600 font-semibold">+₹12.5k</span>
                                 </div>
-                                <div class="flex items-center justify-between border-b border-zinc-800/50 pb-2">
-                                    <div class="flex items-center gap-2">
-                                        <div class="w-6 h-6 rounded-full bg-zinc-800 flex items-center justify-center text-[10px] font-bold text-zinc-300">SM</div>
+                                <div class="flex items-center justify-between pb-2" style="border-bottom: 1px solid #f4f4f5;">
+                                    <div class="flex items-center gap-2.5">
+                                        <div class="w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold" style="background: #f1f5f9; border: 1px solid #e2e8f0; color: #475569;">SM</div>
                                         <div class="flex flex-col">
-                                            <span class="text-xs font-semibold text-white">Sneha M.</span>
-                                            <span class="text-[9px] text-zinc-500">Handled 2 Returns</span>
+                                            <span class="text-xs font-semibold" style="color: #09090b;">Sneha M.</span>
+                                            <span class="text-[9px]" style="color: #71717a;">Handled 2 Returns</span>
                                         </div>
                                     </div>
-                                    <span class="font-mono text-xs text-zinc-600">--</span>
+                                    <span class="font-mono text-xs" style="color: #a1a1aa;">--</span>
                                 </div>
                                 <div class="flex items-center justify-between">
-                                    <div class="flex items-center gap-2">
-                                        <div class="w-6 h-6 rounded-full bg-orange-600 flex items-center justify-center text-[10px] font-bold text-white">AD</div>
+                                    <div class="flex items-center gap-2.5">
+                                        <div class="w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold" style="background: #09090b; color: #ffffff;">AD</div>
                                         <div class="flex flex-col">
-                                            <span class="text-xs font-semibold text-white">Admin</span>
-                                            <span class="text-[9px] text-zinc-500">Added 15 New SKUs</span>
+                                            <span class="text-xs font-semibold" style="color: #09090b;">Admin</span>
+                                            <span class="text-[9px]" style="color: #71717a;">Added 15 New SKUs</span>
                                         </div>
                                     </div>
-                                    <span class="font-mono text-xs text-zinc-600">--</span>
+                                    <span class="font-mono text-xs" style="color: #a1a1aa;">--</span>
                                 </div>
                             </div>
                         </div>
                         <!-- Quick Actions -->
                         <div class="flex gap-2 flex-shrink-0">
-                            <button onclick="window.location.href='index.php?controller=orders'" class="flex-1 bg-orange-600 hover:bg-orange-700 text-white font-bold py-2.5 rounded-lg flex items-center justify-center gap-1 transition-colors text-sm">
+                            <button onclick="window.location.href='index.php?controller=orders'" class="flex-1 font-semibold py-2 rounded-md flex items-center justify-center gap-1.5 transition-colors text-xs shadow-sm" style="background: #09090b; color: #ffffff;">
                                 <span class="material-symbols-outlined text-[16px]">add_circle</span>
                                 New Bill
                             </button>
-                            <button class="flex-1 bg-zinc-800 hover:bg-zinc-700 border border-zinc-700 text-white font-semibold py-2.5 rounded-lg flex items-center justify-center gap-1 transition-colors text-sm">
+                            <button class="flex-1 font-semibold py-2 rounded-md flex items-center justify-center gap-1.5 transition-colors text-xs shadow-sm" style="background: #ffffff; border: 1px solid #e4e4e7; color: #09090b;" onmouseover="this.style.background='#f4f4f5'" onmouseout="this.style.background='#ffffff'">
                                 <span class="material-symbols-outlined text-[16px]">keyboard</span>
                                 POS
                             </button>
@@ -658,40 +634,40 @@
                                 else if (status === 'picked' || status === 'picked up') rowBorder = 'border-l-2 border-l-amber-500';
 
                                 bookingsTbody.innerHTML += `
-                                    <tr class="table-row-zebra border-b border-zinc-800/30 hover:bg-zinc-800/50 transition-colors ${rowBorder}" style="cursor:pointer;">
-                                        <td class="py-3 px-4">
+                                    <tr class="table-row-zebra transition-colors ${rowBorder}" style="cursor:pointer; border-bottom: 1px solid #f4f4f5;">
+                                        <td class="py-2.5 px-4">
                                             <div class="flex flex-col">
-                                                <span class="font-mono text-white font-bold text-sm">#${b.bill_id}</span>
-                                                <span class="text-[11px] text-zinc-500 truncate w-24">${b.customer_name || ''}</span>
+                                                <span class="font-mono font-bold text-xs" style="color: #09090b;">#${b.bill_id}</span>
+                                                <span class="text-[11px] truncate w-28" style="color: #71717a;">${b.customer_name || ''}</span>
                                             </div>
                                         </td>
-                                        <td class="py-3 px-4">
-                                            <div class="flex items-center gap-2">
-                                                <div class="w-8 h-8 bg-zinc-800 rounded flex items-center justify-center border border-zinc-700">
-                                                    <span class="material-symbols-outlined text-[16px] text-zinc-400">${icon}</span>
+                                        <td class="py-2.5 px-4">
+                                            <div class="flex items-center gap-2.5">
+                                                <div class="w-7 h-7 rounded flex items-center justify-center flex-shrink-0" style="background: #f4f4f5; border: 1px solid #e4e4e7;">
+                                                    <span class="material-symbols-outlined text-[14px]" style="color: #71717a;">${icon}</span>
                                                 </div>
                                                 <div class="flex flex-col">
-                                                    <span class="font-mono text-zinc-200 text-xs">${(b.items || 'N/A').substring(0, 18)}</span>
-                                                    <span class="text-[11px] text-zinc-500">${b.product_type || ''}</span>
+                                                    <span class="text-xs font-medium" style="color: #09090b;">${(b.items || 'N/A').substring(0, 24)}</span>
+                                                    <span class="text-[10px]" style="color: #71717a;">${b.product_type || ''}</span>
                                                 </div>
                                             </div>
                                         </td>
-                                        <td class="py-3 px-4">
-                                            <div class="flex flex-col text-[11px] font-mono text-zinc-400">
-                                                <span class="flex items-center gap-1 ${pickIsToday ? 'text-blue-400 font-bold' : ''}">
-                                                    <span class="material-symbols-outlined text-[12px] ${pickIsToday ? 'text-blue-400' : 'text-blue-500'}">flight_takeoff</span> ${pickDate}${pickIsToday ? ' (Today)' : ''}
+                                        <td class="py-2.5 px-4">
+                                            <div class="flex flex-col text-[11px] font-mono" style="color: #71717a;">
+                                                <span class="flex items-center gap-1 ${pickIsToday ? 'font-bold' : ''}" style="${pickIsToday ? 'color: #2563eb;' : ''}">
+                                                    <span class="material-symbols-outlined text-[12px]" style="${pickIsToday ? 'color: #2563eb;' : 'color: #94a3b8;'}">flight_takeoff</span> ${pickDate}${pickIsToday ? ' (Today)' : ''}
                                                 </span>
-                                                <span class="flex items-center gap-1 ${returnIsToday ? 'text-amber-500 font-bold' : ''}">
-                                                    <span class="material-symbols-outlined text-[12px] ${returnIsToday ? 'text-amber-500' : 'text-orange-500'}">flight_land</span> ${returnDate}${returnIsToday ? ' (Today)' : ''}
+                                                <span class="flex items-center gap-1 ${returnIsToday ? 'font-bold' : ''}" style="${returnIsToday ? 'color: #d97706;' : ''}">
+                                                    <span class="material-symbols-outlined text-[12px]" style="${returnIsToday ? 'color: #d97706;' : 'color: #94a3b8;'}">flight_land</span> ${returnDate}${returnIsToday ? ' (Today)' : ''}
                                                 </span>
                                             </div>
                                         </td>
-                                        <td class="py-3 px-4 text-right">
+                                        <td class="py-2.5 px-4 text-right">
                                             <div class="flex flex-col">
-                                                <span class="font-mono text-zinc-200 text-xs">₹${amount}</span>
+                                                <span class="font-mono text-xs font-semibold" style="color: #09090b;">₹${amount}</span>
                                             </div>
                                         </td>
-                                        <td class="py-3 px-4 text-right">
+                                        <td class="py-2.5 px-4 text-right">
                                             <div class="flex flex-col items-end gap-1">
                                                 ${getStatusBadge(b.booking_status)}
                                             </div>
@@ -708,7 +684,7 @@
                     console.error('Error fetching stats:', error);
                 } finally {
                     if (refreshBtn) {
-                        const icon = refreshBtn.querySelector('.material-symbols-outlined');
+                        const icon = refreshBtn.querySelector('.fa-arrows-rotate, .material-symbols-outlined');
                         if (icon) icon.style.animation = '';
                     }
                 }
@@ -720,7 +696,13 @@
             document.head.appendChild(styleSheet);
 
             fetchStats();
-            if (refreshBtn) refreshBtn.addEventListener('click', fetchStats);
+            if (refreshBtn) {
+                refreshBtn.addEventListener('click', () => {
+                    const icon = refreshBtn.querySelector('.fa-arrows-rotate, .material-symbols-outlined');
+                    if (icon) icon.style.animation = 'spin 0.8s linear infinite';
+                    fetchStats();
+                });
+            }
         });
     </script>
 </body>

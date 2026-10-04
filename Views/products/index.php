@@ -3,6 +3,361 @@
 <head>
     <title>All Products - Srishringarr</title>
     <?php include __DIR__ . '/../partials/head.php'; ?>
+    <style>
+        /* Exact ShadCN UI Standards (Matching yn/admin/products.php) */
+        :root {
+            --wp-dark: #09090b;
+            --wp-blue: #2563eb;
+            --wp-border: #e4e4e7;
+            --wp-bg: #fafafa;
+            --wp-text: #09090b;
+            --wp-text-muted: #71717a;
+            --font-stack: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+        }
+
+        body {
+            font-family: var(--font-stack) !important;
+            background-color: var(--wp-bg) !important;
+            color: var(--wp-text) !important;
+            font-size: 13px !important;
+            line-height: 1.5 !important;
+        }
+
+        .page-container {
+            max-width: 1440px;
+            margin: 0 auto;
+        }
+
+        /* Dashboard Header Banner */
+        .dashboard-header-banner {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 16px;
+            gap: 14px;
+            flex-wrap: wrap;
+        }
+
+        .dashboard-header-info {
+            display: flex;
+            flex-direction: column;
+            gap: 3px;
+        }
+
+        .dashboard-greeting {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .dashboard-greeting h1 {
+            font-size: 20px;
+            font-weight: 600;
+            color: #09090b;
+            letter-spacing: -0.02em;
+            margin: 0;
+            line-height: 1.2;
+        }
+
+        .dashboard-subtitle {
+            font-size: 12.5px;
+            color: #71717a;
+            margin: 0;
+            line-height: 1.4;
+            font-weight: 400;
+        }
+
+        .shadcn-badge {
+            display: inline-flex;
+            align-items: center;
+            padding: 2px 7px;
+            border-radius: 4px;
+            font-size: 11px;
+            font-weight: 500;
+            text-transform: uppercase;
+            letter-spacing: 0.03em;
+            line-height: 1.2;
+            flex-shrink: 0;
+            background: #f4f4f5;
+            color: #18181b;
+            border: 1px solid #e4e4e7;
+        }
+
+        .dashboard-actions {
+            display: flex;
+            align-items: center;
+            gap: 7px;
+            flex-wrap: wrap;
+        }
+
+        /* ShadCN Button Standards */
+        .button, .shadcn-btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            padding: 0 11px;
+            height: 32px;
+            font-size: 12.5px;
+            font-weight: 500;
+            line-height: 1;
+            text-align: center;
+            cursor: pointer;
+            border-radius: 6px;
+            border: 1px solid #e4e4e7;
+            background: #ffffff;
+            color: #09090b;
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03);
+            transition: all 0.12s ease;
+            text-decoration: none;
+            font-family: inherit;
+            white-space: nowrap;
+        }
+
+        .button:hover, .shadcn-btn:hover {
+            background: #f4f4f5;
+            border-color: #d4d4d8;
+            color: #09090b;
+        }
+
+        .button-primary, .shadcn-btn-primary {
+            background: #09090b !important;
+            border-color: #09090b !important;
+            color: #ffffff !important;
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08);
+        }
+
+        .button-primary:hover, .shadcn-btn-primary:hover {
+            background: #27272a !important;
+            border-color: #27272a !important;
+            color: #ffffff !important;
+        }
+
+        .shadcn-btn-outline {
+            background: #ffffff;
+            border-color: #e4e4e7;
+            color: #09090b;
+        }
+        .shadcn-btn-outline:hover {
+            background: #f4f4f5;
+            border-color: #d4d4d8;
+        }
+
+        .shadcn-btn-ghost {
+            background: transparent;
+            border-color: transparent;
+            color: #71717a;
+            box-shadow: none;
+        }
+        .shadcn-btn-ghost:hover {
+            background: #f4f4f5;
+            color: #09090b;
+        }
+
+        /* Export Dropdown Popover */
+        .dropdown-menu-wrap {
+            position: relative;
+            display: inline-block;
+        }
+
+        .dropdown-popover {
+            display: none;
+            position: absolute;
+            right: 0;
+            top: calc(100% + 6px);
+            background: #ffffff;
+            border: 1px solid #e4e4e7;
+            border-radius: 8px;
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.08), 0 8px 10px -6px rgba(0, 0, 0, 0.02);
+            list-style: none;
+            margin: 0;
+            padding: 5px;
+            z-index: 100;
+            min-width: 220px;
+        }
+        .dropdown-popover.open {
+            display: block;
+            animation: popoverFadeIn 0.12s ease;
+        }
+        @keyframes popoverFadeIn {
+            from { opacity: 0; transform: translateY(-4px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .dropdown-item {
+            display: flex;
+            align-items: center;
+            gap: 9px;
+            padding: 8px 12px;
+            font-size: 12.5px;
+            font-weight: 500;
+            color: #09090b;
+            text-decoration: none;
+            border-radius: 5px;
+            transition: background 0.12s ease;
+        }
+        .dropdown-item:hover {
+            background: #f4f4f5;
+            color: #09090b;
+        }
+
+        /* ShadCN Card Container */
+        .shadcn-card {
+            background: #ffffff;
+            border: 1px solid #e4e4e7;
+            border-radius: 8px;
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.02);
+            margin-bottom: 16px;
+            overflow: hidden;
+        }
+
+        .shadcn-card-padded {
+            padding: 12px 16px;
+        }
+
+        .shadcn-card-header {
+            padding: 10px 16px;
+            border-bottom: 1px solid #f4f4f5;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: #ffffff;
+        }
+
+        /* Filter Controls */
+        .form-control-shadcn {
+            height: 34px;
+            font-size: 12.5px;
+            font-family: inherit;
+            color: #09090b;
+            background: #ffffff;
+            border: 1px solid #e4e4e7;
+            border-radius: 6px;
+            padding: 0 10px;
+            outline: none;
+            transition: border-color 0.12s ease, box-shadow 0.12s ease;
+        }
+        .form-control-shadcn:focus {
+            border-color: #09090b;
+            box-shadow: 0 0 0 1px #09090b;
+        }
+
+        .search-clear-btn {
+            display: none;
+            position: absolute;
+            right: 8px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #a1a1aa;
+            background: none;
+            border: none;
+            cursor: pointer;
+            font-size: 14px;
+            padding: 2px 4px;
+            line-height: 1;
+        }
+        .search-clear-btn:hover {
+            color: #09090b;
+        }
+
+        /* ShadCN Table Standard */
+        .shadcn-table {
+            width: 100%;
+            border-collapse: collapse;
+            background: #ffffff;
+            border: none;
+            box-shadow: none;
+        }
+
+        .shadcn-table th {
+            background: #fafafa;
+            padding: 9px 14px;
+            font-size: 11px;
+            font-weight: 500;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+            color: #71717a;
+            border-bottom: 1px solid #e4e4e7;
+            text-align: left;
+            white-space: nowrap;
+        }
+
+        .shadcn-table td {
+            padding: 10px 14px;
+            vertical-align: middle;
+            border-bottom: 1px solid #f4f4f5;
+            font-size: 13px;
+            color: #09090b;
+            font-weight: 400;
+        }
+
+        .shadcn-table tbody tr:hover td {
+            background-color: #fafafa;
+        }
+
+        .shadcn-table tbody tr:last-child td {
+            border-bottom: none;
+        }
+
+        .product-name-link {
+            font-weight: 500;
+            color: #09090b;
+            text-decoration: none;
+            font-size: 13px;
+            line-height: 1.4;
+            display: block;
+            max-width: 360px;
+            word-break: break-word;
+            overflow-wrap: break-word;
+            white-space: normal;
+        }
+        .product-name-link:hover {
+            color: #2563eb;
+        }
+
+        /* Skeletons */
+        .skeleton {
+            background: linear-gradient(90deg, #f4f4f5 25%, #e4e4e7 50%, #f4f4f5 75%);
+            background-size: 200% 100%;
+            animation: skeletonLoading 1.5s infinite;
+            border-radius: 4px;
+        }
+        @keyframes skeletonLoading {
+            0% { background-position: 200% 0; }
+            100% { background-position: -200% 0; }
+        }
+
+        /* Floating Toast Box */
+        #toast-box {
+            position: fixed;
+            bottom: 24px;
+            right: 24px;
+            z-index: 9999;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            pointer-events: none;
+        }
+        .toast-msg {
+            background: #09090b;
+            color: #ffffff;
+            font-size: 12.5px;
+            font-weight: 500;
+            padding: 8px 14px;
+            border-radius: 6px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            pointer-events: auto;
+            animation: toastIn 0.15s ease forwards;
+        }
+        @keyframes toastIn {
+            from { opacity: 0; transform: translateY(8px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+    </style>
 </head>
 <body class="bg-gray-50 font-sans text-gray-900">
 
@@ -20,121 +375,178 @@
 
             <!-- Page Content -->
             <main class="flex-1 overflow-y-auto p-6 lg:p-8 bg-gray-50/50">
-                <div class="max-w-[1400px] mx-auto">
+                <div class="page-container">
 
-                    <!-- Stats Cards -->
-                    <div class="stats-grid" id="stats-grid">
-                        <div class="stat-card stat-card--total">
-                            <div class="stat-icon"><i class="fas fa-box"></i></div>
-                            <div class="stat-value" id="stat-total">—</div>
-                            <div class="stat-label">Total Products</div>
+                    <!-- Header Banner (Exact yn/admin layout) -->
+                    <div class="dashboard-header-banner">
+                        <div class="dashboard-header-info">
+                            <div class="dashboard-greeting">
+                                <h1>Products Catalog</h1>
+                                <span class="shadcn-badge">
+                                    <i class="fa-solid fa-boxes-stacked" style="margin-right: 5px;"></i> <span id="header-count">—</span>&nbsp;ITEMS
+                                </span>
+                            </div>
+                            <p class="dashboard-subtitle">
+                                Manage your store inventory, pricing, SKUs, and category bindings.
+                            </p>
                         </div>
-                        <div class="stat-card stat-card--stock">
-                            <div class="stat-icon"><i class="fas fa-check-circle"></i></div>
-                            <div class="stat-value" id="stat-stock">—</div>
-                            <div class="stat-label">In Stock</div>
-                        </div>
-                        <div class="stat-card stat-card--oos">
-                            <div class="stat-icon"><i class="fas fa-exclamation-circle"></i></div>
-                            <div class="stat-value" id="stat-oos">—</div>
-                            <div class="stat-label">Out of Stock</div>
-                        </div>
-                        <div class="stat-card stat-card--featured">
-                            <div class="stat-icon"><i class="fas fa-star"></i></div>
-                            <div class="stat-value" id="stat-featured">—</div>
-                            <div class="stat-label">Featured</div>
+                        <div class="dashboard-actions">
+                            <a href="index.php?controller=product&action=add" class="shadcn-btn shadcn-btn-primary">
+                                <i class="fa-solid fa-plus"></i> Add Product
+                            </a>
+                            <a href="index.php?controller=sync&action=index" class="shadcn-btn shadcn-btn-outline">
+                                <i class="fa-solid fa-tags"></i> POS Price Sync
+                            </a>
+                            <a href="import_archive.php" class="shadcn-btn shadcn-btn-outline">
+                                <i class="fa-solid fa-folder-tree"></i> Archive Import
+                            </a>
+                            <a href="index.php?controller=product&action=import" class="shadcn-btn shadcn-btn-outline">
+                                <i class="fa-solid fa-file-csv"></i> CSV Import
+                            </a>
+
+                            <!-- Export Dropdown -->
+                            <div class="dropdown-menu-wrap" id="export-dropdown-wrap">
+                                <button type="button" onclick="toggleExportMenu()" class="shadcn-btn shadcn-btn-outline">
+                                    <i class="fa-solid fa-download"></i> Export <i class="fa-solid fa-chevron-down" style="font-size: 10px; margin-left: 2px;"></i>
+                                </button>
+                                <ul id="export-menu" class="dropdown-popover">
+                                    <li>
+                                        <a href="javascript:void(0)" onclick="exportProducts('excel')" class="dropdown-item">
+                                            <i class="fa-solid fa-file-excel" style="color: #16a34a; width: 16px;"></i> Filtered Excel (.xlsx)
+                                        </a>
+                                    </li>
+                                    <li style="border-top: 1px solid #f4f4f5;">
+                                        <a href="javascript:void(0)" onclick="exportProducts('csv')" class="dropdown-item">
+                                            <i class="fa-solid fa-file-csv" style="color: #0284c7; width: 16px;"></i> Filtered CSV (.csv)
+                                        </a>
+                                    </li>
+                                </ul>
+                            </div>
                         </div>
                     </div>
 
-                    <!-- Filter Bar -->
-                    <div class="filter-bar">
-                        <!-- Row 1: Search & Filters -->
-                        <div class="filter-row" style="margin-bottom: 0.75rem;">
-                            <div class="search-box">
-                                <i class="fas fa-search search-icon"></i>
-                                <input type="text" id="searchInput" value="<?php echo htmlspecialchars($search); ?>" placeholder="Search products by name, code, or SKU...">
-                            </div>
-                            <select id="categoryFilter">
-                                <option value="">All Categories</option>
-                                <?php foreach ($categories as $parent => $data): ?>
-                                    <optgroup label="<?php echo htmlspecialchars($parent); ?> (<?php echo $data['count']; ?>)">
-                                        <?php foreach ($data['children'] as $value => $childData): ?>
-                                            <option value="<?php echo htmlspecialchars($value); ?>" <?php echo $category == $value ? 'selected' : ''; ?>>
-                                                <?php echo $childData['name']; ?> (<?php echo $childData['count']; ?>)
-                                            </option>
-                                        <?php endforeach; ?>
-                                    </optgroup>
-                                <?php endforeach; ?>
-                            </select>
-                            <select id="featuredFilter">
-                                <option value="">All Featured</option>
-                                <option value="1">Featured Only</option>
-                                <option value="0">Non-Featured</option>
-                            </select>
-                            <select id="sortFilter">
-                                <option value="id_desc">Newest First</option>
-                                <option value="id_asc">Oldest First</option>
-                                <option value="name_asc">Name (A-Z)</option>
-                                <option value="name_desc">Name (Z-A)</option>
-                                <option value="code_asc">Code (A-Z)</option>
-                                <option value="code_desc">Code (Z-A)</option>
-                                <option value="rent_price_asc">Rent ↑</option>
-                                <option value="rent_price_desc">Rent ↓</option>
-                                <option value="sales_price_asc">Sale ↑</option>
-                                <option value="sales_price_desc">Sale ↓</option>
-                            </select>
+                    <!-- Status & Trash Navigation Bar (Exact yn/admin format) -->
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; flex-wrap: wrap; gap: 10px;">
+                        <!-- Left: Status Tabs -->
+                        <div style="display: flex; align-items: center; gap: 6px; font-size: 13px;">
+                            <button type="button" id="tab-all" onclick="setQuickTab('all', this)" class="shadcn-btn shadcn-btn-primary" style="height: 30px; font-size: 12px; padding: 0 12px; font-weight: 500;">
+                                All (<span id="tab-count-all">—</span>)
+                            </button>
+                            <button type="button" id="tab-featured" onclick="setQuickTab('featured', this)" class="shadcn-btn shadcn-btn-outline" style="height: 30px; font-size: 12px; padding: 0 12px; font-weight: 500;">
+                                <i class="fa-solid fa-star" style="font-size: 10px; margin-right: 4px; color: #f59e0b;"></i> Featured (<span id="tab-count-featured">—</span>)
+                            </button>
+                            <button type="button" id="tab-instock" onclick="setQuickTab('instock', this)" class="shadcn-btn shadcn-btn-outline" style="height: 30px; font-size: 12px; padding: 0 12px; font-weight: 500;">
+                                In Stock (<span id="tab-count-instock">—</span>)
+                            </button>
                         </div>
-                        <!-- Row 2: Action Buttons -->
-                        <div class="filter-row" style="justify-content: space-between;">
-                            <div class="filter-actions">
-                                <button type="button" id="availableToggle" onclick="toggleAvailableOnly()" class="filter-btn">
-                                    <i class="fas fa-check-circle"></i> Available Only
-                                </button>
-                                <a href="index.php?controller=product&action=import" class="filter-btn">
-                                    <i class="fas fa-file-import"></i> Import
-                                </a>
-                                <a href="javascript:void(0)" onclick="exportProducts()" class="filter-btn">
-                                    <i class="fas fa-file-export"></i> Export
-                                </a>
-                                <a href="index.php?controller=product&action=descriptionCorrector" class="filter-btn">
-                                    <i class="fas fa-magic"></i> Format Descriptions
-                                </a>
-                            </div>
-                            <a href="index.php?controller=product&action=add" class="filter-btn filter-btn--primary">
-                                <i class="fas fa-plus"></i> Add Product
+
+                        <!-- Right: Trash Counter -->
+                        <div style="display: flex; align-items: center; gap: 8px;">
+                            <a href="index.php?controller=product&action=bulkDelete" class="shadcn-btn shadcn-btn-outline" style="height: 30px; font-size: 12px; padding: 0 12px; display: inline-flex; align-items: center; gap: 6px; text-decoration: none; color: #ef4444; border-color: #fca5a5; background: #fef2f2;" title="Bulk Delete Products">
+                                <i class="fa-solid fa-trash-can" style="font-size: 11px;"></i>
+                                <span>Trash</span>
+                                <span id="tab-count-trash" style="background: #ef4444; color: #ffffff; font-size: 10.5px; padding: 1px 6px; border-radius: 999px; font-weight: 600;">
+                                    0
+                                </span>
                             </a>
                         </div>
                     </div>
 
-                    <!-- Products Table -->
-                    <div class="product-table-wrap">
-                        <div id="duplicateNoticeContainer"></div>
-                        <div class="table-responsive">
-                            <table class="w-full text-left">
+                    <!-- Filters Card -->
+                    <div class="shadcn-card" style="margin-bottom: 16px;">
+                        <div class="shadcn-card-padded">
+                            <form id="filterForm" onsubmit="event.preventDefault(); loadProducts(1);" style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin: 0;">
+                                <!-- Search Box -->
+                                <div style="position: relative; flex: 1; min-width: 220px;">
+                                    <i class="fa-solid fa-magnifying-glass" style="position: absolute; left: 10px; top: 50%; transform: translateY(-50%); color: #a1a1aa; font-size: 12px; pointer-events: none;"></i>
+                                    <input type="text" id="searchInput" value="<?php echo htmlspecialchars($search); ?>" placeholder="Search name, SKU, description..." class="form-control-shadcn" style="padding-left: 32px !important; width: 100%;">
+                                    <button type="button" id="searchClearBtn" class="search-clear-btn" onclick="clearSearch()">&times;</button>
+                                </div>
+
+                                <!-- Categories Dropdown -->
+                                <div style="min-width: 160px;">
+                                    <select id="categoryFilter" class="form-control-shadcn" style="width: 100%;" onchange="loadProducts(1)">
+                                        <option value="">All Categories</option>
+                                        <?php if (!empty($categories)): ?>
+                                            <?php foreach ($categories as $parent => $data): ?>
+                                                <optgroup label="<?php echo htmlspecialchars($parent); ?> (<?php echo $data['count']; ?>)">
+                                                    <?php foreach ($data['children'] as $value => $childData): ?>
+                                                        <option value="<?php echo htmlspecialchars($value); ?>" <?php echo $category == $value ? 'selected' : ''; ?>>
+                                                            <?php echo $childData['name']; ?> (<?php echo $childData['count']; ?>)
+                                                        </option>
+                                                    <?php endforeach; ?>
+                                                </optgroup>
+                                            <?php endforeach; ?>
+                                        <?php endif; ?>
+                                    </select>
+                                </div>
+
+                                <!-- Stock Status Dropdown -->
+                                <div style="min-width: 140px;">
+                                    <select id="stockFilter" class="form-control-shadcn" style="width: 100%;" onchange="onStockFilterChange()">
+                                        <option value="">All Stock Status</option>
+                                        <option value="instock">In Stock (&gt; 0)</option>
+                                        <option value="lowstock">Low Stock (1–5)</option>
+                                        <option value="outofstock">Out of Stock (0)</option>
+                                    </select>
+                                </div>
+
+                                <!-- Featured / Items Dropdown -->
+                                <div style="min-width: 125px;">
+                                    <select id="featuredFilter" class="form-control-shadcn" style="width: 100%;" onchange="loadProducts(1)">
+                                        <option value="">All Items</option>
+                                        <option value="1">Starred Only</option>
+                                        <option value="0">Unstarred Only</option>
+                                    </select>
+                                </div>
+
+                                <button type="submit" class="shadcn-btn shadcn-btn-primary" style="height: 34px; font-size: 12.5px; padding: 0 14px;">
+                                    <i class="fa-solid fa-filter"></i> Filter
+                                </button>
+                                
+                                <button type="button" id="resetFiltersBtn" onclick="resetAllFilters()" class="shadcn-btn shadcn-btn-ghost" style="display: none; height: 34px; font-size: 12.5px;" title="Clear Filters">
+                                    <i class="fa-solid fa-xmark"></i> Reset
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+
+                    <!-- Multi-Category Notice Container -->
+                    <div id="duplicateNoticeContainer"></div>
+
+                    <!-- Products Table Card -->
+                    <div class="shadcn-card">
+                        <div class="shadcn-card-header">
+                            <div style="font-size: 12.5px; color: #52525b;">
+                                <span id="table-record-range">Loading products...</span>
+                            </div>
+                            <div id="table-page-range" style="font-size: 11.5px; color: #71717a;">
+                                Page 1
+                            </div>
+                        </div>
+
+                        <div style="overflow-x: auto;">
+                            <table class="shadcn-table">
                                 <thead>
                                     <tr>
-                                        <th style="width: 44px;">#</th>
-                                        <th style="width: 80px;">ID</th>
-                                        <th style="min-width: 320px;">Product</th>
-                                        <th>Code</th>
-                                        <th>Category</th>
-                                        <th>Inventory</th>
-                                        <th>Pricing</th>
-                                        <th style="text-align: center;">Source</th>
-                                        <th style="text-align: center;">Availability</th>
-                                        <th>Bookings</th>
-                                        <th style="text-align: center;">Featured</th>
-                                        <th style="text-align: right; width: 120px;">Actions</th>
+                                        <th style="width: 50px;">IMAGE</th>
+                                        <th style="max-width: 360px; width: 34%;">PRODUCT TITLE &amp; SKU</th>
+                                        <th style="white-space: nowrap; width: 140px;">CATEGORY</th>
+                                        <th style="white-space: nowrap; width: 120px;">PRICE</th>
+                                        <th style="white-space: nowrap; width: 130px;">INVENTORY</th>
+                                        <th style="width: 60px; text-align: center;"><i class="fa-solid fa-star" title="Featured" style="font-size: 11px;"></i></th>
+                                        <th style="width: 110px; white-space: nowrap;">ADDED ON</th>
+                                        <th style="width: 80px; text-align: center; white-space: nowrap;">ACTIONS</th>
                                     </tr>
                                 </thead>
                                 <tbody id="products-body">
-                                    <!-- Skeleton Loading -->
+                                    <!-- AJAX loaded rows -->
                                 </tbody>
                             </table>
                         </div>
 
-                        <!-- Pagination -->
-                        <div id="pagination-container"></div>
+                        <!-- Pagination Footer -->
+                        <div id="pagination-container" style="border-top: 1px solid #f4f4f5; padding: 12px 16px;"></div>
                     </div>
 
                 </div>
@@ -142,83 +554,119 @@
         </div>
     </div>
 
+    <!-- Floating Toast Message Box -->
+    <div id="toast-box"></div>
+
     <?php include __DIR__ . '/../partials/scripts.php'; ?>
 
     <script>
     let currentPage = 1;
     let availableOnly = false;
+    let quickTab = 'all';
 
-    // Generate skeleton loading rows
+    // Toast Notification
+    function showToast(text, icon = 'check') {
+        const box = document.getElementById('toast-box');
+        const msg = document.createElement('div');
+        msg.className = 'toast-msg';
+        msg.innerHTML = `<i class="fa-solid fa-${icon}"></i> <span>${text}</span>`;
+        box.appendChild(msg);
+        setTimeout(() => {
+            msg.style.opacity = '0';
+            msg.style.transform = 'translateY(6px)';
+            msg.style.transition = 'all 0.2s ease';
+            setTimeout(() => msg.remove(), 250);
+        }, 2500);
+    }
+
+    // Copy SKU to clipboard
+    function copySku(sku) {
+        if (!sku) return;
+        navigator.clipboard.writeText(sku).then(() => {
+            showToast(`SKU "${sku}" copied to clipboard`, 'copy');
+        }).catch(() => {
+            showToast(`Failed to copy SKU`, 'circle-exclamation');
+        });
+    }
+
+    // Export dropdown toggle
+    function toggleExportMenu() {
+        const menu = document.getElementById('export-menu');
+        if (menu) menu.classList.toggle('open');
+    }
+    document.addEventListener('click', function(e) {
+        const wrap = document.getElementById('export-dropdown-wrap');
+        if (wrap && !wrap.contains(e.target)) {
+            const menu = document.getElementById('export-menu');
+            if (menu) menu.classList.remove('open');
+        }
+    });
+
+    // Skeletons generator
     function renderSkeletons(count = 8) {
         let html = '';
         for (let i = 0; i < count; i++) {
             html += `
                 <tr>
-                    <td><div class="skeleton skeleton-text skeleton-text--tiny" style="height: 10px;">&nbsp;</div></td>
-                    <td><div class="skeleton skeleton-text skeleton-text--tiny" style="height: 10px;">&nbsp;</div></td>
+                    <td><div class="skeleton" style="width: 36px; height: 46px; border-radius: 4px;"></div></td>
                     <td>
-                        <div style="display: flex; align-items: center; gap: 1rem;">
-                            <div class="skeleton skeleton-img"></div>
-                            <div>
-                                <div class="skeleton skeleton-text skeleton-text--wide" style="margin-bottom: 8px;">&nbsp;</div>
-                                <div class="skeleton skeleton-text skeleton-text--short">&nbsp;</div>
-                            </div>
-                        </div>
+                        <div class="skeleton" style="width: 240px; height: 14px; margin-bottom: 6px;"></div>
+                        <div class="skeleton" style="width: 90px; height: 11px;"></div>
                     </td>
-                    <td><div class="skeleton skeleton-text skeleton-text--short">&nbsp;</div></td>
-                    <td><div class="skeleton skeleton-text skeleton-text--medium">&nbsp;</div></td>
-                    <td><div class="skeleton skeleton-text skeleton-text--short">&nbsp;</div></td>
-                    <td><div class="skeleton skeleton-text skeleton-text--medium">&nbsp;</div></td>
-                    <td style="text-align:center;"><div class="skeleton skeleton-text skeleton-text--tiny" style="margin: 0 auto;">&nbsp;</div></td>
-                    <td style="text-align:center;"><div class="skeleton skeleton-text skeleton-text--short" style="margin: 0 auto;">&nbsp;</div></td>
-                    <td><div class="skeleton skeleton-text skeleton-text--tiny">&nbsp;</div></td>
-                    <td style="text-align:center;"><div class="skeleton skeleton-text skeleton-text--tiny" style="margin: 0 auto;">&nbsp;</div></td>
-                    <td style="text-align:right;"><div class="skeleton skeleton-text skeleton-text--short" style="margin-left: auto;">&nbsp;</div></td>
+                    <td><div class="skeleton" style="width: 100px; height: 20px; border-radius: 4px;"></div></td>
+                    <td><div class="skeleton" style="width: 70px; height: 15px;"></div></td>
+                    <td><div class="skeleton" style="width: 80px; height: 20px; border-radius: 4px;"></div></td>
+                    <td style="text-align: center;"><div class="skeleton" style="width: 16px; height: 16px; border-radius: 50%; margin: 0 auto;"></div></td>
+                    <td><div class="skeleton" style="width: 75px; height: 13px;"></div></td>
+                    <td style="text-align: center;"><div class="skeleton" style="width: 40px; height: 18px; margin: 0 auto;"></div></td>
                 </tr>
             `;
         }
         return html;
     }
 
-    function toggleAvailableOnly() {
-        availableOnly = !availableOnly;
-        const btn = document.getElementById('availableToggle');
-        if (availableOnly) {
-            btn.classList.add('filter-btn--active');
+    // Quick Tab Selector
+    function setQuickTab(tab, el) {
+        quickTab = tab;
+        document.querySelectorAll('#tab-all, #tab-featured, #tab-instock').forEach(b => {
+            b.className = 'shadcn-btn shadcn-btn-outline';
+        });
+        if (el) {
+            el.className = 'shadcn-btn shadcn-btn-primary';
+        }
+
+        if (tab === 'all') {
+            availableOnly = false;
+            document.getElementById('featuredFilter').value = '';
+            document.getElementById('stockFilter').value = '';
+        } else if (tab === 'featured') {
+            availableOnly = false;
+            document.getElementById('featuredFilter').value = '1';
+        } else if (tab === 'instock') {
+            availableOnly = false;
+            document.getElementById('stockFilter').value = 'instock';
+        }
+        checkFilterActive();
+        loadProducts(1);
+    }
+
+    function onStockFilterChange() {
+        const val = document.getElementById('stockFilter').value;
+        if (val === 'instock') {
+            availableOnly = true;
         } else {
-            btn.classList.remove('filter-btn--active');
+            availableOnly = false;
         }
         loadProducts(1);
     }
 
-    function exportProducts() {
+    // Export handler
+    function exportProducts(format) {
         const search = document.getElementById('searchInput').value;
         const category = document.getElementById('categoryFilter').value;
-        const sortVal = document.getElementById('sortFilter').value;
-        let sortBy = 'id';
-        let sortOrder = 'desc';
-        if (sortVal) {
-            const parts = sortVal.split('_');
-            sortOrder = parts.pop();
-            sortBy = parts.join('_');
-        }
-        window.location.href = `index.php?controller=product&action=export&search=${encodeURIComponent(search)}&category=${encodeURIComponent(category)}&sort_by=${sortBy}&sort_order=${sortOrder}&available_only=${availableOnly ? 1 : 0}`;
-    }
-
-    // Animate a counter from 0 to target
-    function animateCounter(el, target) {
-        if (isNaN(target)) { el.textContent = target; return; }
-        const duration = 600;
-        const start = performance.now();
-        const from = 0;
-        function tick(now) {
-            const elapsed = now - start;
-            const progress = Math.min(elapsed / duration, 1);
-            const eased = 1 - Math.pow(1 - progress, 3); // ease-out cubic
-            el.textContent = Math.round(from + (target - from) * eased).toLocaleString('en-IN');
-            if (progress < 1) requestAnimationFrame(tick);
-        }
-        requestAnimationFrame(tick);
+        const menu = document.getElementById('export-menu');
+        if (menu) menu.classList.remove('open');
+        window.location.href = `index.php?controller=product&action=export&format=${format}&search=${encodeURIComponent(search)}&category=${encodeURIComponent(category)}&available_only=${availableOnly ? 1 : 0}`;
     }
 
     async function loadProducts(page = 1) {
@@ -226,47 +674,50 @@
         const search = document.getElementById('searchInput').value;
         const category = document.getElementById('categoryFilter').value;
         const featured = document.getElementById('featuredFilter').value;
-        const sortVal = document.getElementById('sortFilter').value;
-        
-        let sortBy = 'id';
-        let sortOrder = 'desc';
-        if (sortVal) {
-            const parts = sortVal.split('_');
-            sortOrder = parts.pop();
-            sortBy = parts.join('_');
-        }
-        
+        const stock = document.getElementById('stockFilter').value;
+
+        checkFilterActive();
+
         const tbody = document.getElementById('products-body');
         const pagination = document.getElementById('pagination-container');
-
-        // Show skeleton loading
         tbody.innerHTML = renderSkeletons(8);
 
         try {
-            const response = await fetch(`index.php?controller=api&action=products&page=${page}&search=${encodeURIComponent(search)}&category=${encodeURIComponent(category)}&featured=${featured}&sort_by=${sortBy}&sort_order=${sortOrder}&available_only=${availableOnly ? 1 : 0}`);
+            const isAvail = (availableOnly || stock === 'instock') ? 1 : 0;
+            const response = await fetch(`index.php?controller=api&action=products&page=${page}&search=${encodeURIComponent(search)}&category=${encodeURIComponent(category)}&featured=${featured}&available_only=${isAvail}`);
             const data = await response.json();
 
-            // Update stats
-            if (data.stats) {
-                animateCounter(document.getElementById('stat-total'), data.stats.total || 0);
-                animateCounter(document.getElementById('stat-stock'), data.stats.in_stock || 0);
-                animateCounter(document.getElementById('stat-oos'), data.stats.out_of_stock || 0);
-                animateCounter(document.getElementById('stat-featured'), data.stats.featured || 0);
-            } else if (data.totalRecords !== undefined) {
-                animateCounter(document.getElementById('stat-total'), data.totalRecords);
+            // Total and Stats Update
+            const total = data.totalRecords !== undefined ? data.totalRecords : (data.stats ? data.stats.total : 0);
+            const inStockCount = data.stats ? data.stats.in_stock : 0;
+            const oosCount = data.stats ? data.stats.out_of_stock : 0;
+            const featuredCount = data.stats ? data.stats.featured : 0;
+
+            document.getElementById('header-count').textContent = Number(total).toLocaleString('en-IN');
+            document.getElementById('tab-count-all').textContent = Number(total).toLocaleString('en-IN');
+            document.getElementById('tab-count-featured').textContent = Number(featuredCount).toLocaleString('en-IN');
+            document.getElementById('tab-count-instock').textContent = Number(inStockCount).toLocaleString('en-IN');
+            document.getElementById('tab-count-trash').textContent = Number(oosCount).toLocaleString('en-IN');
+
+            // Range display (Showing 1–20 of X products)
+            const rangeEl = document.getElementById('table-record-range');
+            const pageRangeEl = document.getElementById('table-page-range');
+            if (total === 0) {
+                rangeEl.textContent = 'No products found';
+                if (pageRangeEl) pageRangeEl.textContent = 'Page 0 of 0';
+            } else {
+                const startRange = (data.currentPage - 1) * 20 + 1;
+                const endRange = Math.min(data.currentPage * 20, total);
+                rangeEl.innerHTML = `Showing <strong>${startRange}–${endRange}</strong> of <strong>${Number(total).toLocaleString('en-IN')}</strong> products`;
+                if (pageRangeEl) pageRangeEl.textContent = `Page ${data.currentPage} of ${data.totalPages || 1}`;
             }
 
             if (!data.products || data.products.length === 0) {
                 tbody.innerHTML = `
                     <tr>
-                        <td colspan="12" style="text-align: center; padding: 3rem 1rem !important;">
-                            <div style="display: flex; flex-direction: column; align-items: center; gap: 0.75rem;">
-                                <i class="fas fa-box-open" style="font-size: 2.5rem; color: #222;"></i>
-                                <p style="color: #555; font-size: 0.85rem;">No products found matching your criteria.</p>
-                                <a href="index.php?controller=product&action=add" class="filter-btn filter-btn--primary" style="margin-top: 0.5rem;">
-                                    <i class="fas fa-plus"></i> Add Product
-                                </a>
-                            </div>
+                        <td colspan="8" style="text-align: center; color: #71717a; padding: 40px;">
+                            <i class="fa-solid fa-boxes-stacked" style="font-size: 24px; display: block; margin-bottom: 8px; opacity: 0.4;"></i>
+                            No products found matching filters.
                         </td>
                     </tr>
                 `;
@@ -276,381 +727,273 @@
                 return;
             }
 
-            // Calculate duplicate SKUs across products on page
+            // SKU Map for duplicate check
             const skuMap = {};
             data.products.forEach(p => {
                 const key = (p.code || '').trim().toUpperCase() + '_' + (p.type || 'jewellery').toLowerCase();
                 if (!skuMap[key]) {
-                    skuMap[key] = { count: 0, minId: Infinity };
+                    skuMap[key] = { count: 0 };
                 }
                 skuMap[key].count++;
-                const pid = parseInt(p.id, 10);
-                if (!isNaN(pid) && pid < skuMap[key].minId) {
-                    skuMap[key].minId = pid;
-                }
             });
 
-            // Render Multi-Category SKU Banner if SKU appears in multiple subcategories
-            const noticeContainer = document.getElementById('duplicateNoticeContainer');
-            if (noticeContainer) {
-                const dupKeys = Object.keys(skuMap).filter(k => skuMap[k].count > 1);
-                if (dupKeys.length > 0) {
-                    noticeContainer.innerHTML = `
-                        <div style="background: rgba(24, 24, 27, 0.95); border: 1px solid rgba(234, 179, 8, 0.4); border-radius: 10px; padding: 1rem 1.25rem; margin-bottom: 1.25rem; box-shadow: 0 4px 12px rgba(0,0,0,0.3);">
-                            <div style="display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; margin-bottom: 0.5rem; flex-wrap: wrap;">
-                                <div style="display: flex; align-items: center; gap: 0.6rem; font-weight: 700; font-size: 0.88rem; color: #facc15;">
-                                    <i class="fas fa-layer-group" style="font-size: 1.1rem;"></i>
-                                    <span>Multi-Category SKU Listings Detected</span>
-                                </div>
-                                <span style="background: rgba(234, 179, 8, 0.15); color: #fef08a; font-size: 0.72rem; font-weight: 700; padding: 0.25rem 0.65rem; border-radius: 9999px; border: 1px solid rgba(234, 179, 8, 0.3);">
-                                    ${dupKeys.length} SKU Group(s) across subcategories
-                                </span>
-                            </div>
-                            <div style="font-size: 0.8rem; color: #d4d4d8; line-height: 1.5; margin-bottom: 0.75rem;">
-                                Each row for a given SKU is assigned to a <strong>different subcategory</strong> (e.g. Kundan, Antique, American Diamond, Vilandi). This allows the SKU to appear on its respective website category page:
-                            </div>
-                            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 0.75rem;">
-                                <div style="background: rgba(59, 130, 246, 0.1); border: 1px solid rgba(59, 130, 246, 0.3); border-radius: 8px; padding: 0.65rem 0.85rem;">
-                                    <div style="color: #60a5fa; font-weight: 700; font-size: 0.78rem; display: flex; align-items: center; gap: 0.4rem; margin-bottom: 3px;">
-                                        <i class="fas fa-sitemap"></i> How Category Listings Work
-                                    </div>
-                                    <div style="color: #a1a1aa; font-size: 0.73rem; line-height: 1.4;">
-                                        When a customer browses a category (e.g. Kundan Sets), the website API queries by that subcategory ID (e.g. <code>subcat_id: 3</code>) and returns ID <strong>8988</strong>.
-                                    </div>
-                                </div>
-                                <div style="background: rgba(234, 179, 8, 0.1); border: 1px solid rgba(234, 179, 8, 0.3); border-radius: 8px; padding: 0.65rem 0.85rem;">
-                                    <div style="color: #facc15; font-weight: 700; font-size: 0.78rem; display: flex; align-items: center; gap: 0.4rem; margin-bottom: 3px;">
-                                        <i class="fas fa-exclamation-circle"></i> Deletion Advice
-                                    </div>
-                                    <div style="color: #a1a1aa; font-size: 0.73rem; line-height: 1.4;">
-                                        Do <strong>NOT</strong> delete any row unless you want to remove this SKU from that specific website category page!
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    `;
-                } else {
-                    noticeContainer.innerHTML = '';
-                }
-            }
-
             let html = '';
-            const serialStart = (data.currentPage - 1) * 20 + 1;
-
-            data.products.forEach((p, index) => {
-                // Bookings
-                const bookingCount = p.details.bookings ? p.details.bookings.length : 0;
-                const bookingHtml = bookingCount > 0 
-                    ? `<span class="badge badge--red booking-pulse"><i class="fas fa-calendar-check" style="font-size:0.6rem;"></i> ${bookingCount} Booked</span>`
-                    : `<span style="color: #333;">—</span>`;
-
-                // Product name
+            data.products.forEach((p) => {
+                // Name
                 const rawName = (p.name || '').trim();
                 const cleanName = (rawName && rawName.toLowerCase() !== 'jewellery' && rawName.toLowerCase() !== 'garments' && rawName.toLowerCase() !== 'garment_product') ? rawName : '';
                 const displayName = cleanName ? cleanName.toLowerCase().replace(/\b\w/g, l => l.toUpperCase()) : 'Unnamed Product (' + p.code + ')';
-                const truncatedName = displayName.length > 45 ? displayName.substring(0, 45) + '...' : displayName;
 
-                // Inventory
-                const qtyVal = parseFloat(p.details.quantity || 0);
-                const qtyHtml = qtyVal > 0 
-                    ? `<span class="badge badge--green"><i class="fas fa-cube" style="font-size:0.55rem;"></i> ${qtyVal % 1 === 0 ? qtyVal.toFixed(0) : qtyVal.toFixed(2)} in stock</span>`
-                    : `<span class="badge badge--red"><i class="fas fa-times-circle" style="font-size:0.55rem;"></i> Out of Stock</span>`;
+                // Qty & Inventory
+                const qtyVal = parseFloat(p.details ? p.details.quantity : 0) || 0;
+                let inventoryBadge = '';
+                if (qtyVal <= 0) {
+                    inventoryBadge = `<span style="display: inline-flex; align-items: center; gap: 4px; padding: 2px 7px; border-radius: 4px; font-size: 11px; font-weight: 500; background: #fef2f2; color: #b91c1c; border: 1px solid #fecaca;"><i class="fa-solid fa-circle-xmark" style="font-size: 10px;"></i> Out of stock</span>`;
+                } else if (qtyVal <= 5) {
+                    inventoryBadge = `<span style="display: inline-flex; align-items: center; gap: 4px; padding: 2px 7px; border-radius: 4px; font-size: 11px; font-weight: 500; background: #fffbeb; color: #b45309; border: 1px solid #fde68a;"><i class="fa-solid fa-triangle-exclamation" style="font-size: 10px;"></i> Low: ${qtyVal}</span>`;
+                } else {
+                    inventoryBadge = `<span style="display: inline-flex; align-items: center; gap: 4px; padding: 2px 7px; border-radius: 4px; font-size: 11px; font-weight: 500; background: #f0fdf4; color: #15803d; border: 1px solid #bbf7d0;"><i class="fa-solid fa-circle-check" style="font-size: 10px;"></i> In Stock (${qtyVal})</span>`;
+                }
 
                 // Pricing
-                const rentPrice = parseFloat(p.details.rent_price || 0);
-                const salePrice = parseFloat(p.details.sale_price || 0);
-
-                // Source toggle
-                const isManual = p.details.price_source === 'manual';
-                const sourceLabel = isManual ? 'Manual' : 'POS';
-                const sourceLabelColor = isManual ? 'color: #f59e0b;' : 'color: #555;';
-
-                // Availability
-                const avail = p.details.availability || 'both';
+                const rentPrice = parseFloat(p.details ? p.details.rent_price : 0) || 0;
+                const salePrice = parseFloat(p.details ? p.details.sale_price : 0) || 0;
 
                 // Featured
-                const isFeatured = p.featured == 1;
+                const isFeatured = (p.featured == 1);
 
-                // Type badge
-                const typeLabel = (p.details.product_type_label || p.type || '').toLowerCase();
-                const typeBadgeClass = typeLabel === 'jewellery' ? 'badge--blue' : 'badge--zinc';
+                // Category
+                const subcatName = (p.details && p.details.subcategory_name ? p.details.subcategory_name : (p.details ? p.details.category_name : '')).trim();
+                const displayCat = subcatName ? subcatName.split(', ')[0] : 'Designer Jewellery';
 
-                // Duplicate & Multi-Category Listing Check
+                // Image
+                const imgPath = (p.details && p.details.image_path) ? p.details.image_path : 'assets/default-product.jpg';
+
+                // Sku duplicate info
                 const key = (p.code || '').trim().toUpperCase() + '_' + (p.type || 'jewellery').toLowerCase();
                 const skuInfo = skuMap[key];
                 const isDup = skuInfo && skuInfo.count > 1;
-                const subcatName = (p.details.subcategory_name || '').trim();
-                const catDisplay = subcatName ? subcatName : (p.details.category_name || 'N/A');
-                const idFieldName = p.type === 'garments' ? 'gproduct_id' : 'product_id';
 
-                // Subcategory color mapping for visual distinction
-                const subcatColors = {
-                    'Necklace Sets': { bg: 'rgba(168, 85, 247, 0.15)', color: '#c084fc', border: 'rgba(168, 85, 247, 0.4)' },
-                    'Antique': { bg: 'rgba(245, 158, 11, 0.15)', color: '#fbbf24', border: 'rgba(245, 158, 11, 0.4)' },
-                    'Kundan': { bg: 'rgba(34, 197, 94, 0.15)', color: '#4ade80', border: 'rgba(34, 197, 94, 0.4)' },
-                    'Vilandi': { bg: 'rgba(59, 130, 246, 0.15)', color: '#60a5fa', border: 'rgba(59, 130, 246, 0.4)' },
-                    'Vilandi / Polki': { bg: 'rgba(59, 130, 246, 0.15)', color: '#60a5fa', border: 'rgba(59, 130, 246, 0.4)' },
-                    'American Diamond': { bg: 'rgba(236, 72, 153, 0.15)', color: '#f472b6', border: 'rgba(236, 72, 153, 0.4)' },
-                    'Imitation': { bg: 'rgba(20, 184, 166, 0.15)', color: '#2dd4bf', border: 'rgba(20, 184, 166, 0.4)' },
-                    'Lehenga Choli': { bg: 'rgba(236, 72, 153, 0.15)', color: '#f472b6', border: 'rgba(236, 72, 153, 0.4)' },
-                    'Evening Gowns': { bg: 'rgba(168, 85, 247, 0.15)', color: '#c084fc', border: 'rgba(168, 85, 247, 0.4)' },
-                    'Indo Western Outfits': { bg: 'rgba(245, 158, 11, 0.15)', color: '#fbbf24', border: 'rgba(245, 158, 11, 0.4)' },
-                    'Trail Gowns / Infinity Gowns': { bg: 'rgba(59, 130, 246, 0.15)', color: '#60a5fa', border: 'rgba(59, 130, 246, 0.4)' },
-                    'Designer Blouses': { bg: 'rgba(20, 184, 166, 0.15)', color: '#2dd4bf', border: 'rgba(20, 184, 166, 0.4)' },
-                    'Kurtis / Tunics': { bg: 'rgba(34, 197, 94, 0.15)', color: '#4ade80', border: 'rgba(34, 197, 94, 0.4)' },
-                };
-                const defaultSubcatColor = { bg: 'rgba(161, 161, 170, 0.15)', color: '#a1a1aa', border: 'rgba(161, 161, 170, 0.4)' };
-                function getCategoryColor(name) {
-                    if (!name) return defaultSubcatColor;
-                    const clean = name.trim();
-                    if (subcatColors[clean]) return subcatColors[clean];
-                    const lower = clean.toLowerCase();
-                    for (const [k, v] of Object.entries(subcatColors)) {
-                        if (k.toLowerCase() === lower) return v;
-                    }
-                    return defaultSubcatColor;
+                // Date
+                let dateFormatted = '—';
+                if (p.created_at) {
+                    try {
+                        const d = new Date(p.created_at);
+                        if (!isNaN(d.getTime())) {
+                            dateFormatted = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+                        }
+                    } catch(e) {}
                 }
-                const firstSubcat = subcatName ? subcatName.split(', ')[0].trim() : '';
-                const subcatColor = getCategoryColor(firstSubcat);
 
                 html += `
-                    <tr class="product-row" style="animation-delay: ${0.02 * (index + 1)}s;">
-                        <td style="color: #333; font-variant-numeric: tabular-nums; font-size: 0.75rem; font-weight: 500;">${serialStart + index}</td>
-                        <td style="font-variant-numeric: tabular-nums;">
-                            <span class="badge badge--blue" style="font-family: monospace; font-size: 0.75rem; font-weight: 700; background: rgba(59, 130, 246, 0.12); color: #60a5fa; border: 1px solid rgba(59, 130, 246, 0.3); padding: 0.15rem 0.45rem;" title="${idFieldName}">
-                                ${p.id}
-                            </span>
+                    <tr>
+                        <td>
+                            <div style="width: 36px; height: 46px; border-radius: 4px; overflow: hidden; position: relative; background: #f4f4f5; border: 1px solid #e4e4e7;">
+                                <img src="${imgPath}" alt="" style="width: 100%; height: 100%; object-fit: cover; display: block;" onerror="this.src='assets/default-product.jpg'">
+                            </div>
                         </td>
-                        <td style="min-width: 320px;">
-                            <div style="display: flex; align-items: center; gap: 0.85rem;">
-                                <a href="index.php?controller=product&action=view_details&id=${p.id}&type=${p.type}" style="flex-shrink: 0;">
-                                    <img src="${p.details.image_path}" alt="" class="product-img-lg" onerror="this.src='assets/default-product.jpg'">
+                        <td style="max-width: 360px; width: 34%;">
+                            <div style="max-width: 360px;">
+                                <a href="index.php?controller=product&action=view_details&id=${p.id}&type=${p.type}" class="product-name-link" title="${displayName}">
+                                    ${displayName}
                                 </a>
-                                <div style="min-width: 0;">
-                                    <a href="index.php?controller=product&action=view_details&id=${p.id}&type=${p.type}" 
-                                       style="display: block; font-size: 0.82rem; font-weight: 600; color: #e5e5e5; text-decoration: none; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 260px; transition: color 0.15s;"
-                                       title="${displayName}"
-                                       onmouseover="this.style.color='#fff'" onmouseout="this.style.color='#e5e5e5'">
-                                        ${truncatedName}
-                                    </a>
-                                    <div style="display: flex; align-items: center; gap: 0.35rem; flex-wrap: wrap; margin-top: 4px;">
-                                        <span class="badge ${typeBadgeClass}" style="font-size: 0.6rem; padding: 0.1rem 0.4rem;">${typeLabel}</span>
-                                        ${isDup && firstSubcat ? `<span style="font-size: 0.62rem; padding: 0.15rem 0.5rem; border-radius: 4px; font-weight: 700; background: ${subcatColor.bg}; color: ${subcatColor.color}; border: 1px solid ${subcatColor.border};"><i class="fas fa-tag" style="margin-right: 3px; font-size: 0.55rem;"></i>${firstSubcat}</span>` : ''}
-                                    </div>
+                                <div style="margin-top: 3px;">
+                                    <span style="font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 11px; color: #71717a; text-transform: uppercase; cursor: pointer;" onclick="copySku('${p.code}')" title="Click to copy SKU">
+                                        ${p.code || 'NO-SKU'}
+                                    </span>
+                                    ${isDup ? `<span style="margin-left: 6px; font-size: 10.5px; color: #d97706; font-weight: 600;">(${skuInfo.count} listings)</span>` : ''}
                                 </div>
                             </div>
                         </td>
-                        <td>
-                            <span class="code-badge">${p.code}</span>
-                            ${isDup ? `<div style="font-size: 0.62rem; color: #facc15; font-weight: 600; margin-top: 3px;"><i class="fas fa-layer-group"></i> ${skuInfo.count} listings</div>` : ''}
+                        <td style="white-space: nowrap; width: 140px;">
+                            <span style="display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 11.5px; font-weight: 450; background: #f4f4f5; border: 1px solid #e4e4e7; color: #52525b; white-space: nowrap;">
+                                ${displayCat}
+                            </span>
                         </td>
-                        <td style="font-size: 0.78rem; font-weight: 500;">
-                            ${catDisplay && catDisplay !== 'N/A'
-                                ? `<div style="display: flex; flex-wrap: wrap; gap: 4px;">
-                                    ${catDisplay.split(', ').map(name => {
-                                        const cleanTag = name.trim();
-                                        const sc = getCategoryColor(cleanTag);
-                                        return `<span style="display: inline-block; padding: 0.2rem 0.5rem; border-radius: 5px; font-size: 0.72rem; font-weight: 600; background: ${sc.bg}; color: ${sc.color}; border: 1px solid ${sc.border};">${cleanTag}</span>`;
-                                    }).join('')}
-                                   </div>`
-                                : `<span style="color: #555;">N/A</span>`
-                            }
+                        <td style="white-space: nowrap; width: 120px;">
+                            <div style="font-weight: 600; font-size: 13px; color: #09090b; white-space: nowrap;">
+                                ₹${rentPrice.toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2})}
+                            </div>
+                            ${salePrice > 0 ? `<div style="font-size: 11px; color: #71717a; margin-top: 1px; white-space: nowrap;">Sale: ₹${salePrice.toLocaleString('en-IN')}</div>` : ''}
                         </td>
-                        <td>${qtyHtml}</td>
-                        <td>
-                            <div class="price-primary">₹${rentPrice.toLocaleString('en-IN', {minimumFractionDigits: 0})}</div>
-                            <div class="price-secondary">Sale: ₹${salePrice.toLocaleString('en-IN', {minimumFractionDigits: 0})}</div>
+                        <td style="white-space: nowrap; width: 130px;">
+                            ${inventoryBadge}
                         </td>
                         <td style="text-align: center;">
-                            <label class="toggle-switch">
-                                <input type="checkbox" ${isManual ? 'checked' : ''} onchange="togglePriceSourceRow(${p.id}, '${p.type}', this.checked ? 'manual' : 'pos')">
-                                <span class="toggle-slider"></span>
-                            </label>
-                            <div style="font-size: 0.6rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; margin-top: 3px; ${sourceLabelColor}">${sourceLabel}</div>
-                        </td>
-                        <td style="text-align: center;">
-                            <select onchange="toggleAvailabilityRow(${p.id}, '${p.type}', this.value)" class="avail-select">
-                                <option value="both" ${avail === 'both' ? 'selected' : ''}>Both</option>
-                                <option value="rent" ${avail === 'rent' ? 'selected' : ''}>Rent</option>
-                                <option value="sell" ${avail === 'sell' ? 'selected' : ''}>Sell</option>
-                            </select>
-                        </td>
-                        <td>${bookingHtml}</td>
-                        <td style="text-align: center;">
-                            <button onclick="toggleFeatured(${p.id}, '${p.type}', ${isFeatured ? 0 : 1})" class="featured-star ${isFeatured ? 'featured-star--active' : 'featured-star--inactive'}">
-                                <i class="${isFeatured ? 'fas' : 'far'} fa-star"></i>
+                            <button type="button" onclick="toggleFeaturedRow(${p.id}, '${p.type}', ${isFeatured ? 0 : 1})" style="background: none; border: none; cursor: pointer; padding: 4px; font-size: 13px; color: ${isFeatured ? '#f59e0b' : '#d4d4d8'}; transition: color 0.15s ease;" title="${isFeatured ? 'Starred' : 'Not Starred'}">
+                                <i class="fa-${isFeatured ? 'solid' : 'regular'} fa-star"></i>
                             </button>
                         </td>
-                        <td style="text-align: right;">
-                            <div class="quick-actions" style="justify-content: flex-end;">
-                                <a href="index.php?controller=product&action=view_details&id=${p.id}&type=${p.type}" title="View" class="quick-action-btn">
-                                    <i class="fas fa-eye"></i>
+                        <td style="white-space: nowrap; font-size: 12px; color: #71717a;">
+                            ${dateFormatted}
+                        </td>
+                        <td style="text-align: center;">
+                            <div style="display: flex; align-items: center; justify-content: center; gap: 8px;">
+                                <a href="index.php?controller=product&action=view_details&id=${p.id}&type=${p.type}" title="Edit / View" style="color: #71717a; font-size: 13px; padding: 4px; text-decoration: none; transition: color 0.12s;">
+                                    <i class="fa-regular fa-pen-to-square"></i>
                                 </a>
-                                <a href="index.php?controller=product&action=edit&id=${p.id}&type=${p.type}" title="Edit" class="quick-action-btn">
-                                    <i class="fas fa-pen"></i>
-                                </a>
-                                <a href="index.php?controller=product&action=delete&id=${p.id}&type=${p.type}" 
-                                   title="Delete listing for ${catDisplay}"
-                                   onclick="return confirm('Are you sure you want to delete product ID ${p.id} (${p.code}) for category ${catDisplay}?')"
-                                   class="quick-action-btn quick-action-btn--danger">
-                                    <i class="fas fa-trash"></i>
+                                <a href="javascript:void(0)" onclick="deleteProductRow(${p.id}, '${p.type}')" title="Delete" style="color: #ef4444; font-size: 13px; padding: 4px; text-decoration: none; transition: color 0.12s;">
+                                    <i class="fa-regular fa-trash-can"></i>
                                 </a>
                             </div>
                         </td>
                     </tr>
                 `;
             });
+
             tbody.innerHTML = html;
-            renderPagination(data);
+            renderPagination(data.totalPages, data.currentPage);
 
         } catch (error) {
-            console.error('Error fetching products:', error);
+            console.error('Error loading products:', error);
             tbody.innerHTML = `
                 <tr>
-                    <td colspan="12" style="text-align: center; padding: 3rem 1rem !important;">
-                        <div style="display: flex; flex-direction: column; align-items: center; gap: 0.75rem;">
-                            <i class="fas fa-exclamation-triangle" style="font-size: 2rem; color: #ef4444;"></i>
-                            <p style="color: #888; font-size: 0.85rem;">Error loading products. Please try again.</p>
-                            <button onclick="loadProducts(currentPage)" class="filter-btn" style="margin-top: 0.25rem;">
-                                <i class="fas fa-redo"></i> Retry
-                            </button>
-                        </div>
+                    <td colspan="8" style="text-align: center; color: #ef4444; padding: 30px;">
+                        <i class="fa-solid fa-triangle-exclamation" style="margin-right: 6px;"></i> Failed to load products. Please check server logs or refresh.
                     </td>
                 </tr>
             `;
         }
     }
 
-    function renderPagination(data) {
+    // Toggle Featured AJAX
+    async function toggleFeaturedRow(id, type, newStatus) {
+        try {
+            const res = await fetch('index.php?controller=api&action=toggleFeatured', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ id, type, status: newStatus })
+            });
+            const data = await res.json();
+            if (data.success) {
+                showToast(newStatus ? 'Product marked as featured' : 'Product removed from featured');
+                loadProducts(currentPage);
+            } else {
+                showToast(data.error || 'Failed to update featured', 'circle-exclamation');
+            }
+        } catch (e) {
+            showToast('Error toggling featured status', 'circle-exclamation');
+        }
+    }
+
+    // Delete Product Row
+    async function deleteProductRow(id, type) {
+        if (!confirm('Are you sure you want to delete this product?')) return;
+        window.location.href = `index.php?controller=product&action=delete&id=${id}&type=${type}`;
+    }
+
+    // Pagination Renderer
+    function renderPagination(totalPages, page) {
         const container = document.getElementById('pagination-container');
-        if (data.totalPages <= 1) {
+        if (!container) return;
+        if (!totalPages || totalPages <= 1) {
             container.innerHTML = '';
             return;
         }
 
-        const startRange = (data.currentPage - 1) * 20 + 1;
-        const endRange = Math.min(data.currentPage * 20, data.totalRecords);
+        let html = '<div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px;">';
+        html += `<div style="font-size: 12px; color: #71717a;">Page ${page} of ${totalPages}</div>`;
+        html += '<div style="display: flex; align-items: center; gap: 4px;">';
 
-        let html = `<div class="pagination-bar">
-            <div class="page-info">
-                Showing <span>${startRange}</span> to <span>${endRange}</span> of <span>${data.totalRecords}</span> products
-            </div>
-            <div class="page-buttons">`;
+        // Prev Button
+        html += `
+            <button onclick="loadProducts(${page - 1})" 
+                    ${page <= 1 ? 'disabled style="opacity: 0.4; cursor: not-allowed;"' : ''} 
+                    class="shadcn-btn shadcn-btn-outline" style="height: 30px; padding: 0 10px; font-size: 12px;">
+                <i class="fa-solid fa-chevron-left" style="font-size: 10px;"></i> Previous
+            </button>
+        `;
 
-        if (data.currentPage > 1) {
-            html += `<button onclick="loadProducts(1)" class="page-btn page-btn--nav">First</button>`;
-            html += `<button onclick="loadProducts(${data.currentPage - 1})" class="page-btn page-btn--nav"><i class="fas fa-chevron-left" style="font-size:0.6rem;"></i></button>`;
-        }
-
-        const range = 2;
-        const start = Math.max(1, data.currentPage - range);
-        const end = Math.min(data.totalPages, data.currentPage + range);
+        // Number Buttons
+        const start = Math.max(1, page - 2);
+        const end = Math.min(totalPages, page + 2);
 
         if (start > 1) {
-            html += `<button onclick="loadProducts(1)" class="page-btn">1</button>`;
-            if (start > 2) html += `<span style="color:#333; padding: 0 0.25rem;">…</span>`;
+            html += `<button onclick="loadProducts(1)" class="shadcn-btn shadcn-btn-outline" style="height: 30px; min-width: 30px; padding: 0 8px; font-size: 12px;">1</button>`;
+            if (start > 2) html += `<span style="color: #a1a1aa; padding: 0 4px;">…</span>`;
         }
 
         for (let i = start; i <= end; i++) {
-            html += `<button onclick="loadProducts(${i})" class="page-btn ${i === data.currentPage ? 'page-btn--active' : ''}">${i}</button>`;
+            const isActive = i === page;
+            html += `
+                <button onclick="loadProducts(${i})" 
+                        class="shadcn-btn ${isActive ? 'shadcn-btn-primary' : 'shadcn-btn-outline'}" 
+                        style="height: 30px; min-width: 30px; padding: 0 8px; font-size: 12px;">
+                    ${i}
+                </button>
+            `;
         }
 
-        if (end < data.totalPages) {
-            if (end < data.totalPages - 1) html += `<span style="color:#333; padding: 0 0.25rem;">…</span>`;
-            html += `<button onclick="loadProducts(${data.totalPages})" class="page-btn">${data.totalPages}</button>`;
+        if (end < totalPages) {
+            if (end < totalPages - 1) html += `<span style="color: #a1a1aa; padding: 0 4px;">…</span>`;
+            html += `<button onclick="loadProducts(${totalPages})" class="shadcn-btn shadcn-btn-outline" style="height: 30px; min-width: 30px; padding: 0 8px; font-size: 12px;">${totalPages}</button>`;
         }
 
-        if (data.currentPage < data.totalPages) {
-            html += `<button onclick="loadProducts(${data.currentPage + 1})" class="page-btn page-btn--nav"><i class="fas fa-chevron-right" style="font-size:0.6rem;"></i></button>`;
-            html += `<button onclick="loadProducts(${data.totalPages})" class="page-btn page-btn--nav">Last</button>`;
-        }
+        // Next Button
+        html += `
+            <button onclick="loadProducts(${page + 1})" 
+                    ${page >= totalPages ? 'disabled style="opacity: 0.4; cursor: not-allowed;"' : ''} 
+                    class="shadcn-btn shadcn-btn-outline" style="height: 30px; padding: 0 10px; font-size: 12px;">
+                Next <i class="fa-solid fa-chevron-right" style="font-size: 10px;"></i>
+            </button>
+        `;
 
-        html += `</div></div>`;
+        html += '</div></div>';
         container.innerHTML = html;
     }
 
-    // Initialize
-    document.addEventListener('DOMContentLoaded', () => {
+    // Reset filters
+    function resetAllFilters() {
+        document.getElementById('searchInput').value = '';
+        document.getElementById('categoryFilter').value = '';
+        document.getElementById('featuredFilter').value = '';
+        document.getElementById('stockFilter').value = '';
+        availableOnly = false;
+        quickTab = 'all';
+        document.querySelectorAll('#tab-all, #tab-featured, #tab-instock').forEach(b => {
+            b.className = 'shadcn-btn shadcn-btn-outline';
+        });
+        document.getElementById('tab-all').className = 'shadcn-btn shadcn-btn-primary';
+        checkFilterActive();
         loadProducts(1);
-        
-        // Filter change listeners
-        document.getElementById('categoryFilter').addEventListener('change', () => loadProducts(1));
-        document.getElementById('featuredFilter').addEventListener('change', () => loadProducts(1));
-        document.getElementById('sortFilter').addEventListener('change', () => loadProducts(1));
-        
-        // Debounced search
-        let searchTimeout;
-        document.getElementById('searchInput').addEventListener('input', () => {
-            clearTimeout(searchTimeout);
-            searchTimeout = setTimeout(() => loadProducts(1), 500);
-        });
+    }
 
-        // Enter key on search
-        document.getElementById('searchInput').addEventListener('keydown', (e) => {
-            if (e.key === 'Enter') {
-                e.preventDefault();
-                clearTimeout(searchTimeout);
-                loadProducts(1);
-            }
-        });
+    // Clear search
+    function clearSearch() {
+        document.getElementById('searchInput').value = '';
+        checkFilterActive();
+        loadProducts(1);
+    }
+
+    // Check filter active
+    function checkFilterActive() {
+        const search = document.getElementById('searchInput').value.trim();
+        const category = document.getElementById('categoryFilter').value;
+        const featured = document.getElementById('featuredFilter').value;
+        const stock = document.getElementById('stockFilter').value;
+
+        const clearBtn = document.getElementById('searchClearBtn');
+        if (clearBtn) clearBtn.style.display = search.length > 0 ? 'block' : 'none';
+
+        const resetBtn = document.getElementById('resetFiltersBtn');
+        const hasFilters = search.length > 0 || category !== '' || featured !== '' || stock !== '' || quickTab !== 'all';
+        if (resetBtn) resetBtn.style.display = hasFilters ? 'inline-flex' : 'none';
+    }
+
+    // Search input debouncer
+    let searchDebounce = null;
+    document.getElementById('searchInput').addEventListener('input', function() {
+        checkFilterActive();
+        clearTimeout(searchDebounce);
+        searchDebounce = setTimeout(() => {
+            loadProducts(1);
+        }, 300);
     });
 
-    async function toggleFeatured(id, type, status) {
-        try {
-            const response = await fetch('index.php?controller=api&action=toggleFeatured', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ id, type, status })
-            });
-            const data = await response.json();
-            if (data.success) {
-                loadProducts(currentPage);
-            } else {
-                alert(data.error || 'Failed to update featured status');
-            }
-        } catch (error) {
-            console.error('Error toggling featured status:', error);
-            alert('Something went wrong. Please try again.');
-        }
-    }
-
-    async function togglePriceSourceRow(id, type, priceSource) {
-        try {
-            const response = await fetch('index.php?controller=api&action=togglePriceSource', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ id, type, price_source: priceSource })
-            });
-            const data = await response.json();
-            if (data.success) {
-                loadProducts(currentPage);
-            } else {
-                alert(data.error || 'Failed to update price source');
-            }
-        } catch (error) {
-            console.error('Error toggling price source:', error);
-            alert('Something went wrong. Please try again.');
-        }
-    }
-
-    async function toggleAvailabilityRow(id, type, availability) {
-        try {
-            const response = await fetch('index.php?controller=api&action=toggleAvailability', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ id, type, availability })
-            });
-            const data = await response.json();
-            if (data.success) {
-                loadProducts(currentPage);
-            } else {
-                alert(data.error || 'Failed to update availability status');
-            }
-        } catch (error) {
-            console.error('Error toggling availability:', error);
-            alert('Something went wrong. Please try again.');
-        }
-    }
+    // Initial load
+    document.addEventListener('DOMContentLoaded', () => {
+        loadProducts(1);
+    });
     </script>
 </body>
 </html>

@@ -104,47 +104,107 @@ class ProductController extends Controller {
                   "\"Traditional gold plated necklace set with green beads and matching earrings for party wear\". " .
                   "Return ONLY a raw JSON array of strings containing the 5 suggested names. Do not include markdown code block formatting (no ```json, no ```).";
 
-        $url = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key=' . $apiKey;
-        $payload = json_encode([
-            'contents' => [
-                [
-                    'parts' => [
-                        ['text' => $prompt],
-                        [
-                            'inlineData' => [
-                                'mimeType' => $mimeType,
-                                'data' => $base64Image
+        $provider = strtolower($_GET['ai_provider'] ?? 'openai');
+        $openAiKey = $secrets['OPENAI_API_KEY'] ?? '';
+        $geminiKey = $secrets['GEMINI_API_KEY'] ?? '';
+
+        if ($provider === 'openai') {
+            if (empty($openAiKey)) {
+                $this->json(['error' => 'OpenAI API Key is not configured in secrets.php'], 400);
+                return;
+            }
+            $openAiPayload = [
+                'model' => 'gpt-4o-mini',
+                'messages' => [
+                    [
+                        'role' => 'user',
+                        'content' => [
+                            ['type' => 'text', 'text' => $prompt],
+                            [
+                                'type' => 'image_url',
+                                'image_url' => [
+                                    'url' => "data:{$mimeType};base64,{$base64Image}",
+                                    'detail' => 'high'
+                                ]
+                            ]
+                        ]
+                    ]
+                ],
+                'temperature' => 0.4
+            ];
+            $ch = curl_init('https://api.openai.com/v1/chat/completions');
+            curl_setopt_array($ch, [
+                CURLOPT_RETURNTRANSFER => true,
+                CURLOPT_POST => true,
+                CURLOPT_HTTPHEADER => [
+                    'Content-Type: application/json',
+                    'Authorization: Bearer ' . $openAiKey
+                ],
+                CURLOPT_POSTFIELDS => json_encode($openAiPayload),
+                CURLOPT_TIMEOUT => 35,
+                CURLOPT_SSL_VERIFYPEER => false,
+            ]);
+            $response = curl_exec($ch);
+            $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+            @curl_close($ch);
+
+            if ($httpCode !== 200) {
+                $err = json_decode($response, true);
+                $this->json(['error' => 'OpenAI API request failed: ' . ($err['error']['message'] ?? $response)], 500);
+                return;
+            }
+            $decoded = json_decode($response, true);
+            $text = $decoded['choices'][0]['message']['content'] ?? '';
+            $promptTokens = (int)($decoded['usage']['prompt_tokens'] ?? 0);
+            $candidateTokens = (int)($decoded['usage']['completion_tokens'] ?? 0);
+            $totalTokens = (int)($decoded['usage']['total_tokens'] ?? 0);
+        } else {
+            if (empty($geminiKey)) {
+                $this->json(['error' => 'Gemini API Key is not configured in secrets.php'], 400);
+                return;
+            }
+            $url = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key=' . $geminiKey;
+            $payload = json_encode([
+                'contents' => [
+                    [
+                        'parts' => [
+                            ['text' => $prompt],
+                            [
+                                'inlineData' => [
+                                    'mimeType' => $mimeType,
+                                    'data' => $base64Image
+                                ]
                             ]
                         ]
                     ]
                 ]
-            ]
-        ]);
+            ]);
 
-        $ch = curl_init($url);
-        curl_setopt_array($ch, [
-            CURLOPT_RETURNTRANSFER => true,
-            CURLOPT_POST => true,
-            CURLOPT_HTTPHEADER => ['Content-Type: application/json'],
-            CURLOPT_POSTFIELDS => $payload,
-            CURLOPT_TIMEOUT => 25,
-            CURLOPT_SSL_VERIFYPEER => false,
-        ]);
+            $ch = curl_init($url);
+            curl_setopt_array($ch, [
+                CURLOPT_RETURNTRANSFER => true,
+                CURLOPT_POST => true,
+                CURLOPT_HTTPHEADER => ['Content-Type: application/json'],
+                CURLOPT_POSTFIELDS => $payload,
+                CURLOPT_TIMEOUT => 25,
+                CURLOPT_SSL_VERIFYPEER => false,
+            ]);
 
-        $response = curl_exec($ch);
-        $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-        @curl_close($ch);
+            $response = curl_exec($ch);
+            $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+            @curl_close($ch);
 
-        if ($httpCode !== 200) {
-            $this->json(['error' => 'Gemini API request failed: ' . $response], 500);
-            return;
+            if ($httpCode !== 200) {
+                $this->json(['error' => 'Gemini API request failed: ' . $response], 500);
+                return;
+            }
+
+            $decoded = json_decode($response, true);
+            $text = $decoded['candidates'][0]['content']['parts'][0]['text'] ?? '';
+            $promptTokens = (int)($decoded['usageMetadata']['promptTokenCount'] ?? 0);
+            $candidateTokens = (int)($decoded['usageMetadata']['candidatesTokenCount'] ?? 0);
+            $totalTokens = (int)($decoded['usageMetadata']['totalTokenCount'] ?? 0);
         }
-
-        $decoded = json_decode($response, true);
-        $text = $decoded['candidates'][0]['content']['parts'][0]['text'] ?? '';
-        $promptTokens = (int)($decoded['usageMetadata']['promptTokenCount'] ?? 0);
-        $candidateTokens = (int)($decoded['usageMetadata']['candidatesTokenCount'] ?? 0);
-        $totalTokens = (int)($decoded['usageMetadata']['totalTokenCount'] ?? 0);
         
         $text = trim(preg_replace('/^```json|```$/', '', trim($text)));
         $names = json_decode($text, true);
@@ -270,47 +330,107 @@ class ProductController extends Controller {
                   "- Simply write headings as plain text (e.g., 'Key Features:').\n" .
                   "Do not include any placeholders, conversational text, or greetings. Return ONLY the clean plain text of description and key features.";
 
-        $url = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key=' . $apiKey;
-        $payload = json_encode([
-            'contents' => [
-                [
-                    'parts' => [
-                        ['text' => $prompt],
-                        [
-                            'inlineData' => [
-                                'mimeType' => $mimeType,
-                                'data' => $base64Image
+        $provider = strtolower($_GET['ai_provider'] ?? 'openai');
+        $openAiKey = $secrets['OPENAI_API_KEY'] ?? '';
+        $geminiKey = $secrets['GEMINI_API_KEY'] ?? '';
+
+        if ($provider === 'openai') {
+            if (empty($openAiKey)) {
+                $this->json(['error' => 'OpenAI API Key is not configured in secrets.php'], 400);
+                return;
+            }
+            $openAiPayload = [
+                'model' => 'gpt-4o-mini',
+                'messages' => [
+                    [
+                        'role' => 'user',
+                        'content' => [
+                            ['type' => 'text', 'text' => $prompt],
+                            [
+                                'type' => 'image_url',
+                                'image_url' => [
+                                    'url' => "data:{$mimeType};base64,{$base64Image}",
+                                    'detail' => 'high'
+                                ]
+                            ]
+                        ]
+                    ]
+                ],
+                'temperature' => 0.4
+            ];
+            $ch = curl_init('https://api.openai.com/v1/chat/completions');
+            curl_setopt_array($ch, [
+                CURLOPT_RETURNTRANSFER => true,
+                CURLOPT_POST => true,
+                CURLOPT_HTTPHEADER => [
+                    'Content-Type: application/json',
+                    'Authorization: Bearer ' . $openAiKey
+                ],
+                CURLOPT_POSTFIELDS => json_encode($openAiPayload),
+                CURLOPT_TIMEOUT => 35,
+                CURLOPT_SSL_VERIFYPEER => false,
+            ]);
+            $response = curl_exec($ch);
+            $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+            @curl_close($ch);
+
+            if ($httpCode !== 200) {
+                $err = json_decode($response, true);
+                $this->json(['error' => 'OpenAI API request failed: ' . ($err['error']['message'] ?? $response)], 500);
+                return;
+            }
+            $decoded = json_decode($response, true);
+            $description = trim($decoded['choices'][0]['message']['content'] ?? '');
+            $promptTokens = (int)($decoded['usage']['prompt_tokens'] ?? 0);
+            $candidateTokens = (int)($decoded['usage']['completion_tokens'] ?? 0);
+            $totalTokens = (int)($decoded['usage']['total_tokens'] ?? 0);
+        } else {
+            if (empty($geminiKey)) {
+                $this->json(['error' => 'Gemini API Key is not configured in secrets.php'], 400);
+                return;
+            }
+            $url = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key=' . $geminiKey;
+            $payload = json_encode([
+                'contents' => [
+                    [
+                        'parts' => [
+                            ['text' => $prompt],
+                            [
+                                'inlineData' => [
+                                    'mimeType' => $mimeType,
+                                    'data' => $base64Image
+                                ]
                             ]
                         ]
                     ]
                 ]
-            ]
-        ]);
+            ]);
 
-        $ch = curl_init($url);
-        curl_setopt_array($ch, [
-            CURLOPT_RETURNTRANSFER => true,
-            CURLOPT_POST => true,
-            CURLOPT_HTTPHEADER => ['Content-Type: application/json'],
-            CURLOPT_POSTFIELDS => $payload,
-            CURLOPT_TIMEOUT => 25,
-            CURLOPT_SSL_VERIFYPEER => false,
-        ]);
+            $ch = curl_init($url);
+            curl_setopt_array($ch, [
+                CURLOPT_RETURNTRANSFER => true,
+                CURLOPT_POST => true,
+                CURLOPT_HTTPHEADER => ['Content-Type: application/json'],
+                CURLOPT_POSTFIELDS => $payload,
+                CURLOPT_TIMEOUT => 25,
+                CURLOPT_SSL_VERIFYPEER => false,
+            ]);
 
-        $response = curl_exec($ch);
-        $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-        @curl_close($ch);
+            $response = curl_exec($ch);
+            $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+            @curl_close($ch);
 
-        if ($httpCode !== 200) {
-            $this->json(['error' => 'Gemini API request failed: ' . $response], 500);
-            return;
+            if ($httpCode !== 200) {
+                $this->json(['error' => 'Gemini API request failed: ' . $response], 500);
+                return;
+            }
+
+            $decoded = json_decode($response, true);
+            $description = trim($decoded['candidates'][0]['content']['parts'][0]['text'] ?? '');
+            $promptTokens = (int)($decoded['usageMetadata']['promptTokenCount'] ?? 0);
+            $candidateTokens = (int)($decoded['usageMetadata']['candidatesTokenCount'] ?? 0);
+            $totalTokens = (int)($decoded['usageMetadata']['totalTokenCount'] ?? 0);
         }
-
-        $decoded = json_decode($response, true);
-        $description = trim($decoded['candidates'][0]['content']['parts'][0]['text'] ?? '');
-        $promptTokens = (int)($decoded['usageMetadata']['promptTokenCount'] ?? 0);
-        $candidateTokens = (int)($decoded['usageMetadata']['candidatesTokenCount'] ?? 0);
-        $totalTokens = (int)($decoded['usageMetadata']['totalTokenCount'] ?? 0);
 
         // Log Description Generation to ai_analytics DB
         $db = \Core\Database::getConnection('con');
@@ -333,6 +453,145 @@ class ProductController extends Controller {
         }
 
         $this->json(['success' => true, 'description' => $description]);
+    }
+
+    public function aiAnalyzeUpload() {
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            $this->json(['error' => 'Method not allowed'], 405);
+            return;
+        }
+
+        $input = json_decode(file_get_contents('php://input'), true);
+        $dataUri = $input['image'] ?? '';
+        $target = $input['target'] ?? 'name'; // 'name' or 'desc'
+        $provider = strtolower($input['provider'] ?? 'openai');
+        $type = $input['type'] ?? 'jewellery';
+
+        if (empty($dataUri)) {
+            $this->json(['error' => 'No image data provided'], 400);
+            return;
+        }
+
+        // Parse base64 and mime
+        $mimeType = 'image/jpeg';
+        $base64Image = $dataUri;
+        if (preg_match('/^data:(image\/[a-zA-Z0-9\+\-\.]+);base64,(.+)$/', $dataUri, $matches)) {
+            $mimeType = $matches[1];
+            $base64Image = $matches[2];
+        }
+
+        $secrets = include(__DIR__ . '/../Config/secrets.php');
+
+        if ($target === 'name') {
+            $prompt = "You are a professional fashion copywriter for Srishringarr. " .
+                      "Analyze this $type item in the image. Suggest exactly 1 descriptive product title (at least 10 words long). " .
+                      "Use simple, clear, and easy-to-understand English describing the item's colors, materials, design, and suitability for weddings or festive parties. " .
+                      "Return ONLY the plain title text without quotes or markdown formatting.";
+        } else {
+            $prompt = "You are a luxury fashion brand copywriter for Srishringarr. " .
+                      "Analyze this $type item in the image. Write a detailed, compelling product description (around 60 to 90 words). " .
+                      "Include: 1) An introduction highlighting elegance and occasions, and 2) A section titled 'Key Features:' with bullet points starting with '• '. " .
+                      "Return ONLY clean plain text without any markdown asterisks (no '**', no '#').";
+        }
+
+        if ($provider === 'openai') {
+            $apiKey = $secrets['OPENAI_API_KEY'] ?? '';
+            if (empty($apiKey)) {
+                $this->json(['error' => 'OpenAI API Key is not configured in secrets.php'], 400);
+                return;
+            }
+
+            $payload = [
+                'model' => 'gpt-4o-mini',
+                'messages' => [
+                    [
+                        'role' => 'user',
+                        'content' => [
+                            ['type' => 'text', 'text' => $prompt],
+                            [
+                                'type' => 'image_url',
+                                'image_url' => [
+                                    'url' => "data:{$mimeType};base64,{$base64Image}",
+                                    'detail' => 'high'
+                                ]
+                            ]
+                        ]
+                    ]
+                ],
+                'temperature' => 0.4
+            ];
+
+            $ch = curl_init('https://api.openai.com/v1/chat/completions');
+            curl_setopt_array($ch, [
+                CURLOPT_RETURNTRANSFER => true,
+                CURLOPT_POST => true,
+                CURLOPT_HTTPHEADER => [
+                    'Content-Type: application/json',
+                    'Authorization: Bearer ' . $apiKey
+                ],
+                CURLOPT_POSTFIELDS => json_encode($payload),
+                CURLOPT_TIMEOUT => 35,
+                CURLOPT_SSL_VERIFYPEER => false,
+            ]);
+            $response = curl_exec($ch);
+            $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+            @curl_close($ch);
+
+            if ($httpCode !== 200) {
+                $err = json_decode($response, true);
+                $this->json(['error' => 'OpenAI API failed: ' . ($err['error']['message'] ?? $response)], 500);
+                return;
+            }
+
+            $decoded = json_decode($response, true);
+            $result = trim($decoded['choices'][0]['message']['content'] ?? '');
+            $this->json(['success' => true, 'result' => trim($result, '"\'')]);
+        } else {
+            $apiKey = $secrets['GEMINI_API_KEY'] ?? '';
+            if (empty($apiKey)) {
+                $this->json(['error' => 'Gemini API Key is not configured in secrets.php'], 400);
+                return;
+            }
+
+            $url = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key=' . $apiKey;
+            $payload = json_encode([
+                'contents' => [
+                    [
+                        'parts' => [
+                            ['text' => $prompt],
+                            [
+                                'inlineData' => [
+                                    'mimeType' => $mimeType,
+                                    'data' => $base64Image
+                                ]
+                            ]
+                        ]
+                    ]
+                ]
+            ]);
+
+            $ch = curl_init($url);
+            curl_setopt_array($ch, [
+                CURLOPT_RETURNTRANSFER => true,
+                CURLOPT_POST => true,
+                CURLOPT_HTTPHEADER => ['Content-Type: application/json'],
+                CURLOPT_POSTFIELDS => $payload,
+                CURLOPT_TIMEOUT => 25,
+                CURLOPT_SSL_VERIFYPEER => false,
+            ]);
+            $response = curl_exec($ch);
+            $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+            @curl_close($ch);
+
+            if ($httpCode !== 200) {
+                $this->json(['error' => 'Gemini API failed: ' . $response], 500);
+                return;
+            }
+
+            $decoded = json_decode($response, true);
+            $result = trim($decoded['candidates'][0]['content']['parts'][0]['text'] ?? '');
+            $this->json(['success' => true, 'result' => trim($result, '"\'')]);
+        }
     }
 
     public function aiGenerateModelImage() {
@@ -2495,14 +2754,20 @@ class ProductController extends Controller {
         
         $secretsFile = __DIR__ . '/../Config/secrets.php';
         $hasApiKey = false;
+        $hasGemini = false;
+        $hasOpenAi = false;
         if (file_exists($secretsFile)) {
             $sec = include($secretsFile);
-            $hasApiKey = !empty($sec['GEMINI_API_KEY']);
+            $hasGemini = !empty($sec['GEMINI_API_KEY']);
+            $hasOpenAi = !empty($sec['OPENAI_API_KEY']);
+            $hasApiKey = $hasGemini || $hasOpenAi;
         }
 
         $this->view('products/bulk_ai_writer', [
             'categories' => $categories,
-            'hasApiKey' => $hasApiKey
+            'hasApiKey' => $hasApiKey,
+            'hasGemini' => $hasGemini,
+            'hasOpenAi' => $hasOpenAi
         ]);
     }
 
@@ -2737,11 +3002,26 @@ class ProductController extends Controller {
         }
 
         $secrets = include(__DIR__ . '/../Config/secrets.php');
-        $apiKey = $secrets['GEMINI_API_KEY'] ?? '';
+        $provider = strtolower($_GET['ai_provider'] ?? '');
+        $geminiApiKey = $secrets['GEMINI_API_KEY'] ?? '';
+        $openAiApiKey = $secrets['OPENAI_API_KEY'] ?? '';
 
-        if (empty($apiKey)) {
-            $this->json(['error' => 'Gemini API Key is not configured in Config/secrets.php'], 400);
-            return;
+        if (empty($provider)) {
+            $provider = !empty($openAiApiKey) ? 'openai' : 'gemini';
+        }
+
+        if ($provider === 'openai' && empty($openAiApiKey)) {
+            if (!empty($geminiApiKey)) $provider = 'gemini';
+            else {
+                $this->json(['error' => 'OpenAI API Key is not configured in Config/secrets.php'], 400);
+                return;
+            }
+        } elseif ($provider === 'gemini' && empty($geminiApiKey)) {
+            if (!empty($openAiApiKey)) $provider = 'openai';
+            else {
+                $this->json(['error' => 'Gemini API Key is not configured in Config/secrets.php'], 400);
+                return;
+            }
         }
 
         $productModel = new ProductModel();
@@ -2814,60 +3094,128 @@ class ProductController extends Controller {
                   "3. \"description\": A rich, detailed product description (75 to 120 words). Start with an engaging paragraph describing its artisanal craftsmanship, aesthetic appeal, and suitability for weddings, festive occasions, sangeet, or receptions. Follow with 'Key Features:' and 3 to 5 concise bullet points starting with the bullet character '• ' (e.g., '• Fabric/Material: ...', '• Work/Embroidery: ...', '• Color Palette: ...', '• Occasion: ...'). Do NOT use markdown asterisks (no '**').\n\n" .
                   "Return ONLY a valid, parseable JSON object with keys \"name\", \"short_description\", and \"description\".";
 
-        $url = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key=' . $apiKey;
-        $payload = json_encode([
-            'contents' => [
-                [
-                    'parts' => [
-                        ['text' => $prompt],
-                        [
-                            'inlineData' => [
-                                'mimeType' => $mimeType,
-                                'data' => $base64Image
+        $resultJson = null;
+        $promptTokens = 0;
+        $candidateTokens = 0;
+        $totalTokens = 0;
+
+        if ($provider === 'openai') {
+            $payload = json_encode([
+                'model' => 'gpt-4o-mini',
+                'messages' => [
+                    [
+                        'role' => 'system',
+                        'content' => 'You are an expert luxury Indian fashion and bridal jewellery copywriter for Srishringarr Fashion Studio, Mumbai. Always return a valid parseable JSON object with keys "name", "short_description", and "description".'
+                    ],
+                    [
+                        'role' => 'user',
+                        'content' => [
+                            ['type' => 'text', 'text' => $prompt],
+                            [
+                                'type' => 'image_url',
+                                'image_url' => [
+                                    'url' => "data:$mimeType;base64,$base64Image",
+                                    'detail' => 'low'
+                                ]
                             ]
                         ]
                     ]
-                ]
-            ],
-            'generationConfig' => [
-                'responseMimeType' => 'application/json',
+                ],
+                'response_format' => ['type' => 'json_object'],
                 'temperature' => 0.4,
-                'maxOutputTokens' => 2048,
-            ]
-        ]);
+                'max_tokens' => 1500
+            ]);
 
-        $ch = curl_init($url);
-        curl_setopt_array($ch, [
-            CURLOPT_RETURNTRANSFER => true,
-            CURLOPT_POST => true,
-            CURLOPT_HTTPHEADER => ['Content-Type: application/json'],
-            CURLOPT_POSTFIELDS => $payload,
-            CURLOPT_TIMEOUT => 30,
-            CURLOPT_SSL_VERIFYPEER => false,
-        ]);
+            $ch = curl_init('https://api.openai.com/v1/chat/completions');
+            curl_setopt_array($ch, [
+                CURLOPT_RETURNTRANSFER => true,
+                CURLOPT_POST => true,
+                CURLOPT_HTTPHEADER => [
+                    'Content-Type: application/json',
+                    'Authorization: Bearer ' . $openAiApiKey
+                ],
+                CURLOPT_POSTFIELDS => $payload,
+                CURLOPT_TIMEOUT => 40,
+                CURLOPT_SSL_VERIFYPEER => false,
+            ]);
 
-        $response = curl_exec($ch);
-        $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-        @curl_close($ch);
+            $response = curl_exec($ch);
+            $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+            @curl_close($ch);
 
-        if ($httpCode !== 200) {
-            $this->json(['error' => 'Gemini API request failed (HTTP ' . $httpCode . '): ' . $response], 500);
-            return;
-        }
-
-        $decoded = json_decode($response, true);
-        $rawText = $decoded['candidates'][0]['content']['parts'][0]['text'] ?? '';
-        $cleanText = trim(preg_replace('/^```json|```$/', '', trim($rawText)));
-        
-        $resultJson = json_decode($cleanText, true);
-        if (!is_array($resultJson) || empty($resultJson['name'])) {
-            if (preg_match('/\{[\s\S]*\}/', $cleanText, $matches)) {
-                $resultJson = json_decode($matches[0], true);
+            if ($httpCode !== 200) {
+                $this->json(['error' => 'OpenAI API request failed (HTTP ' . $httpCode . '): ' . $response], 500);
+                return;
             }
+
+            $decoded = json_decode($response, true);
+            $rawText = $decoded['choices'][0]['message']['content'] ?? '';
+            $resultJson = json_decode($rawText, true);
+
+            $promptTokens = (int)($decoded['usage']['prompt_tokens'] ?? 0);
+            $candidateTokens = (int)($decoded['usage']['completion_tokens'] ?? 0);
+            $totalTokens = (int)($decoded['usage']['total_tokens'] ?? 0);
+
+        } else {
+            $url = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key=' . $geminiApiKey;
+            $payload = json_encode([
+                'contents' => [
+                    [
+                        'parts' => [
+                            ['text' => $prompt],
+                            [
+                                'inlineData' => [
+                                    'mimeType' => $mimeType,
+                                    'data' => $base64Image
+                                ]
+                            ]
+                        ]
+                    ]
+                ],
+                'generationConfig' => [
+                    'responseMimeType' => 'application/json',
+                    'temperature' => 0.4,
+                    'maxOutputTokens' => 2048,
+                ]
+            ]);
+
+            $ch = curl_init($url);
+            curl_setopt_array($ch, [
+                CURLOPT_RETURNTRANSFER => true,
+                CURLOPT_POST => true,
+                CURLOPT_HTTPHEADER => ['Content-Type: application/json'],
+                CURLOPT_POSTFIELDS => $payload,
+                CURLOPT_TIMEOUT => 35,
+                CURLOPT_SSL_VERIFYPEER => false,
+            ]);
+
+            $response = curl_exec($ch);
+            $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+            @curl_close($ch);
+
+            if ($httpCode !== 200) {
+                $this->json(['error' => 'Gemini API request failed (HTTP ' . $httpCode . '): ' . $response], 500);
+                return;
+            }
+
+            $decoded = json_decode($response, true);
+            $rawText = $decoded['candidates'][0]['content']['parts'][0]['text'] ?? '';
+            $cleanText = trim(preg_replace('/^```json|```$/', '', trim($rawText)));
+            
+            $resultJson = json_decode($cleanText, true);
+            if (!is_array($resultJson) || empty($resultJson['name'])) {
+                if (preg_match('/\{[\s\S]*\}/', $cleanText, $matches)) {
+                    $resultJson = json_decode($matches[0], true);
+                }
+            }
+
+            $promptTokens = (int)($decoded['usageMetadata']['promptTokenCount'] ?? 0);
+            $candidateTokens = (int)($decoded['usageMetadata']['candidatesTokenCount'] ?? 0);
+            $totalTokens = (int)($decoded['usageMetadata']['totalTokenCount'] ?? 0);
         }
 
         if (!is_array($resultJson) || empty($resultJson['name'])) {
-            $this->json(['error' => 'Could not parse Gemini JSON response: ' . $cleanText], 500);
+            $this->json(['error' => 'Could not parse AI JSON response.'], 500);
             return;
         }
 

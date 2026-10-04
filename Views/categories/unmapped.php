@@ -1,144 +1,441 @@
 <!DOCTYPE html>
-<html lang="en" class="dark">
+<html lang="en">
 <head>
-    <title>Unmapped Products - Srishringarr Studio</title>
+    <title>Unmapped Products - Srishringarr</title>
     <?php include __DIR__ . '/../partials/head.php'; ?>
     <style>
-        .custom-scrollbar::-webkit-scrollbar { width: 6px; height: 6px; }
-        .custom-scrollbar::-webkit-scrollbar-track { background: #050505; }
-        .custom-scrollbar::-webkit-scrollbar-thumb { background: #333; border-radius: 10px; }
-        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #555; }
+        /* Exact ShadCN UI Standards (Slate / Zinc Theme) */
+        :root {
+            --wp-dark: #09090b;
+            --wp-border: #e4e4e7;
+            --wp-bg: #fafafa;
+            --wp-text: #09090b;
+            --wp-text-muted: #71717a;
+            --font-stack: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+        }
+
+        body {
+            font-family: var(--font-stack) !important;
+            background-color: #fafafa !important;
+            color: #09090b !important;
+            font-size: 13px !important;
+            line-height: 1.5 !important;
+        }
+
+        .page-container {
+            max-width: 1440px;
+            margin: 0 auto;
+        }
+
+        /* Metric Cards */
+        .shadcn-stat-card {
+            background: #ffffff;
+            border: 1px solid #e4e4e7;
+            border-radius: 8px;
+            padding: 14px 18px;
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.02);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            transition: border-color 0.15s ease;
+        }
+        .shadcn-stat-card:hover {
+            border-color: #d4d4d8;
+        }
+
+        /* ShadCN Card Container */
+        .shadcn-card {
+            background: #ffffff;
+            border: 1px solid #e4e4e7;
+            border-radius: 8px;
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.02);
+            margin-bottom: 20px;
+            overflow: hidden;
+        }
+
+        .shadcn-card-header {
+            padding: 14px 18px;
+            border-bottom: 1px solid #f4f4f5;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: #ffffff;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        /* ShadCN Buttons */
+        .shadcn-btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            padding: 0 12px;
+            height: 32px;
+            font-size: 12.5px;
+            font-weight: 500;
+            line-height: 1;
+            text-align: center;
+            cursor: pointer;
+            border-radius: 6px;
+            border: 1px solid #e4e4e7;
+            background: #ffffff;
+            color: #09090b;
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03);
+            transition: all 0.12s ease;
+            text-decoration: none;
+            font-family: inherit;
+            white-space: nowrap;
+        }
+        .shadcn-btn:hover {
+            background: #f4f4f5;
+            border-color: #d4d4d8;
+            color: #09090b;
+        }
+
+        .shadcn-btn-sm {
+            height: 28px;
+            padding: 0 9px;
+            font-size: 11.5px;
+            border-radius: 5px;
+        }
+
+        .shadcn-btn-primary {
+            background: #09090b !important;
+            border-color: #09090b !important;
+            color: #ffffff !important;
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08);
+        }
+        .shadcn-btn-primary:hover {
+            background: #27272a !important;
+            border-color: #27272a !important;
+            color: #ffffff !important;
+        }
+
+        /* Neutral Badges */
+        .shadcn-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            padding: 2px 7px;
+            border-radius: 4px;
+            font-size: 11px;
+            font-weight: 500;
+            line-height: 1.2;
+            flex-shrink: 0;
+            background: #f4f4f5;
+            color: #18181b;
+            border: 1px solid #e4e4e7;
+        }
+
+        /* Form Controls */
+        .field-input, .field-select {
+            height: 32px;
+            background: #ffffff;
+            border: 1px solid #e4e4e7;
+            border-radius: 6px;
+            padding: 0 10px;
+            font-size: 12.5px;
+            color: #09090b;
+            outline: none;
+            transition: border-color 0.12s ease;
+            font-family: inherit;
+        }
+        .field-input:focus, .field-select:focus {
+            border-color: #09090b;
+        }
+
+        /* Table dropdowns */
+        .table-select {
+            height: 28px;
+            background: #ffffff;
+            border: 1px solid #e4e4e7;
+            border-radius: 5px;
+            padding: 0 8px;
+            font-size: 11.5px;
+            color: #09090b;
+            outline: none;
+            max-width: 170px;
+            font-family: inherit;
+        }
+        .table-select:focus {
+            border-color: #09090b;
+        }
+
+        /* Search input */
+        .search-input-wrap {
+            position: relative;
+            width: 100%;
+            max-width: 320px;
+        }
+        .search-input-wrap i.search-icon {
+            position: absolute;
+            left: 10px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #a1a1aa;
+            font-size: 12px;
+            pointer-events: none;
+        }
+        .search-input-wrap input {
+            width: 100%;
+            height: 32px;
+            background: #ffffff;
+            border: 1px solid #e4e4e7;
+            border-radius: 6px;
+            padding: 0 10px 0 30px;
+            font-size: 12.5px;
+            color: #09090b;
+            outline: none;
+            transition: border-color 0.12s ease;
+            font-family: inherit;
+        }
+        .search-input-wrap input:focus {
+            border-color: #09090b;
+        }
+
+        /* ShadCN Table Standard */
+        .shadcn-table {
+            width: 100%;
+            border-collapse: collapse;
+            background: #ffffff;
+        }
+        .shadcn-table th {
+            background: #fafafa;
+            padding: 9px 16px;
+            font-size: 11px;
+            font-weight: 500;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+            color: #71717a;
+            border-bottom: 1px solid #e4e4e7;
+            text-align: left;
+            white-space: nowrap;
+        }
+        .shadcn-table td {
+            padding: 9px 16px;
+            vertical-align: middle;
+            border-bottom: 1px solid #f4f4f5;
+            font-size: 12.5px;
+            color: #09090b;
+        }
+        .shadcn-table tbody tr:hover td {
+            background-color: #fafafa;
+        }
+
+        /* Scrollbars */
+        .custom-scrollbar::-webkit-scrollbar { width: 5px; height: 5px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: #f4f4f5; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #d4d4d8; border-radius: 4px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #a1a1aa; }
+
+        /* Floating Toast */
+        #toast-box {
+            position: fixed;
+            bottom: 24px;
+            right: 24px;
+            z-index: 9999;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            pointer-events: none;
+        }
+        .toast-msg {
+            background: #09090b;
+            color: #ffffff;
+            font-size: 12.5px;
+            font-weight: 500;
+            padding: 9px 15px;
+            border-radius: 6px;
+            box-shadow: 0 4px 14px rgba(0, 0, 0, 0.18);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            pointer-events: auto;
+            animation: toastIn 0.15s ease forwards;
+        }
+        @keyframes toastIn {
+            from { opacity: 0; transform: translateY(8px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
     </style>
 </head>
-<body class="bg-black text-white font-sans antialiased overflow-hidden selection:bg-indigo-500/30">
-    <div class="flex h-screen w-full">
+<body class="bg-gray-50 font-sans text-gray-900">
+
+    <div class="flex min-h-screen">
+        <!-- Sidebar -->
         <?php include __DIR__ . '/../partials/sidebar.php'; ?>
-        
-        <main class="flex-1 flex flex-col h-screen overflow-hidden bg-[#050505]">
+
+        <!-- Main Content -->
+        <div class="flex-1 flex flex-col min-w-0 overflow-hidden">
             <!-- Topbar -->
-            <header class="h-16 flex items-center justify-between px-6 border-b border-white/5 bg-[#0a0a0a] shrink-0">
-                <div class="flex items-center gap-4">
-                    <h1 class="text-lg font-bold text-white tracking-wide flex items-center gap-2">
-                        <i class="fas fa-tags text-indigo-400"></i> Unmapped Products Category Manager
-                    </h1>
-                    <span class="px-2.5 py-1 bg-amber-500/10 text-amber-400 text-[10px] font-bold rounded uppercase tracking-wider border border-amber-500/20">
-                        product & garment_product &rarr; product_categories
-                    </span>
-                </div>
-                <div class="flex items-center gap-3">
-                    <button type="button" onclick="loadUnmappedProducts(1)" class="px-3 py-1.5 bg-zinc-900 hover:bg-zinc-800 text-zinc-300 rounded-lg text-xs font-semibold border border-white/10 transition-all flex items-center gap-1.5 cursor-pointer">
-                        <i class="fas fa-sync-alt" id="refreshIcon"></i> Refresh Data
-                    </button>
-                    <button type="button" id="btnAutoFixAll" onclick="runAutoFixAll()" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-xs font-bold transition-all shadow-lg shadow-emerald-600/30 flex items-center gap-2 cursor-pointer">
-                        <i class="fas fa-magic" id="fixIcon"></i>
-                        <span>Auto-Fix All Unmapped Products</span>
-                    </button>
-                </div>
-            </header>
+            <?php 
+            $pageTitle = 'Unmapped Products Category Manager';
+            include __DIR__ . '/../partials/topbar.php'; 
+            ?>
 
-            <div class="flex-1 p-6 flex flex-col overflow-y-auto custom-scrollbar gap-6">
-                
-                <!-- Overview Info Card -->
-                <div class="bg-gradient-to-r from-[#0e0e17] via-[#0a0a10] to-[#0d0a0e] border border-white/10 rounded-2xl p-6 shadow-2xl flex flex-col md:flex-row items-start md:items-center justify-between gap-6 shrink-0">
-                    <div class="space-y-1.5 max-w-2xl">
-                        <h2 class="text-base font-bold text-white flex items-center gap-2">
-                            <i class="fas fa-folder-plus text-indigo-400"></i> Ensure Every Product Has A Category Mapping
-                        </h2>
-                        <p class="text-xs text-zinc-400 leading-relaxed">
-                            Every product stored in <code class="bg-black/60 px-1.5 py-0.5 rounded text-indigo-300 font-mono">product</code> and <code class="bg-black/60 px-1.5 py-0.5 rounded text-indigo-300 font-mono">garment_product</code> tables must have corresponding relationship entries in the <code class="bg-black/60 px-1.5 py-0.5 rounded text-emerald-300 font-mono">product_categories</code> table to appear accurately on store catalog pages and search listings.
-                        </p>
+            <main class="flex-1 overflow-y-auto p-6 lg:p-8 bg-zinc-50/50">
+                <div class="page-container">
+
+                    <!-- Breadcrumb Navigation -->
+                    <div class="mb-4">
+                        <a href="index.php?controller=category&action=index" class="text-xs text-zinc-500 hover:text-zinc-900 inline-flex items-center gap-1.5 transition-colors">
+                            <i class="fas fa-arrow-left text-[10px]"></i>
+                            <span>Back to Category Hierarchy</span>
+                        </a>
                     </div>
 
-                    <!-- Metrics Badges -->
-                    <div class="flex items-center gap-4 bg-black/60 p-4 rounded-xl border border-white/10 shrink-0">
-                        <div class="text-center px-3 border-r border-white/10">
-                            <div class="text-[10px] uppercase font-bold text-zinc-500 tracking-wider">Unmapped Jewellery</div>
-                            <div id="statJewelCount" class="text-2xl font-bold text-amber-400 font-mono"><?php echo number_format($jewelUnmappedCount); ?></div>
-                        </div>
-                        <div class="text-center px-3 border-r border-white/10">
-                            <div class="text-[10px] uppercase font-bold text-zinc-500 tracking-wider">Unmapped Garments</div>
-                            <div id="statGarmentCount" class="text-2xl font-bold text-purple-400 font-mono"><?php echo number_format($garmentUnmappedCount); ?></div>
-                        </div>
-                        <div class="text-center px-3">
-                            <div class="text-[10px] uppercase font-bold text-zinc-500 tracking-wider">Total Missing</div>
-                            <div id="statTotalCount" class="text-2xl font-bold text-white font-mono"><?php echo number_format($totalUnmappedCount); ?></div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Status Banner / Live Output -->
-                <div id="liveActivityAlert" class="hidden p-5 rounded-2xl border border-emerald-500/30 bg-[#0d1510] shadow-2xl flex flex-col gap-3 shrink-0">
-                    <div class="flex items-center gap-3">
-                        <i class="fas fa-spinner fa-spin text-emerald-400 text-lg" id="activitySpinner"></i>
+                    <!-- Header Banner -->
+                    <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
                         <div>
-                            <h3 id="activityTitle" class="text-sm font-bold text-white">Auto-Assigning Categories...</h3>
-                            <p id="activityMsg" class="text-xs text-zinc-300 mt-0.5">Inserting category relationships for unmapped products...</p>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Unmapped Products Table Card -->
-                <div class="bg-[#0a0a0a] border border-white/5 rounded-xl flex flex-col overflow-hidden shadow-2xl shrink-0">
-                    
-                    <!-- Search & Filter Controls Header -->
-                    <div class="px-6 py-4 border-b border-white/5 bg-[#111] flex flex-col sm:flex-row items-center justify-between gap-4">
-                        <div class="flex items-center gap-3 w-full sm:w-auto">
-                            <!-- Type Filter -->
-                            <select id="selectTypeFilter" onchange="loadUnmappedProducts(1)" class="bg-black border border-white/10 rounded-lg px-3 py-1.5 text-xs text-white focus:outline-none focus:border-indigo-500 cursor-pointer font-medium">
-                                <option value="all">All Product Types</option>
-                                <option value="jewellery">Jewellery Only</option>
-                                <option value="garments">Garments Only</option>
-                            </select>
-
-                            <!-- Search Input -->
-                            <div class="relative flex-1 sm:w-80">
-                                <i class="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500 text-xs"></i>
-                                <input type="text" id="inputSearch" onkeyup="handleSearchKey(event)" placeholder="Search SKU code or product name..." class="w-full bg-black border border-white/10 rounded-lg pl-9 pr-3 py-1.5 text-xs text-white placeholder-zinc-500 focus:outline-none focus:border-indigo-500 transition-colors">
+                            <div class="flex items-center gap-2">
+                                <h1 class="text-xl font-semibold text-zinc-900 tracking-tight">Unmapped Products Manager</h1>
+                                <span class="shadcn-badge font-mono text-[11px]">
+                                    product &rarr; product_categories
+                                </span>
                             </div>
-                            <button type="button" onclick="loadUnmappedProducts(1)" class="px-3.5 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg text-xs font-bold transition-all">Search</button>
+                            <p class="text-xs text-zinc-500 mt-1">Audit and assign taxonomy mapping records for products lacking active category relationships.</p>
                         </div>
-                        <div class="text-xs text-zinc-400 font-mono">
-                            Showing <span id="txtShowingCount" class="font-bold text-white">0</span> of <span id="txtTotalCount" class="font-bold text-white">0</span> unmapped products
+
+                        <!-- Top Action Buttons -->
+                        <div class="flex items-center gap-2 flex-wrap">
+                            <button type="button" onclick="loadUnmappedProducts(1)" class="shadcn-btn">
+                                <i class="fas fa-sync-alt text-[10px]" id="refreshIcon"></i>
+                                <span>Refresh Data</span>
+                            </button>
+                            <button type="button" id="btnAutoFixAll" onclick="runAutoFixAll()" class="shadcn-btn shadcn-btn-primary">
+                                <i class="fas fa-magic text-[10px]" id="fixIcon"></i>
+                                <span>Auto-Fix All Unmapped</span>
+                            </button>
                         </div>
                     </div>
 
-                    <!-- Data Table -->
-                    <div class="overflow-x-auto overflow-y-auto max-h-[550px] custom-scrollbar">
-                        <table class="w-full text-left text-sm whitespace-nowrap">
-                            <thead class="bg-[#111] sticky top-0 z-10 border-b border-white/5 text-xs text-zinc-400 uppercase tracking-wider font-semibold">
-                                <tr>
-                                    <th class="px-6 py-3">Product ID</th>
-                                    <th class="px-6 py-3">SKU Code</th>
-                                    <th class="px-6 py-3">Product Name</th>
-                                    <th class="px-6 py-3">Type</th>
-                                    <th class="px-6 py-3">Assign Main Category</th>
-                                    <th class="px-6 py-3">Assign Subcategory</th>
-                                    <th class="px-6 py-3 text-right">Action</th>
-                                </tr>
-                            </thead>
-                            <tbody id="tableBody" class="divide-y divide-white/5">
-                                <tr>
-                                    <td colspan="7" class="px-6 py-12 text-center text-zinc-500">
-                                        <i class="fas fa-spinner fa-spin text-xl mb-2 block"></i> Loading unmapped products...
-                                    </td>
-                                </tr>
-                            </tbody>
-                        </table>
-                    </div>
+                    <!-- Metrics Overview Cards -->
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-3.5 mb-6">
+                        <div class="shadcn-stat-card">
+                            <div>
+                                <span class="text-[11px] font-medium text-zinc-500 uppercase tracking-wider block">Unmapped Jewellery</span>
+                                <div class="flex items-baseline gap-2 mt-1">
+                                    <span class="text-xl font-semibold text-zinc-900 font-mono" id="statJewelCount"><?php echo number_format($jewelUnmappedCount); ?></span>
+                                    <span class="text-xs text-zinc-400">items</span>
+                                </div>
+                            </div>
+                            <div class="w-8 h-8 rounded-md bg-zinc-100 border border-zinc-200 flex items-center justify-center text-zinc-600 text-xs">
+                                <i class="fas fa-gem"></i>
+                            </div>
+                        </div>
 
-                    <!-- Pagination Footer -->
-                    <div class="px-6 py-3 border-t border-white/5 bg-[#111] flex items-center justify-between text-xs text-zinc-400">
-                        <div>Page <span id="txtCurrentPage" class="font-bold text-white">1</span> of <span id="txtTotalPages" class="font-bold text-white">1</span></div>
-                        <div class="flex items-center gap-2">
-                            <button type="button" id="btnPrevPage" onclick="changePage(-1)" class="px-3 py-1 bg-zinc-900 hover:bg-zinc-800 text-white rounded border border-white/10 text-xs disabled:opacity-30 disabled:cursor-not-allowed">Previous</button>
-                            <button type="button" id="btnNextPage" onclick="changePage(1)" class="px-3 py-1 bg-zinc-900 hover:bg-zinc-800 text-white rounded border border-white/10 text-xs disabled:opacity-30 disabled:cursor-not-allowed">Next</button>
+                        <div class="shadcn-stat-card">
+                            <div>
+                                <span class="text-[11px] font-medium text-zinc-500 uppercase tracking-wider block">Unmapped Garments</span>
+                                <div class="flex items-baseline gap-2 mt-1">
+                                    <span class="text-xl font-semibold text-zinc-900 font-mono" id="statGarmentCount"><?php echo number_format($garmentUnmappedCount); ?></span>
+                                    <span class="text-xs text-zinc-400">items</span>
+                                </div>
+                            </div>
+                            <div class="w-8 h-8 rounded-md bg-zinc-100 border border-zinc-200 flex items-center justify-center text-zinc-600 text-xs">
+                                <i class="fas fa-tshirt"></i>
+                            </div>
+                        </div>
+
+                        <div class="shadcn-stat-card">
+                            <div>
+                                <span class="text-[11px] font-medium text-zinc-500 uppercase tracking-wider block">Total Missing Mappings</span>
+                                <div class="flex items-baseline gap-2 mt-1">
+                                    <span class="text-xl font-semibold text-zinc-900 font-mono" id="statTotalCount"><?php echo number_format($totalUnmappedCount); ?></span>
+                                    <span class="text-xs text-zinc-400">pending resolution</span>
+                                </div>
+                            </div>
+                            <div class="w-8 h-8 rounded-md bg-zinc-100 border border-zinc-200 flex items-center justify-center text-zinc-600 text-xs">
+                                <i class="fas fa-tags"></i>
+                            </div>
                         </div>
                     </div>
+
+                    <!-- Status Banner / Live Output -->
+                    <div id="liveActivityAlert" class="shadcn-card hidden mb-6" style="border-color: #09090b;">
+                        <div class="p-4 flex items-center gap-3">
+                            <div class="w-7 h-7 rounded bg-zinc-900 text-white flex items-center justify-center text-xs">
+                                <i class="fas fa-spinner fa-spin" id="activitySpinner"></i>
+                            </div>
+                            <div>
+                                <h3 id="activityTitle" class="text-xs font-semibold text-zinc-900">Auto-Assigning Categories...</h3>
+                                <p id="activityMsg" class="text-[11px] text-zinc-500 mt-0.5">Inserting category relationships for unmapped products...</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Unmapped Products Table Card -->
+                    <div class="shadcn-card mb-6">
+                        <!-- Search & Filter Controls Header -->
+                        <div class="shadcn-card-header">
+                            <div class="flex items-center gap-2.5 flex-wrap flex-1">
+                                <!-- Type Filter -->
+                                <select id="selectTypeFilter" onchange="loadUnmappedProducts(1)" class="field-select">
+                                    <option value="all">All Product Types</option>
+                                    <option value="jewellery">Jewellery Only</option>
+                                    <option value="garments">Garments Only</option>
+                                </select>
+
+                                <!-- Search Input -->
+                                <div class="search-input-wrap">
+                                    <i class="fas fa-search search-icon"></i>
+                                    <input type="text" id="inputSearch" onkeyup="handleSearchKey(event)" placeholder="Search SKU code or product name..." autocomplete="off">
+                                </div>
+
+                                <button type="button" onclick="loadUnmappedProducts(1)" class="shadcn-btn shadcn-btn-primary">
+                                    Search
+                                </button>
+                            </div>
+
+                            <div class="text-xs text-zinc-500 font-mono">
+                                Showing <span id="txtShowingCount" class="font-semibold text-zinc-900">0</span> of <span id="txtTotalCount" class="font-semibold text-zinc-900">0</span> unmapped products
+                            </div>
+                        </div>
+
+                        <!-- Data Table -->
+                        <div class="overflow-x-auto max-h-[550px] overflow-y-auto custom-scrollbar">
+                            <table class="shadcn-table">
+                                <thead class="sticky top-0 z-10">
+                                    <tr>
+                                        <th style="width: 90px;">Product ID</th>
+                                        <th style="width: 140px;">SKU Code</th>
+                                        <th>Product Name</th>
+                                        <th style="width: 110px;">Type</th>
+                                        <th style="width: 190px;">Assign Main Category</th>
+                                        <th style="width: 190px;">Assign Subcategory</th>
+                                        <th style="width: 120px; text-align: right;">Action</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="tableBody">
+                                    <tr>
+                                        <td colspan="7" class="py-12 text-center text-zinc-400 text-xs">
+                                            <i class="fas fa-spinner fa-spin text-xl mb-2 block text-zinc-300"></i> Loading unmapped products...
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <!-- Pagination Footer -->
+                        <div class="px-4 py-3 border-t border-zinc-100 bg-zinc-50/50 flex items-center justify-between text-xs text-zinc-500">
+                            <div>
+                                Page <span id="txtCurrentPage" class="font-semibold text-zinc-900">1</span> of <span id="txtTotalPages" class="font-semibold text-zinc-900">1</span>
+                            </div>
+                            <div class="flex items-center gap-2">
+                                <button type="button" id="btnPrevPage" onclick="changePage(-1)" class="shadcn-btn shadcn-btn-sm" disabled>Previous</button>
+                                <button type="button" id="btnNextPage" onclick="changePage(1)" class="shadcn-btn shadcn-btn-sm" disabled>Next</button>
+                            </div>
+                        </div>
+                    </div>
+
                 </div>
-
-            </div>
-        </main>
+            </main>
+        </div>
     </div>
+
+    <!-- Toast Container -->
+    <div id="toast-box"></div>
 
     <!-- Category Options Data (Passed from PHP) -->
     <script>
@@ -147,6 +444,24 @@
 
         let currentPage = 1;
         let totalPages = 1;
+
+        // Toast notification helper
+        function showToast(text, isError = false) {
+            const toastBox = document.getElementById('toast-box');
+            const msg = document.createElement('div');
+            msg.className = 'toast-msg';
+            msg.innerHTML = `
+                <i class="fas ${isError ? 'fa-exclamation-circle text-rose-400' : 'fa-check-circle text-emerald-400'}"></i>
+                <span>${text}</span>
+            `;
+            toastBox.appendChild(msg);
+            setTimeout(() => {
+                msg.style.transition = 'opacity 0.2s ease, transform 0.2s ease';
+                msg.style.opacity = '0';
+                msg.style.transform = 'translateY(6px)';
+                setTimeout(() => msg.remove(), 250);
+            }, 3500);
+        }
 
         document.addEventListener('DOMContentLoaded', () => {
             loadUnmappedProducts(1);
@@ -168,8 +483,8 @@
             refreshIcon.classList.add('fa-spin');
             tableBody.innerHTML = `
                 <tr>
-                    <td colspan="7" class="px-6 py-12 text-center text-zinc-500">
-                        <i class="fas fa-spinner fa-spin text-xl mb-2 block"></i> Loading unmapped products...
+                    <td colspan="7" class="py-12 text-center text-zinc-400 text-xs">
+                        <i class="fas fa-spinner fa-spin text-xl mb-2 block text-zinc-300"></i> Loading unmapped products...
                     </td>
                 </tr>`;
 
@@ -179,7 +494,7 @@
                     refreshIcon.classList.remove('fa-spin');
 
                     if (!data.success || !data.items) {
-                        tableBody.innerHTML = `<tr><td colspan="7" class="px-6 py-8 text-center text-rose-400">Failed to fetch products: ${data.message || 'Unknown error'}</td></tr>`;
+                        tableBody.innerHTML = `<tr><td colspan="7" class="py-8 text-center text-zinc-500 text-xs">Failed to fetch products: ${data.message || 'Unknown error'}</td></tr>`;
                         return;
                     }
 
@@ -195,12 +510,12 @@
                     if (data.items.length === 0) {
                         tableBody.innerHTML = `
                             <tr>
-                                <td colspan="7" class="px-6 py-16 text-center">
-                                    <div class="w-12 h-12 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 flex items-center justify-center mx-auto mb-3 text-lg">
-                                        <i class="fas fa-check-circle"></i>
+                                <td colspan="7" class="py-16 text-center">
+                                    <div class="w-10 h-10 rounded-full bg-zinc-100 border border-zinc-200 text-zinc-800 flex items-center justify-center mx-auto mb-2 text-base">
+                                        <i class="fas fa-check"></i>
                                     </div>
-                                    <h3 class="text-sm font-bold text-white">All Products Mapped!</h3>
-                                    <p class="text-xs text-zinc-500 mt-1">Every product in product & garment_product tables has a valid product_categories entry.</p>
+                                    <h3 class="text-sm font-semibold text-zinc-900">All Products Mapped</h3>
+                                    <p class="text-xs text-zinc-500 mt-0.5">Every product has a valid category relationship configured.</p>
                                 </td>
                             </tr>`;
                         return;
@@ -211,7 +526,7 @@
                         const isJewel = (item.type === 'jewellery');
                         const catOptions = isJewel ? JEWEL_CATEGORIES : GARMENT_CATEGORIES;
 
-                        let catSelectHtml = `<select id="catSelect_${item.type}_${item.id}" onchange="loadSubcategories('${item.type}', ${item.id})" class="bg-black border border-white/10 rounded px-2.5 py-1 text-xs text-white focus:outline-none focus:border-indigo-500 font-medium">`;
+                        let catSelectHtml = `<select id="catSelect_${item.type}_${item.id}" onchange="loadSubcategories('${item.type}', ${item.id})" class="table-select">`;
                         catSelectHtml += `<option value="0">-- Select Category --</option>`;
 
                         catOptions.forEach(c => {
@@ -222,25 +537,28 @@
                         });
                         catSelectHtml += `</select>`;
 
-                        let subSelectHtml = `<select id="subSelect_${item.type}_${item.id}" class="bg-black border border-white/10 rounded px-2.5 py-1 text-xs text-white focus:outline-none focus:border-indigo-500 font-medium">`;
+                        let subSelectHtml = `<select id="subSelect_${item.type}_${item.id}" class="table-select">`;
                         subSelectHtml += `<option value="0">-- Select Subcategory --</option>`;
                         subSelectHtml += `</select>`;
 
                         const typeBadge = isJewel ? 
-                            `<span class="px-2 py-0.5 rounded bg-amber-500/10 text-amber-400 text-[10px] font-bold uppercase border border-amber-500/20">Jewellery</span>` : 
-                            `<span class="px-2 py-0.5 rounded bg-purple-500/10 text-purple-400 text-[10px] font-bold uppercase border border-purple-500/20">Garments</span>`;
+                            `<span class="shadcn-badge font-mono text-[10px]">Jewellery</span>` : 
+                            `<span class="shadcn-badge font-mono text-[10px]">Garments</span>`;
 
                         html += `
-                            <tr class="hover:bg-white/[0.02] transition-colors" id="row_${item.type}_${item.id}">
-                                <td class="px-6 py-3 font-mono text-xs text-zinc-300 font-bold">#${item.id}</td>
-                                <td class="px-6 py-3 font-mono text-xs text-indigo-400 font-bold">${escapeHtml(item.code)}</td>
-                                <td class="px-6 py-3 text-xs text-white max-w-xs truncate" title="${escapeHtml(item.name)}">${escapeHtml(item.name)}</td>
-                                <td class="px-6 py-3 text-xs">${typeBadge}</td>
-                                <td class="px-6 py-3 text-xs">${catSelectHtml}</td>
-                                <td class="px-6 py-3 text-xs">${subSelectHtml}</td>
-                                <td class="px-6 py-3 text-xs text-right">
-                                    <button type="button" onclick="saveProductMapping('${item.type}', ${item.id}, this)" class="px-3 py-1 bg-emerald-600/20 hover:bg-emerald-600 text-emerald-400 hover:text-white rounded border border-emerald-500/30 text-xs font-bold transition-all cursor-pointer">
-                                        <i class="fas fa-save mr-1"></i> Save Mapping
+                            <tr id="row_${item.type}_${item.id}">
+                                <td class="font-mono text-xs text-zinc-400">#${item.id}</td>
+                                <td>
+                                    <span class="font-mono font-semibold text-zinc-900 text-xs">${escapeHtml(item.code)}</span>
+                                </td>
+                                <td class="text-xs text-zinc-900 max-w-xs truncate" title="${escapeHtml(item.name)}">${escapeHtml(item.name)}</td>
+                                <td>${typeBadge}</td>
+                                <td>${catSelectHtml}</td>
+                                <td>${subSelectHtml}</td>
+                                <td class="text-right">
+                                    <button type="button" onclick="saveProductMapping('${item.type}', ${item.id}, this)" class="shadcn-btn shadcn-btn-sm" title="Save category mapping">
+                                        <i class="fas fa-check text-[10px]"></i>
+                                        <span>Save</span>
                                     </button>
                                 </td>
                             </tr>`;
@@ -256,7 +574,7 @@
                 })
                 .catch(err => {
                     refreshIcon.classList.remove('fa-spin');
-                    tableBody.innerHTML = `<tr><td colspan="7" class="px-6 py-8 text-center text-rose-400">Network error: ${err}</td></tr>`;
+                    tableBody.innerHTML = `<tr><td colspan="7" class="py-8 text-center text-zinc-500 text-xs">Network error: ${err}</td></tr>`;
                 });
         }
 
@@ -267,7 +585,7 @@
             if (!catSelect || !subSelect) return;
             const catId = catSelect.value;
 
-            subSelect.innerHTML = `<option value="0">-- Loading... --</option>`;
+            subSelect.innerHTML = `<option value="0">Loading...</option>`;
 
             if (parseInt(catId) <= 0) {
                 subSelect.innerHTML = `<option value="0">-- Select Subcategory --</option>`;
@@ -312,7 +630,7 @@
 
             const origHtml = btn.innerHTML;
             btn.disabled = true;
-            btn.innerHTML = `<i class="fas fa-spinner fa-spin"></i> Saving...`;
+            btn.innerHTML = `<i class="fas fa-spinner fa-spin text-[10px]"></i>`;
 
             const formData = new FormData();
             formData.append('id', id);
@@ -327,19 +645,19 @@
             .then(res => res.json())
             .then(data => {
                 if (data.success) {
-                    btn.className = "px-3 py-1 bg-emerald-500/20 text-emerald-300 rounded border border-emerald-500/30 text-xs font-bold";
-                    btn.innerHTML = `<i class="fas fa-check"></i> Mapped`;
-                    setTimeout(() => loadUnmappedProducts(currentPage), 800);
+                    btn.innerHTML = `<i class="fas fa-check text-[10px]"></i> Mapped`;
+                    showToast(`Product #${id} mapped successfully`);
+                    setTimeout(() => loadUnmappedProducts(currentPage), 600);
                 } else {
                     btn.disabled = false;
                     btn.innerHTML = origHtml;
-                    alert('Error saving mapping: ' + data.message);
+                    showToast('Error saving mapping: ' + data.message, true);
                 }
             })
             .catch(err => {
                 btn.disabled = false;
                 btn.innerHTML = origHtml;
-                alert('Network error: ' + err);
+                showToast('Network error: ' + err, true);
             });
         }
 
@@ -354,7 +672,7 @@
 
             btn.disabled = true;
             btn.classList.add('opacity-50', 'cursor-not-allowed');
-            icon.className = 'fas fa-spinner fa-spin';
+            icon.className = 'fas fa-spinner fa-spin text-[10px]';
             liveAlert.classList.remove('hidden');
 
             actTitle.textContent = "Auto-Fixing Unmapped Products...";
@@ -367,26 +685,29 @@
             .then(data => {
                 btn.disabled = false;
                 btn.classList.remove('opacity-50', 'cursor-not-allowed');
-                icon.className = 'fas fa-magic';
+                icon.className = 'fas fa-magic text-[10px]';
 
                 if (data.success) {
-                    actTitle.textContent = "🎉 Auto-Fix Completed Successfully!";
+                    actTitle.textContent = "Auto-Fix Completed Successfully";
                     actMsg.textContent = data.message;
+                    showToast("Auto-fix completed successfully!");
                     setTimeout(() => {
                         liveAlert.classList.add('hidden');
                         loadUnmappedProducts(1);
-                    }, 3000);
+                    }, 2500);
                 } else {
-                    actTitle.textContent = "❌ Auto-Fix Error";
+                    actTitle.textContent = "Auto-Fix Failed";
                     actMsg.textContent = data.message;
+                    showToast(data.message, true);
                 }
             })
             .catch(err => {
                 btn.disabled = false;
                 btn.classList.remove('opacity-50', 'cursor-not-allowed');
-                icon.className = 'fas fa-magic';
-                actTitle.textContent = "❌ Network Error";
+                icon.className = 'fas fa-magic text-[10px]';
+                actTitle.textContent = "Network Error";
                 actMsg.textContent = err;
+                showToast(err, true);
             });
         }
 
