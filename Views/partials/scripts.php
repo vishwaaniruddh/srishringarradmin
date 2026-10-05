@@ -1,30 +1,20 @@
 <script>
+    // Global support script for shared admin layout interactions
     document.addEventListener('DOMContentLoaded', () => {
-        const sidebar = document.getElementById('sidebar');
+        // Safe fallback for mobile sidebar buttons if not already bound
         const openSidebarBtn = document.getElementById('open-sidebar');
         const closeSidebarBtn = document.getElementById('close-sidebar');
 
-        // Sidebar Toggling
-        const toggleSidebar = () => {
-            sidebar.classList.toggle('-translate-x-full');
-        };
-
-        if (openSidebarBtn) openSidebarBtn.addEventListener('click', toggleSidebar);
-        if (closeSidebarBtn) closeSidebarBtn.addEventListener('click', toggleSidebar);
-
-        // Submenu Toggling
-        const submenuToggles = document.querySelectorAll('.submenu-toggle');
-        submenuToggles.forEach(toggle => {
-            toggle.addEventListener('click', () => {
-                const submenu = toggle.nextElementSibling;
-                const chevron = toggle.querySelector('.chevron');
-                
-                // Toggle Submenu visibility
-                submenu.classList.toggle('hidden');
-                
-                // Rotate Chevron
-                chevron.classList.toggle('rotate-90');
+        if (openSidebarBtn && !openSidebarBtn.onclick && typeof window.toggleMobileSidebar === 'function') {
+            openSidebarBtn.addEventListener('click', (e) => {
+                window.toggleMobileSidebar(e);
             });
-        });
+        }
+
+        if (closeSidebarBtn && !closeSidebarBtn.onclick && typeof window.closeMobileSidebar === 'function') {
+            closeSidebarBtn.addEventListener('click', (e) => {
+                window.closeMobileSidebar(e);
+            });
+        }
     });
 </script>

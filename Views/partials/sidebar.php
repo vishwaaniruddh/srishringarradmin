@@ -375,6 +375,44 @@ $admin_initials = strtoupper(substr($admin_name, 0, 2));
 }
 #sidebar.shadcn-sidebar .sidebar-scroll-container::-webkit-scrollbar-thumb:hover {
     background: #3f3f46;
+/* Mobile Drawer & Backdrop Styling */
+@media (max-width: 1023px) {
+    #sidebar.shadcn-sidebar {
+        position: fixed !important;
+        top: 0 !important;
+        bottom: 0 !important;
+        left: 0 !important;
+        height: 100vh !important;
+        height: 100dvh !important;
+        width: 280px !important;
+        max-width: 85vw !important;
+        z-index: 1050 !important;
+        transform: translateX(-100%);
+        transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1) !important;
+        box-shadow: 4px 0 24px rgba(0, 0, 0, 0.45) !important;
+    }
+    #sidebar.shadcn-sidebar.sidebar-open {
+        transform: translateX(0) !important;
+    }
+    #sidebar.shadcn-sidebar:not(.-translate-x-full):not(.sidebar-open) {
+        transform: translateX(0) !important;
+    }
+    #sidebar.shadcn-sidebar.-translate-x-full:not(.sidebar-open) {
+        transform: translateX(-100%) !important;
+    }
+    #sidebar-backdrop {
+        position: fixed !important;
+        inset: 0 !important;
+        background: rgba(0, 0, 0, 0.6) !important;
+        backdrop-filter: blur(2px) !important;
+        -webkit-backdrop-filter: blur(2px) !important;
+        z-index: 1040 !important;
+    }
+}
+@media (min-width: 1024px) {
+    #sidebar-backdrop {
+        display: none !important;
+    }
 }
 </style>
 
@@ -390,7 +428,7 @@ $admin_initials = strtoupper(substr($admin_name, 0, 2));
                 <span class="workspace-tag">Store &bull; POS Admin</span>
             </div>
         </a>
-        <button id="close-sidebar" class="lg:hidden text-zinc-400 hover:text-zinc-200 p-1" aria-label="Close Sidebar">
+        <button id="close-sidebar" type="button" class="lg:hidden flex items-center justify-center rounded text-zinc-400 hover:text-white hover:bg-zinc-800 transition-colors" style="width: 32px; height: 32px; min-width: 32px; cursor: pointer;" aria-label="Close navigation menu">
             <i class="fa-solid fa-xmark text-sm"></i>
         </button>
     </div>
@@ -572,8 +610,11 @@ $admin_initials = strtoupper(substr($admin_name, 0, 2));
     </div>
 </aside>
 
+<!-- Mobile Sidebar Backdrop Overlay -->
+<div id="sidebar-backdrop" class="fixed inset-0 bg-black/60 z-40 lg:hidden hidden transition-opacity duration-200" style="backdrop-filter: blur(2px); -webkit-backdrop-filter: blur(2px);" aria-hidden="true"></div>
+
 <script>
-// Self-contained Submenu & Sidebar Mobile Toggle (Guaranteed to work across all views)
+// Self-contained Submenu & Robust Mobile Drawer Controller
 (function() {
     function initSidebar() {
         const sidebar = document.getElementById('sidebar');
@@ -582,7 +623,6 @@ $admin_initials = strtoupper(substr($admin_name, 0, 2));
         // Submenu accordion toggling
         const submenuToggles = sidebar.querySelectorAll('.submenu-toggle');
         submenuToggles.forEach(toggle => {
-            // Remove previous event listener if any
             toggle.onclick = function(e) {
                 e.preventDefault();
                 e.stopPropagation();
@@ -593,22 +633,69 @@ $admin_initials = strtoupper(substr($admin_name, 0, 2));
             };
         });
 
-        // Mobile sidebar toggle
+        // Mobile drawer elements
         const openBtn = document.getElementById('open-sidebar');
         const closeBtn = document.getElementById('close-sidebar');
+        const backdrop = document.getElementById('sidebar-backdrop');
+
+        function openSidebar(e) {
+            if (e) {
+                e.preventDefault();
+                e.stopPropagation();
+            }
+            sidebar.classList.add('sidebar-open');
+            sidebar.classList.remove('-translate-x-full');
+            if (backdrop) backdrop.classList.remove('hidden');
+            document.body.style.overflow = 'hidden';
+        }
+
+        function closeSidebar(e) {
+            if (e) {
+                e.preventDefault();
+                e.stopPropagation();
+            }
+            sidebar.classList.remove('sidebar-open');
+            sidebar.classList.add('-translate-x-full');
+            if (backdrop) backdrop.classList.add('hidden');
+            document.body.style.overflow = '';
+        }
+
+        function toggleSidebar(e) {
+            if (sidebar.classList.contains('sidebar-open') || !sidebar.classList.contains('-translate-x-full')) {
+                closeSidebar(e);
+            } else {
+                openSidebar(e);
+            }
+        }
+
+        // Expose to window for global access
+        window.openMobileSidebar = openSidebar;
+        window.closeMobileSidebar = closeSidebar;
+        window.toggleMobileSidebar = toggleSidebar;
 
         if (openBtn) {
-            openBtn.onclick = function(e) {
-                e.preventDefault();
-                sidebar.classList.toggle('-translate-x-full');
-            };
+            openBtn.onclick = toggleSidebar;
         }
         if (closeBtn) {
-            closeBtn.onclick = function(e) {
-                e.preventDefault();
-                sidebar.classList.add('-translate-x-full');
-            };
+            closeBtn.onclick = closeSidebar;
         }
+        if (backdrop) {
+            backdrop.onclick = closeSidebar;
+        }
+
+        // Close when pressing Escape key
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape' && (sidebar.classList.contains('sidebar-open') || !sidebar.classList.contains('-translate-x-full'))) {
+                closeSidebar();
+            }
+        });
+
+        // Auto close if viewport resized to desktop width
+        window.addEventListener('resize', function() {
+            if (window.innerWidth >= 1024 && (sidebar.classList.contains('sidebar-open') || !sidebar.classList.contains('-translate-x-full'))) {
+                closeSidebar();
+            }
+        });
     }
 
     if (document.readyState === 'loading') {

@@ -1,7 +1,7 @@
 <header class="h-16 bg-white border-b border-zinc-200 flex items-center justify-between px-6 z-10 flex-shrink-0" style="height: 58px; background: #ffffff; border-bottom: 1px solid #e4e4e7;">
     <div class="flex items-center gap-3">
-        <button id="open-sidebar" class="lg:hidden mr-2" style="color: #71717a;">
-            <i class="fas fa-bars text-lg"></i>
+        <button id="open-sidebar" type="button" class="lg:hidden flex items-center justify-center rounded-md border border-zinc-200 bg-white text-zinc-600 hover:text-zinc-900 hover:bg-zinc-100 transition-colors shadow-xs" style="width: 34px; height: 34px; min-width: 34px; padding: 0; cursor: pointer; margin-right: 4px;" aria-label="Toggle navigation menu">
+            <i class="fa-solid fa-bars" style="font-size: 15px;"></i>
         </button>
         <h1 style="font-size: 14px; font-weight: 600; color: #09090b; letter-spacing: -0.01em;"><?php echo $pageTitle ?? 'Dashboard'; ?></h1>
     </div>
