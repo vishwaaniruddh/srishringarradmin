@@ -58,6 +58,27 @@ class ProductSyncService {
     }
 
     /**
+     * Get all active SKUs in the Child Database (cached per request)
+     */
+    public static function getChildSkus() {
+        static $cachedSkus = null;
+        if ($cachedSkus !== null) {
+            return $cachedSkus;
+        }
+        $childPdo = self::getChildPdo();
+        if (!$childPdo) {
+            return [];
+        }
+        try {
+            $stmt = $childPdo->query("SELECT sku FROM products WHERE deleted_at IS NULL AND sku IS NOT NULL AND sku != ''");
+            $cachedSkus = array_values(array_unique(array_filter(array_map('trim', $stmt->fetchAll(PDO::FETCH_COLUMN)))));
+            return $cachedSkus;
+        } catch (\Throwable $t) {
+            return [];
+        }
+    }
+
+    /**
      * Helper to create a URL-friendly slug
      */
     private static function createSlug($text, $sku = '') {

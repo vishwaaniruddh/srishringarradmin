@@ -49,6 +49,28 @@ class ProductModel extends Model
             }
         }
 
+        $store_presence = $params['store_presence'] ?? '';
+        if ($store_presence === 'in_child' || $store_presence === 'both') {
+            $childSkus = \Core\ProductSyncService::getChildSkus();
+            if (!empty($childSkus)) {
+                $escaped = array_map(function($s) { return "'" . mysqli_real_escape_string($this->db, $s) . "'"; }, $childSkus);
+                $sku_list = implode(',', $escaped);
+                $jewellery_search .= " AND product_code IN ($sku_list)";
+                $garments_search .= " AND gproduct_code IN ($sku_list)";
+            } else {
+                $jewellery_search .= " AND 1=0";
+                $garments_search .= " AND 1=0";
+            }
+        } elseif ($store_presence === 'parent_only' || $store_presence === 'not_in_child') {
+            $childSkus = \Core\ProductSyncService::getChildSkus();
+            if (!empty($childSkus)) {
+                $escaped = array_map(function($s) { return "'" . mysqli_real_escape_string($this->db, $s) . "'"; }, $childSkus);
+                $sku_list = implode(',', $escaped);
+                $jewellery_search .= " AND product_code NOT IN ($sku_list)";
+                $garments_search .= " AND gproduct_code NOT IN ($sku_list)";
+            }
+        }
+
         if (!empty($category_param)) {
             if (strpos($category_param, ':') !== false) {
                 list($type, $id) = explode(':', $category_param);
@@ -132,7 +154,35 @@ class ProductModel extends Model
             foreach ($products as &$product) {
                 $product['details'] = $this->getProductDetails($product);
             }
+            unset($product);
         }
+
+        // Attach child store presence metadata
+        $pageSkus = array_filter(array_map(function($p) { return trim($p['code'] ?? ''); }, $products));
+        $childPdo = \Core\ProductSyncService::getChildPdo();
+        $childMap = [];
+        if ($childPdo && !empty($pageSkus)) {
+            $placeholders = implode(',', array_fill(0, count($pageSkus), '?'));
+            $stmt = $childPdo->prepare("SELECT id, sku, slug, status FROM products WHERE sku IN ($placeholders) AND deleted_at IS NULL");
+            $stmt->execute(array_values($pageSkus));
+            $childRows = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+            foreach ($childRows as $cr) {
+                $childMap[strtoupper(trim($cr['sku']))] = $cr;
+            }
+        }
+        foreach ($products as &$product) {
+            $skuKey = strtoupper(trim($product['code'] ?? ''));
+            if (isset($childMap[$skuKey])) {
+                $product['in_child'] = true;
+                $product['child_product'] = $childMap[$skuKey];
+            } else {
+                $product['in_child'] = false;
+                $product['child_product'] = null;
+            }
+            // Check if category is enabled for sync according to sync_settings.json
+            $product['sync_eligible'] = \Core\ProductSyncService::isCategoryEnabled($product['type'], $product);
+        }
+        unset($product);
 
         return $products;
     }
@@ -174,6 +224,28 @@ class ProductModel extends Model
             } else {
                 $jewellery_search .= " AND 1=0";
                 $garments_search .= " AND 1=0";
+            }
+        }
+
+        $store_presence = $params['store_presence'] ?? '';
+        if ($store_presence === 'in_child' || $store_presence === 'both') {
+            $childSkus = \Core\ProductSyncService::getChildSkus();
+            if (!empty($childSkus)) {
+                $escaped = array_map(function($s) { return "'" . mysqli_real_escape_string($this->db, $s) . "'"; }, $childSkus);
+                $sku_list = implode(',', $escaped);
+                $jewellery_search .= " AND product_code IN ($sku_list)";
+                $garments_search .= " AND gproduct_code IN ($sku_list)";
+            } else {
+                $jewellery_search .= " AND 1=0";
+                $garments_search .= " AND 1=0";
+            }
+        } elseif ($store_presence === 'parent_only' || $store_presence === 'not_in_child') {
+            $childSkus = \Core\ProductSyncService::getChildSkus();
+            if (!empty($childSkus)) {
+                $escaped = array_map(function($s) { return "'" . mysqli_real_escape_string($this->db, $s) . "'"; }, $childSkus);
+                $sku_list = implode(',', $escaped);
+                $jewellery_search .= " AND product_code NOT IN ($sku_list)";
+                $garments_search .= " AND gproduct_code NOT IN ($sku_list)";
             }
         }
 

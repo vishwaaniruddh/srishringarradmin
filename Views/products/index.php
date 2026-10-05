@@ -500,6 +500,15 @@
                                     </select>
                                 </div>
 
+                                <!-- Store Presence Dropdown (Parent / Child) -->
+                                <div style="min-width: 175px;">
+                                    <select id="storePresenceFilter" class="form-control-shadcn" style="width: 100%;" onchange="loadProducts(1)">
+                                        <option value="">All Store Presence</option>
+                                        <option value="in_child">Both Stores (Parent &amp; Child)</option>
+                                        <option value="parent_only">Parent Only (Not in Child)</option>
+                                    </select>
+                                </div>
+
                                 <button type="submit" class="shadcn-btn shadcn-btn-primary" style="height: 34px; font-size: 12.5px; padding: 0 14px;">
                                     <i class="fa-solid fa-filter"></i> Filter
                                 </button>
@@ -530,13 +539,14 @@
                                 <thead>
                                     <tr>
                                         <th style="width: 50px;">IMAGE</th>
-                                        <th style="max-width: 360px; width: 34%;">PRODUCT TITLE &amp; SKU</th>
-                                        <th style="white-space: nowrap; width: 140px;">CATEGORY</th>
-                                        <th style="white-space: nowrap; width: 120px;">PRICE</th>
-                                        <th style="white-space: nowrap; width: 130px;">INVENTORY</th>
-                                        <th style="width: 60px; text-align: center;"><i class="fa-solid fa-star" title="Featured" style="font-size: 11px;"></i></th>
-                                        <th style="width: 110px; white-space: nowrap;">ADDED ON</th>
-                                        <th style="width: 80px; text-align: center; white-space: nowrap;">ACTIONS</th>
+                                        <th style="max-width: 320px; width: 30%;">PRODUCT TITLE &amp; SKU</th>
+                                        <th style="white-space: nowrap; width: 130px;">CATEGORY</th>
+                                        <th style="white-space: nowrap; width: 110px;">PRICE</th>
+                                        <th style="white-space: nowrap; width: 110px;">INVENTORY</th>
+                                        <th style="white-space: nowrap; width: 140px;">STORE PRESENCE</th>
+                                        <th style="width: 50px; text-align: center;"><i class="fa-solid fa-star" title="Featured" style="font-size: 11px;"></i></th>
+                                        <th style="width: 100px; white-space: nowrap;">ADDED ON</th>
+                                        <th style="width: 75px; text-align: center; white-space: nowrap;">ACTIONS</th>
                                     </tr>
                                 </thead>
                                 <tbody id="products-body">
@@ -616,6 +626,7 @@
                     <td><div class="skeleton" style="width: 100px; height: 20px; border-radius: 4px;"></div></td>
                     <td><div class="skeleton" style="width: 70px; height: 15px;"></div></td>
                     <td><div class="skeleton" style="width: 80px; height: 20px; border-radius: 4px;"></div></td>
+                    <td><div class="skeleton" style="width: 90px; height: 20px; border-radius: 4px;"></div></td>
                     <td style="text-align: center;"><div class="skeleton" style="width: 16px; height: 16px; border-radius: 50%; margin: 0 auto;"></div></td>
                     <td><div class="skeleton" style="width: 75px; height: 13px;"></div></td>
                     <td style="text-align: center;"><div class="skeleton" style="width: 40px; height: 18px; margin: 0 auto;"></div></td>
@@ -639,6 +650,7 @@
             availableOnly = false;
             document.getElementById('featuredFilter').value = '';
             document.getElementById('stockFilter').value = '';
+            document.getElementById('storePresenceFilter').value = '';
         } else if (tab === 'featured') {
             availableOnly = false;
             document.getElementById('featuredFilter').value = '1';
@@ -664,9 +676,10 @@
     function exportProducts(format) {
         const search = document.getElementById('searchInput').value;
         const category = document.getElementById('categoryFilter').value;
+        const storePresence = document.getElementById('storePresenceFilter') ? document.getElementById('storePresenceFilter').value : '';
         const menu = document.getElementById('export-menu');
         if (menu) menu.classList.remove('open');
-        window.location.href = `index.php?controller=product&action=export&format=${format}&search=${encodeURIComponent(search)}&category=${encodeURIComponent(category)}&available_only=${availableOnly ? 1 : 0}`;
+        window.location.href = `index.php?controller=product&action=export&format=${format}&search=${encodeURIComponent(search)}&category=${encodeURIComponent(category)}&store_presence=${encodeURIComponent(storePresence)}&available_only=${availableOnly ? 1 : 0}`;
     }
 
     async function loadProducts(page = 1) {
@@ -675,6 +688,7 @@
         const category = document.getElementById('categoryFilter').value;
         const featured = document.getElementById('featuredFilter').value;
         const stock = document.getElementById('stockFilter').value;
+        const storePresence = document.getElementById('storePresenceFilter') ? document.getElementById('storePresenceFilter').value : '';
 
         checkFilterActive();
 
@@ -684,7 +698,7 @@
 
         try {
             const isAvail = (availableOnly || stock === 'instock') ? 1 : 0;
-            const response = await fetch(`index.php?controller=api&action=products&page=${page}&search=${encodeURIComponent(search)}&category=${encodeURIComponent(category)}&featured=${featured}&available_only=${isAvail}`);
+            const response = await fetch(`index.php?controller=api&action=products&page=${page}&search=${encodeURIComponent(search)}&category=${encodeURIComponent(category)}&featured=${featured}&available_only=${isAvail}&store_presence=${encodeURIComponent(storePresence)}`);
             const data = await response.json();
 
             // Total and Stats Update
@@ -715,7 +729,7 @@
             if (!data.products || data.products.length === 0) {
                 tbody.innerHTML = `
                     <tr>
-                        <td colspan="8" style="text-align: center; color: #71717a; padding: 40px;">
+                        <td colspan="9" style="text-align: center; color: #71717a; padding: 40px;">
                             <i class="fa-solid fa-boxes-stacked" style="font-size: 24px; display: block; margin-bottom: 8px; opacity: 0.4;"></i>
                             No products found matching filters.
                         </td>
@@ -755,6 +769,33 @@
                     inventoryBadge = `<span style="display: inline-flex; align-items: center; gap: 4px; padding: 2px 7px; border-radius: 4px; font-size: 11px; font-weight: 500; background: #f0fdf4; color: #15803d; border: 1px solid #bbf7d0;"><i class="fa-solid fa-circle-check" style="font-size: 10px;"></i> In Stock (${qtyVal})</span>`;
                 }
 
+                // Store presence badge (Parent / Child sync status)
+                let presenceHtml = '';
+                if (p.in_child) {
+                    const childSlug = p.child_product && p.child_product.slug ? p.child_product.slug : '';
+                    presenceHtml = `
+                        <div style="display: flex; align-items: center; gap: 5px;">
+                            <span style="display: inline-flex; align-items: center; gap: 5px; padding: 2px 7px; border-radius: 4px; font-size: 11px; font-weight: 500; background: #f0fdf4; color: #166534; border: 1px solid #bbf7d0;" title="Live on Parent POS & YN Web Storefront">
+                                <span style="width: 6px; height: 6px; border-radius: 50%; background: #22c55e;"></span>
+                                Both Stores
+                            </span>
+                            ${childSlug ? `<a href="https://yosshitaneha.com/product/${encodeURIComponent(childSlug)}/" target="_blank" rel="noopener noreferrer" style="color: #a1a1aa; font-size: 10.5px; padding: 2px;" title="View on Child Storefront"><i class="fa-solid fa-arrow-up-right-from-square"></i></a>` : ''}
+                        </div>
+                    `;
+                } else {
+                    presenceHtml = `
+                        <div style="display: flex; flex-direction: column; gap: 2px;">
+                            <span style="display: inline-flex; align-items: center; gap: 5px; padding: 2px 7px; border-radius: 4px; font-size: 11px; font-weight: 500; background: #f4f4f5; color: #52525b; border: 1px solid #e4e4e7;" title="Present in Parent Store only">
+                                <span style="width: 6px; height: 6px; border-radius: 50%; background: #94a3b8;"></span>
+                                Parent Only
+                            </span>
+                            <a href="index.php?controller=sync&action=index" style="font-size: 10.5px; color: #71717a; text-decoration: none; display: inline-flex; align-items: center; gap: 3px;" onmouseover="this.style.color='#09090b'" onmouseout="this.style.color='#71717a'" title="Check Sync Settings / Eligible Categories">
+                                ${p.sync_eligible ? '<i class="fa-solid fa-rotate" style="font-size: 9px; color: #d97706;"></i> <span style="color: #b45309; font-weight: 500;">Sync Eligible</span>' : '<i class="fa-solid fa-sliders" style="font-size: 9px;"></i> Check Sync'}
+                            </a>
+                        </div>
+                    `;
+                }
+
                 // Pricing
                 const rentPrice = parseFloat(p.details ? p.details.rent_price : 0) || 0;
                 const salePrice = parseFloat(p.details ? p.details.sale_price : 0) || 0;
@@ -792,8 +833,8 @@
                                 <img src="${imgPath}" alt="" style="width: 100%; height: 100%; object-fit: cover; display: block;" onerror="this.src='assets/default-product.jpg'">
                             </div>
                         </td>
-                        <td style="max-width: 360px; width: 34%;">
-                            <div style="max-width: 360px;">
+                        <td style="max-width: 320px; width: 30%;">
+                            <div style="max-width: 320px;">
                                 <a href="index.php?controller=product&action=view_details&id=${p.id}&type=${p.type}" class="product-name-link" title="${displayName}">
                                     ${displayName}
                                 </a>
@@ -805,19 +846,22 @@
                                 </div>
                             </div>
                         </td>
-                        <td style="white-space: nowrap; width: 140px;">
+                        <td style="white-space: nowrap; width: 130px;">
                             <span style="display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 11.5px; font-weight: 450; background: #f4f4f5; border: 1px solid #e4e4e7; color: #52525b; white-space: nowrap;">
                                 ${displayCat}
                             </span>
                         </td>
-                        <td style="white-space: nowrap; width: 120px;">
+                        <td style="white-space: nowrap; width: 110px;">
                             <div style="font-weight: 600; font-size: 13px; color: #09090b; white-space: nowrap;">
                                 ₹${rentPrice.toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2})}
                             </div>
                             ${salePrice > 0 ? `<div style="font-size: 11px; color: #71717a; margin-top: 1px; white-space: nowrap;">Sale: ₹${salePrice.toLocaleString('en-IN')}</div>` : ''}
                         </td>
-                        <td style="white-space: nowrap; width: 130px;">
+                        <td style="white-space: nowrap; width: 110px;">
                             ${inventoryBadge}
+                        </td>
+                        <td style="white-space: nowrap; width: 140px;">
+                            ${presenceHtml}
                         </td>
                         <td style="text-align: center;">
                             <button type="button" onclick="toggleFeaturedRow(${p.id}, '${p.type}', ${isFeatured ? 0 : 1})" style="background: none; border: none; cursor: pointer; padding: 4px; font-size: 13px; color: ${isFeatured ? '#f59e0b' : '#d4d4d8'}; transition: color 0.15s ease;" title="${isFeatured ? 'Starred' : 'Not Starred'}">
@@ -948,6 +992,7 @@
         document.getElementById('categoryFilter').value = '';
         document.getElementById('featuredFilter').value = '';
         document.getElementById('stockFilter').value = '';
+        if (document.getElementById('storePresenceFilter')) document.getElementById('storePresenceFilter').value = '';
         availableOnly = false;
         quickTab = 'all';
         document.querySelectorAll('#tab-all, #tab-featured, #tab-instock').forEach(b => {
@@ -971,12 +1016,13 @@
         const category = document.getElementById('categoryFilter').value;
         const featured = document.getElementById('featuredFilter').value;
         const stock = document.getElementById('stockFilter').value;
+        const storePresence = document.getElementById('storePresenceFilter') ? document.getElementById('storePresenceFilter').value : '';
 
         const clearBtn = document.getElementById('searchClearBtn');
         if (clearBtn) clearBtn.style.display = search.length > 0 ? 'block' : 'none';
 
         const resetBtn = document.getElementById('resetFiltersBtn');
-        const hasFilters = search.length > 0 || category !== '' || featured !== '' || stock !== '' || quickTab !== 'all';
+        const hasFilters = search.length > 0 || category !== '' || featured !== '' || stock !== '' || storePresence !== '' || quickTab !== 'all';
         if (resetBtn) resetBtn.style.display = hasFilters ? 'inline-flex' : 'none';
     }
 

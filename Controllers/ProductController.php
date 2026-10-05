@@ -1621,6 +1621,29 @@ class ProductController extends Controller {
                 $garments_search .= " AND 1=0";
             }
         }
+
+        $storePresence = $_GET['store_presence'] ?? '';
+        if ($storePresence === 'in_child' || $storePresence === 'both') {
+            $childSkus = \Core\ProductSyncService::getChildSkus();
+            if (!empty($childSkus)) {
+                $escaped = array_map(function($s) use ($db) { return "'" . mysqli_real_escape_string($db, $s) . "'"; }, $childSkus);
+                $sku_list = implode(',', $escaped);
+                $jewellery_search .= " AND product_code IN ($sku_list)";
+                $garments_search .= " AND gproduct_code IN ($sku_list)";
+            } else {
+                $jewellery_search .= " AND 1=0";
+                $garments_search .= " AND 1=0";
+            }
+        } elseif ($storePresence === 'parent_only' || $storePresence === 'not_in_child') {
+            $childSkus = \Core\ProductSyncService::getChildSkus();
+            if (!empty($childSkus)) {
+                $escaped = array_map(function($s) use ($db) { return "'" . mysqli_real_escape_string($db, $s) . "'"; }, $childSkus);
+                $sku_list = implode(',', $escaped);
+                $jewellery_search .= " AND product_code NOT IN ($sku_list)";
+                $garments_search .= " AND gproduct_code NOT IN ($sku_list)";
+            }
+        }
+
         $query = "(SELECT product_id as id, product_code as code, 'jewellery' as type, product_name as name, rent_price as db_rent_price, sales_price as original_sales_price, featured FROM product WHERE 1=1 $jewellery_search)
                   UNION ALL
                   (SELECT gproduct_id as id, gproduct_code as code, 'garments' as type, gproduct_name as name, rent_price as db_rent_price, sales_price as original_sales_price, featured FROM garment_product WHERE 1=1 $garments_search)
@@ -1637,7 +1660,9 @@ class ProductController extends Controller {
 
         $output = fopen('php://output', 'w');
         // Suppress deprecation warnings with @ for PHP 8.4 compatibility
-        @fputcsv($output, ['sku', 'name', 'description', 'type', 'category_id', 'subcat_id', 's_price', 'rental_price', 'deposit', 'qty', 'images'], ',', '"', '\\');
+        @fputcsv($output, ['sku', 'name', 'description', 'type', 'category_id', 'subcat_id', 's_price', 'rental_price', 'deposit', 'qty', 'store_presence', 'images'], ',', '"', '\\');
+
+        $childSkusLookup = array_flip(array_map('strtoupper', \Core\ProductSyncService::getChildSkus()));
 
         $i = 0;
         while ($p = mysqli_fetch_assoc($result)) {
@@ -1646,6 +1671,7 @@ class ProductController extends Controller {
 
             $sku = $fullProduct['code'] ?? $p['code'] ?? '';
             $qty = $productModel->getPosQuantity($sku);
+            $presence = isset($childSkusLookup[strtoupper(trim($sku))]) ? 'Both Stores' : 'Parent Only';
 
             $images = $productModel->getProductImages($p['id'], $p['type']);
             $imageUrls = [];
@@ -1666,6 +1692,7 @@ class ProductController extends Controller {
                 $fullProduct['rental_price'] ?? 0,
                 $fullProduct['deposit'] ?? 0,
                 $qty,
+                $presence,
                 implode(',', $imageUrls)
             ], ',', '"', '\\');
             
