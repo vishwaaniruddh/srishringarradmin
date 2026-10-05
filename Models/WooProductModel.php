@@ -2,96 +2,211 @@
 namespace Models;
 
 use Core\Model;
+use Core\ProductSyncService;
+use PDO;
 
 class WooProductModel extends Model {
-    
-    private $prefix = "wpxyz_";
+
+    private $pdo;
 
     public function __construct() {
         parent::__construct();
-        $this->db = \Core\Database::getConnection('woo');
+        $this->pdo = ProductSyncService::getChildPdo();
     }
 
     public function isConnected() {
-        return $this->db !== null && $this->db !== false;
+        if ($this->pdo) {
+            try {
+                $this->pdo->query("SELECT 1");
+                return true;
+            } catch (\Throwable $t) {
+                $this->pdo = null;
+            }
+        }
+        $this->pdo = ProductSyncService::getChildPdo();
+        return $this->pdo !== null && $this->pdo !== false;
     }
 
+    /**
+     * Resolve public image URL for child store
+     */
+    public static function formatImageUrl($imagePath) {
+        $imagePath = trim((string)$imagePath);
+        if (empty($imagePath)) {
+            return '';
+        }
+        if (str_starts_with($imagePath, 'http://') || str_starts_with($imagePath, 'https://')) {
+            return $imagePath;
+        }
+        return 'https://yosshitaneha.com/admin/' . ltrim($imagePath, '/');
+    }
+
+    /**
+     * Get Products from Core PHP Child Store (products table)
+     */
     public function getProducts($params = []) {
         if (!$this->isConnected()) return [];
 
-        $limit = $params['limit'] ?? 20;
-        $page = $params['page'] ?? 1;
+        $limit = max(1, (int)($params['limit'] ?? 20));
+        $page = max(1, (int)($params['page'] ?? 1));
         $offset = ($page - 1) * $limit;
-        $search = $params['search'] ?? '';
+        $search = trim($params['search'] ?? '');
+        $status = trim($params['status'] ?? '');
+        $categoryId = (int)($params['category_id'] ?? 0);
 
-        $searchQuery = "";
+        $conditions = ["p.deleted_at IS NULL"];
+        $bindings = [];
+
         if (!empty($search)) {
-            $search = mysqli_real_escape_string($this->db, $search);
-            $searchQuery = " AND (p.post_title LIKE '%$search%' OR pm_sku.meta_value LIKE '%$search%')";
+            $conditions[] = "(p.name LIKE :search OR p.sku LIKE :search)";
+            $bindings[':search'] = "%$search%";
+        }
+
+        if (!empty($status) && in_array($status, ['published', 'draft'])) {
+            $conditions[] = "p.status = :status";
+            $bindings[':status'] = $status;
+        }
+
+        if ($categoryId > 0) {
+            $conditions[] = "EXISTS (SELECT 1 FROM product_categories pc_filter WHERE pc_filter.product_id = p.id AND pc_filter.category_id = :catId)";
+            $bindings[':catId'] = $categoryId;
         }
 
         if (!empty($params['skus']) && is_array($params['skus'])) {
-            $skuList = array_map(function($s) { return "'" . mysqli_real_escape_string($this->db, trim($s)) . "'"; }, $params['skus']);
-            $searchQuery .= " AND pm_sku.meta_value IN (" . implode(',', $skuList) . ")";
-        }
-
-        $sql = "SELECT 
-                    p.ID,
-                    p.post_title as name,
-                    p.post_name as slug,
-                    p.post_content as description,
-                    pm_sku.meta_value as sku,
-                    pm_price.meta_value as price,
-                    pm_stock.meta_value as stock,
-                    p_thumb.guid as image_url,
-                    (SELECT GROUP_CONCAT(t.name) 
-                     FROM {$this->prefix}terms t 
-                     JOIN {$this->prefix}term_taxonomy tt ON t.term_id = tt.term_id 
-                     JOIN {$this->prefix}term_relationships tr ON tt.term_taxonomy_id = tr.term_taxonomy_id 
-                     WHERE tr.object_id = p.ID AND tt.taxonomy = 'product_cat') as categories
-                FROM {$this->prefix}posts p
-                LEFT JOIN {$this->prefix}postmeta pm_sku ON p.ID = pm_sku.post_id AND pm_sku.meta_key = '_sku'
-                LEFT JOIN {$this->prefix}postmeta pm_price ON p.ID = pm_price.post_id AND pm_price.meta_key = '_price'
-                LEFT JOIN {$this->prefix}postmeta pm_stock ON p.ID = pm_stock.post_id AND pm_stock.meta_key = '_stock'
-                LEFT JOIN {$this->prefix}postmeta pm_thumb ON p.ID = pm_thumb.post_id AND pm_thumb.meta_key = '_thumbnail_id'
-                LEFT JOIN {$this->prefix}posts p_thumb ON pm_thumb.meta_value = p_thumb.ID
-                WHERE p.post_type = 'product' 
-                AND p.post_status = 'publish'
-                $searchQuery
-                ORDER BY p.post_date DESC
-                LIMIT $offset, $limit";
-
-        $result = mysqli_query($this->db, $sql);
-        $products = [];
-        if ($result) {
-            while ($row = mysqli_fetch_assoc($result)) {
-                $products[] = $row;
+            $placeholders = [];
+            foreach (array_values($params['skus']) as $idx => $skuVal) {
+                $paramName = ":sku_$idx";
+                $placeholders[] = $paramName;
+                $bindings[$paramName] = trim($skuVal);
+            }
+            if (!empty($placeholders)) {
+                $conditions[] = "p.sku IN (" . implode(',', $placeholders) . ")";
             }
         }
-        return $products;
+
+        $whereSql = implode(' AND ', $conditions);
+
+        $sql = "SELECT 
+                    p.id,
+                    p.id as ID,
+                    p.name,
+                    p.slug,
+                    p.sku,
+                    p.description,
+                    p.short_description,
+                    p.price,
+                    p.sale_price,
+                    p.stock_qty as stock,
+                    p.status,
+                    p.is_featured,
+                    p.main_image,
+                    p.created_at,
+                    p.updated_at,
+                    (SELECT GROUP_CONCAT(c.name SEPARATOR ', ')
+                     FROM product_categories pc
+                     JOIN categories c ON pc.category_id = c.id
+                     WHERE pc.product_id = p.id AND c.deleted_at IS NULL) as categories
+                FROM products p
+                WHERE $whereSql
+                ORDER BY p.id DESC
+                LIMIT $offset, $limit";
+
+        $stmt = $this->pdo->prepare($sql);
+        foreach ($bindings as $key => $val) {
+            $stmt->bindValue($key, $val);
+        }
+        $stmt->execute();
+        $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+        foreach ($rows as &$r) {
+            $r['image_url'] = self::formatImageUrl($r['main_image'] ?? '');
+            if (empty($r['categories'])) {
+                $r['categories'] = 'Uncategorized';
+            }
+        }
+        unset($r);
+
+        return $rows;
     }
 
-    public function getTotalCount($search = '') {
+    /**
+     * Get total count of matching products
+     */
+    public function getTotalCount($search = '', $status = '', $categoryId = 0) {
         if (!$this->isConnected()) return 0;
 
-        $searchQuery = "";
+        $conditions = ["p.deleted_at IS NULL"];
+        $bindings = [];
+
+        $search = trim($search);
         if (!empty($search)) {
-            $search = mysqli_real_escape_string($this->db, $search);
-            $searchQuery = " AND (p.post_title LIKE '%$search%' OR pm_sku.meta_value LIKE '%$search%')";
+            $conditions[] = "(p.name LIKE :search OR p.sku LIKE :search)";
+            $bindings[':search'] = "%$search%";
         }
 
-        $sql = "SELECT COUNT(*) as count 
-                FROM {$this->prefix}posts p
-                LEFT JOIN {$this->prefix}postmeta pm_sku ON p.ID = pm_sku.post_id AND pm_sku.meta_key = '_sku'
-                WHERE p.post_type = 'product' 
-                AND p.post_status = 'publish'
-                $searchQuery";
-
-        $result = mysqli_query($this->db, $sql);
-        if ($result) {
-            $row = mysqli_fetch_assoc($result);
-            return (int)$row['count'];
+        if (!empty($status) && in_array($status, ['published', 'draft'])) {
+            $conditions[] = "p.status = :status";
+            $bindings[':status'] = $status;
         }
-        return 0;
+
+        if ($categoryId > 0) {
+            $conditions[] = "EXISTS (SELECT 1 FROM product_categories pc_filter WHERE pc_filter.product_id = p.id AND pc_filter.category_id = :catId)";
+            $bindings[':catId'] = $categoryId;
+        }
+
+        $whereSql = implode(' AND ', $conditions);
+        $sql = "SELECT COUNT(*) as count FROM products p WHERE $whereSql";
+
+        $stmt = $this->pdo->prepare($sql);
+        foreach ($bindings as $key => $val) {
+            $stmt->bindValue($key, $val);
+        }
+        $stmt->execute();
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+
+        return (int)($row['count'] ?? 0);
+    }
+
+    /**
+     * Summary statistics for dashboard cards
+     */
+    public function getStats() {
+        if (!$this->isConnected()) {
+            return ['total' => 0, 'published' => 0, 'draft' => 0, 'out_of_stock' => 0];
+        }
+
+        try {
+            $sql = "SELECT 
+                        COUNT(*) as total,
+                        SUM(CASE WHEN status = 'published' THEN 1 ELSE 0 END) as published,
+                        SUM(CASE WHEN status = 'draft' THEN 1 ELSE 0 END) as draft,
+                        SUM(CASE WHEN stock_qty <= 0 THEN 1 ELSE 0 END) as out_of_stock
+                    FROM products 
+                    WHERE deleted_at IS NULL";
+            $stmt = $this->pdo->query($sql);
+            $row = $stmt->fetch(PDO::FETCH_ASSOC);
+            return [
+                'total' => (int)($row['total'] ?? 0),
+                'published' => (int)($row['published'] ?? 0),
+                'draft' => (int)($row['draft'] ?? 0),
+                'out_of_stock' => (int)($row['out_of_stock'] ?? 0)
+            ];
+        } catch (\Throwable $t) {
+            return ['total' => 0, 'published' => 0, 'draft' => 0, 'out_of_stock' => 0];
+        }
+    }
+
+    /**
+     * Get list of active categories in Child DB
+     */
+    public function getCategories() {
+        if (!$this->isConnected()) return [];
+
+        try {
+            $stmt = $this->pdo->query("SELECT id, name FROM categories WHERE deleted_at IS NULL ORDER BY name ASC");
+            return $stmt->fetchAll(PDO::FETCH_ASSOC);
+        } catch (\Throwable $t) {
+            return [];
+        }
     }
 }

@@ -59,17 +59,18 @@ class Database {
                     $GLOBALS['con3'] = $c3;
                     return $c3;
                 }
-            } elseif ($type === 'woo') {
-                if (file_exists(__DIR__ . '/../Config/database.php')) {
-                    $creds = include(__DIR__ . '/../Config/database.php');
-                    if (is_array($creds)) {
-                        $con_woo = @mysqli_connect($creds['host'], $creds['user'], $creds['pass'], $creds['db']);
-                        if ($con_woo && !mysqli_connect_errno()) {
-                            @mysqli_set_charset($con_woo, 'utf8mb4');
-                            self::$instances['woo'] = $con_woo;
-                            return $con_woo;
-                        }
-                    }
+            } elseif ($type === 'woo' || $type === 'child') {
+                if ($isProduction) {
+                    $c_child = @mysqli_connect("localhost", "u464193275_yosshitanehafs", "AVav@@2026", "u464193275_yosshitanehafs");
+                } else {
+                    $c_child = @mysqli_connect("localhost", "root", "", "yosshitaneha_db");
+                }
+                if ($c_child && !mysqli_connect_errno()) {
+                    @mysqli_set_charset($c_child, 'utf8mb4');
+                    self::$instances[$type] = $c_child;
+                    self::$instances['woo'] = $c_child;
+                    self::$instances['child'] = $c_child;
+                    return $c_child;
                 }
             }
         } catch (\Throwable $e) {
