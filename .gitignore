@@ -1,8 +1,30 @@
+# Environment & Secrets
 Config/secrets.php
-vendor/
 .env
-*.log
-composer.lock
-test_export.csv
-frontend/
+
+# Local runtime configuration / Sync state
+Config/sync_settings.json
+
+# Dependencies & Builds
+vendor/
 node_modules/
+composer.lock
+frontend/
+
+# Logs & Temporary files
+*.log
+Logs/
+scratch/
+*.csv
+*.xlsx
+wastage.txt
+task.txt
+
+# Accidental paths & dated upload artifacts
+C:/
+20[0-9][0-9]/
+202*/
+
+# Dynamic / uploaded AI model images
+assets/models/*
+!assets/models/.gitkeep
