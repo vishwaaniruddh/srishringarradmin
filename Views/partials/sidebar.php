@@ -12,6 +12,7 @@ $isAnalytics = ($currentController === 'analytics' || $currentController === 're
 
 $isProductsActive = in_array($currentController, ['product', 'sync', 'category']) || $currentScript === 'import_archive.php';
 $isWooActive = ($currentController === 'wooproduct');
+$isPhotoDownloaderActive = ($currentController === 'photodownloader');
 
 $isOrdersActive = ($currentController === 'orders');
 $isDiscountsActive = in_array($currentController, ['discount', 'coupon']);
@@ -510,6 +511,11 @@ $admin_initials = strtoupper(substr($admin_name, 0, 2));
                             <i class="fa-solid fa-trash-can"></i> Bulk Delete
                         </a>
                     </li>
+                    <li class="<?php echo ($currentController === 'photodownloader') ? 'active' : ''; ?>">
+                        <a href="index.php?controller=photodownloader&action=index">
+                            <i class="fa-solid fa-cloud-arrow-down"></i> Photo Downloader
+                        </a>
+                    </li>
                 </ul>
             </li>
 
@@ -518,6 +524,14 @@ $admin_initials = strtoupper(substr($admin_name, 0, 2));
                 <a href="index.php?controller=wooproduct&action=index">
                     <i class="fa-solid fa-globe item-icon"></i>
                     <span class="item-text">YN Web Products</span>
+                </a>
+            </li>
+
+            <!-- Photo Downloader -->
+            <li class="menu-item <?php echo $isPhotoDownloaderActive ? 'active' : ''; ?>">
+                <a href="index.php?controller=photodownloader&action=index">
+                    <i class="fa-solid fa-cloud-arrow-down item-icon"></i>
+                    <span class="item-text">Photo Downloader</span>
                 </a>
             </li>
 

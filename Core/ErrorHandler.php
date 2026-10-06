@@ -39,6 +39,11 @@ class ErrorHandler {
     public static function handleError($errno, $errstr, $errfile, $errline) {
         if (!(error_reporting() & $errno)) return;
 
+        // Ignore PHP deprecation notices so they don't halt application execution
+        if ($errno === E_DEPRECATED || $errno === E_USER_DEPRECATED) {
+            return;
+        }
+
         // Suppress harmless session_start() notices when session is already active
         // (caused by legacy API/config.php also calling session_start())
         if (stripos($errstr, 'session_start()') !== false && stripos($errstr, 'already active') !== false) {
