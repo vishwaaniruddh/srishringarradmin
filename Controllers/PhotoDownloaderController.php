@@ -237,7 +237,359 @@ class PhotoDownloaderController extends Controller {
     }
 
     /**
-     * Download the photos ZIP archive
+     * Start a chunked download session
+     */
+    public function startDownloadJob() {
+        @ini_set('memory_limit', '1024M');
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            $this->json(['success' => false, 'message' => 'Invalid request method.'], 405);
+            return;
+        }
+
+        $categories = $_POST['categories'] ?? [];
+        if (!is_array($categories)) {
+            $categories = array_filter(explode(',', (string)$categories));
+        }
+
+        if (empty($categories)) {
+            $savedSettings = $this->getSettings();
+            $categories = $savedSettings['selected_categories'] ?? [];
+        }
+
+        $stockStatus = strtolower(trim($_POST['stock_status'] ?? 'all'));
+        if (!in_array($stockStatus, ['all', 'available', 'outofstock'])) {
+            $stockStatus = 'all';
+        }
+
+        $imageScope = strtolower(trim($_POST['image_scope'] ?? 'all'));
+        if (!in_array($imageScope, ['main', 'all'])) {
+            $imageScope = 'all';
+        }
+
+        // Persist settings
+        $this->saveSettingsData([
+            'selected_categories' => array_values(array_unique($categories)),
+            'stock_status' => $stockStatus,
+            'image_scope' => $imageScope
+        ]);
+
+        if (!class_exists('\ZipArchive')) {
+            $this->json(['success' => false, 'message' => 'PHP ZipArchive extension is not enabled on this server.'], 500);
+            return;
+        }
+
+        // Gather all products across selected categories
+        $this->loadInStockMap();
+        $allProducts = [];
+
+        foreach ($categories as $catKey) {
+            $catInfo = $this->getCategoryMetaAndProducts($catKey, $stockStatus);
+            if (!$catInfo || empty($catInfo['products'])) continue;
+
+            $deptName = $this->sanitizeFolderName($catInfo['department']);
+            $catFolderName = $this->sanitizeFolderName($catInfo['name']);
+
+            foreach ($catInfo['products'] as $p) {
+                $sku = trim($p['sku'] ?? '');
+                if (empty($sku)) continue;
+                $allProducts[] = [
+                    'id' => (int)$p['id'],
+                    'sku' => $sku,
+                    'name' => $p['name'] ?? $sku,
+                    'type' => $p['type'] ?? 'garment',
+                    'dept' => $deptName,
+                    'cat_name' => $catFolderName
+                ];
+            }
+        }
+
+        if (empty($allProducts)) {
+            $this->json(['success' => false, 'message' => 'No products found matching the selected filters.'], 400);
+            return;
+        }
+
+        $jobId = bin2hex(random_bytes(16));
+        $zipPath = sys_get_temp_dir() . DIRECTORY_SEPARATOR . 'ss_job_' . $jobId . '.zip';
+        $metaPath = sys_get_temp_dir() . DIRECTORY_SEPARATOR . 'ss_job_' . $jobId . '.json';
+
+        $chunkSize = 12; // 12 products per chunk for optimal speed and feedback
+
+        $totalProducts = count($allProducts);
+        $totalChunks = (int)ceil($totalProducts / $chunkSize);
+
+        $jobMeta = [
+            'job_id' => $jobId,
+            'zip_path' => $zipPath,
+            'image_scope' => $imageScope,
+            'total_products' => $totalProducts,
+            'chunk_size' => $chunkSize,
+            'total_chunks' => $totalChunks,
+            'photos_packed' => 0,
+            'products' => $allProducts,
+            'created_at' => time()
+        ];
+
+        file_put_contents($metaPath, json_encode($jobMeta));
+
+        $this->json([
+            'success' => true,
+            'job_id' => $jobId,
+            'total_products' => $totalProducts,
+            'total_chunks' => $totalChunks,
+            'chunk_size' => $chunkSize
+        ]);
+    }
+
+    /**
+     * Process a chunk of products in background
+     */
+    public function processDownloadChunk() {
+        @ini_set('memory_limit', '1024M');
+        @set_time_limit(60);
+
+        $jobId = preg_replace('/[^a-f0-9]/', '', (string)($_POST['job_id'] ?? ''));
+        $chunkIndex = (int)($_POST['chunk_index'] ?? 0);
+
+        $metaPath = sys_get_temp_dir() . DIRECTORY_SEPARATOR . 'ss_job_' . $jobId . '.json';
+        if (!file_exists($metaPath)) {
+            $this->json(['success' => false, 'message' => 'Download session expired or not found.'], 404);
+            return;
+        }
+
+        $meta = json_decode(file_get_contents($metaPath), true);
+        if (!$meta || empty($meta['zip_path'])) {
+            $this->json(['success' => false, 'message' => 'Download session metadata corrupted.'], 500);
+            return;
+        }
+
+        $chunkSize = (int)($meta['chunk_size'] ?? 12);
+        $offset = $chunkIndex * $chunkSize;
+        $productsSlice = array_slice($meta['products'], $offset, $chunkSize);
+
+        $openFlags = (file_exists($meta['zip_path']) && filesize($meta['zip_path']) > 22)
+            ? 0
+            : (\ZipArchive::CREATE | \ZipArchive::OVERWRITE);
+        $zip = new \ZipArchive();
+        if ($zip->open($meta['zip_path'], $openFlags) !== true) {
+            $this->json(['success' => false, 'message' => 'Failed to open ZIP archive for appending.'], 500);
+            return;
+        }
+
+
+        $imageScope = $meta['image_scope'] ?? 'all';
+        $imagesToPack = [];
+        $lastLabel = '';
+
+        foreach ($productsSlice as $prod) {
+            $sku = $prod['sku'];
+            $pid = (int)$prod['id'];
+            $pType = $prod['type'];
+            $dept = $prod['dept'];
+            $catName = $prod['cat_name'];
+            $skuFolder = $this->sanitizeFolderName($sku);
+            $lastLabel = "{$catName} / {$sku}";
+
+            $escSku = mysqli_real_escape_string($this->db, $sku);
+            $idCol = ($pType === 'garment') ? 'gproduct_id' : 'product_id';
+            $sql = "SELECT img_name, rank FROM product_images_new WHERE pro_code = '$escSku' OR $idCol = $pid ORDER BY rank ASC, id ASC";
+            $res = mysqli_query($this->db, $sql);
+
+            $seen = [];
+            $imgs = [];
+            if ($res) {
+                while ($im = mysqli_fetch_assoc($res)) {
+                    $raw = trim($im['img_name'] ?? '');
+                    if ($raw && !isset($seen[$raw])) {
+                        $seen[$raw] = true;
+                        $imgs[] = $im;
+                    }
+                }
+            }
+
+            if ($imageScope === 'main' && !empty($imgs)) {
+                $imgs = array_slice($imgs, 0, 1);
+            }
+
+            $idx = 0;
+            foreach ($imgs as $im) {
+                $raw = $im['img_name'];
+                $cleanBase = $this->sanitizeFileName(basename($raw));
+                $prefix = ($idx === 0) ? '00_main_' : sprintf('%02d_', $idx);
+                $zipEntry = "{$dept}/{$catName}/{$skuFolder}/{$prefix}{$cleanBase}";
+
+                $imagesToPack[] = [
+                    'raw_name' => $raw,
+                    'zip_entry' => $zipEntry
+                ];
+                $idx++;
+            }
+        }
+
+        // Add this batch of images with high-speed parallel fetching
+        $packedNow = $this->addImagesBatchToZip($zip, $imagesToPack);
+        $zip->close();
+
+        $meta['photos_packed'] = (int)($meta['photos_packed'] ?? 0) + $packedNow;
+        file_put_contents($metaPath, json_encode($meta));
+
+        $processedCount = min($offset + count($productsSlice), $meta['total_products']);
+        $isComplete = ($chunkIndex + 1 >= $meta['total_chunks']);
+        $percent = $meta['total_products'] > 0 ? round(($processedCount / $meta['total_products']) * 100) : 100;
+
+        $this->json([
+            'success' => true,
+            'job_id' => $jobId,
+            'chunk_index' => $chunkIndex,
+            'total_chunks' => $meta['total_chunks'],
+            'processed_count' => $processedCount,
+            'total_products' => $meta['total_products'],
+            'photos_packed' => $meta['photos_packed'],
+            'percent' => $percent,
+            'current_label' => $lastLabel,
+            'is_complete' => $isComplete
+        ]);
+    }
+
+    /**
+     * Serve completed ZIP archive file and clean up
+     */
+    public function serveJobZip() {
+        $jobId = preg_replace('/[^a-f0-9]/', '', (string)($_GET['job_id'] ?? ''));
+        $zipPath = sys_get_temp_dir() . DIRECTORY_SEPARATOR . 'ss_job_' . $jobId . '.zip';
+        $metaPath = sys_get_temp_dir() . DIRECTORY_SEPARATOR . 'ss_job_' . $jobId . '.json';
+
+        if (empty($jobId) || !file_exists($zipPath) || filesize($zipPath) < 50) {
+            header('Location: index.php?controller=photodownloader&action=index&error=' . urlencode('Download file not ready or has expired.'));
+            exit;
+        }
+
+        if (file_exists($metaPath)) {
+            @unlink($metaPath);
+        }
+
+        $fileName = 'srishringarr_photos_' . date('Ymd_His') . '.zip';
+        header('Content-Type: application/zip');
+        header('Content-Disposition: attachment; filename="' . $fileName . '"');
+        header('Content-Length: ' . filesize($zipPath));
+        header('Cache-Control: no-cache, no-store, must-revalidate');
+        header('Pragma: no-cache');
+        header('Expires: 0');
+
+        ob_clean();
+        flush();
+        readfile($zipPath);
+        @unlink($zipPath);
+        exit;
+    }
+
+    /**
+     * Cancel download job and remove temporary files
+     */
+    public function cancelDownloadJob() {
+        $jobId = preg_replace('/[^a-f0-9]/', '', (string)($_POST['job_id'] ?? ''));
+        if ($jobId) {
+            $zipPath = sys_get_temp_dir() . DIRECTORY_SEPARATOR . 'ss_job_' . $jobId . '.zip';
+            $metaPath = sys_get_temp_dir() . DIRECTORY_SEPARATOR . 'ss_job_' . $jobId . '.json';
+            @unlink($zipPath);
+            @unlink($metaPath);
+        }
+        $this->json(['success' => true]);
+    }
+
+    /**
+     * Add a batch of images to the zip archive with high-speed parallel fetching
+     */
+    private function addImagesBatchToZip(\ZipArchive $zip, array $imagesList) {
+        if (empty($imagesList)) return 0;
+
+        $addedCount = 0;
+        $remoteQueue = [];
+
+        foreach ($imagesList as $idx => $item) {
+            $rawName = $item['raw_name'];
+            $zipEntry = $item['zip_entry'];
+            $cleanRel = ltrim(str_replace('\\', '/', $rawName), '/');
+
+            // Check local disk first
+            $localPath = null;
+            if ($this->localUploadsDir) {
+                $cand = $this->localUploadsDir . DIRECTORY_SEPARATOR . str_replace('/', DIRECTORY_SEPARATOR, $cleanRel);
+                if (file_exists($cand) && is_file($cand)) {
+                    $localPath = $cand;
+                }
+            }
+            if (!$localPath) {
+                $cand2 = realpath(__DIR__ . '/../../yn/uploads/' . $cleanRel);
+                if ($cand2 && file_exists($cand2) && is_file($cand2)) {
+                    $localPath = $cand2;
+                }
+            }
+
+            if ($localPath) {
+                if ($zip->addFile($localPath, $zipEntry)) {
+                    $addedCount++;
+                }
+            } else {
+                $remoteQueue[$idx] = [
+                    'url' => 'https://srishringarr.com/yn/uploads/' . str_replace(' ', '%20', $cleanRel),
+                    'zip_entry' => $zipEntry
+                ];
+            }
+        }
+
+        if (!empty($remoteQueue)) {
+            // Fetch remote images in parallel chunks of 12
+            $chunks = array_chunk($remoteQueue, 12, true);
+            foreach ($chunks as $chunk) {
+                $mh = curl_multi_init();
+                $handles = [];
+
+                foreach ($chunk as $idx => $rItem) {
+                    $ch = curl_init($rItem['url']);
+                    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+                    curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
+                    curl_setopt($ch, CURLOPT_TIMEOUT, 6);
+                    curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 4);
+                    curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
+                    curl_setopt($ch, CURLOPT_USERAGENT, 'Srishringarr-Admin-PhotoDownloader/1.0');
+                    curl_multi_add_handle($mh, $ch);
+                    $handles[$idx] = $ch;
+                }
+
+                $active = null;
+                do {
+                    $mrc = curl_multi_exec($mh, $active);
+                } while ($mrc == CURLM_CALL_MULTI_PERFORM || $active);
+
+                while ($active && $mrc == CURLM_OK) {
+                    if (curl_multi_select($mh) != -1) {
+                        do {
+                            $mrc = curl_multi_exec($mh, $active);
+                        } while ($mrc == CURLM_CALL_MULTI_PERFORM);
+                    }
+                }
+
+                foreach ($handles as $idx => $ch) {
+                    $content = curl_multi_getcontent($ch);
+                    $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+                    curl_multi_remove_handle($mh, $ch);
+                    unset($ch);
+
+                    if ($httpCode === 200 && strlen($content) > 100) {
+                        if ($zip->addFromString($chunk[$idx]['zip_entry'], $content)) {
+                            $addedCount++;
+                        }
+                    }
+                }
+                curl_multi_close($mh);
+            }
+        }
+
+        return $addedCount;
+    }
+
+    /**
+     * Download the photos ZIP archive (direct fallback endpoint)
      */
     public function download() {
         @ini_set('memory_limit', '1024M');
@@ -300,6 +652,7 @@ class PhotoDownloaderController extends Controller {
 
             $deptName = $this->sanitizeFolderName($catInfo['department']);
             $categoryFolderName = $this->sanitizeFolderName($catInfo['name']);
+            $imagesList = [];
 
             foreach ($catInfo['products'] as $product) {
                 $sku = trim($product['sku']);
@@ -310,7 +663,6 @@ class PhotoDownloaderController extends Controller {
                 $pType = $product['type'];
                 $escSku = mysqli_real_escape_string($this->db, $sku);
 
-                // Fetch images for this product
                 if ($pType === 'garment') {
                     $imgSql = "SELECT id, img_name, rank 
                                FROM product_images_new 
@@ -338,11 +690,8 @@ class PhotoDownloaderController extends Controller {
                     }
                 }
 
-                if (empty($images)) {
-                    continue;
-                }
+                if (empty($images)) continue;
 
-                // If Main Image only, take first image
                 if ($imageScope === 'main') {
                     $images = array_slice($images, 0, 1);
                 }
@@ -352,28 +701,19 @@ class PhotoDownloaderController extends Controller {
                     $rawName = $im['img_name'];
                     $baseName = basename($rawName);
                     $cleanBaseName = $this->sanitizeFileName($baseName);
+                    $prefix = ($imgIndex === 0) ? '00_main_' : sprintf('%02d_', $imgIndex);
+                    $zipEntryPath = "{$deptName}/{$categoryFolderName}/{$skuFolderName}/{$prefix}{$cleanBaseName}";
 
-                    // Form readable file names:
-                    // Main image: 00_main_{name}
-                    // Other images: 01_{name}, 02_{name}...
-                    if ($imgIndex === 0) {
-                        $zipFileName = '00_main_' . $cleanBaseName;
-                    } else {
-                        $zipFileName = sprintf('%02d', $imgIndex) . '_' . $cleanBaseName;
-                    }
-
-                    // ZIP directory structure:
-                    // {Department}/{Category}/{SKU}/{filename}
-                    // e.g.: Apparel/Evening Gowns/fm5264-1/00_main_image.jpg
-                    $zipEntryPath = "{$deptName}/{$categoryFolderName}/{$skuFolderName}/{$zipFileName}";
-
-                    $added = $this->addImageToZip($zip, $rawName, $zipEntryPath);
-                    if ($added) {
-                        $totalFilesAdded++;
-                    }
-
+                    $imagesList[] = [
+                        'raw_name' => $rawName,
+                        'zip_entry' => $zipEntryPath
+                    ];
                     $imgIndex++;
                 }
+            }
+
+            if (!empty($imagesList)) {
+                $totalFilesAdded += $this->addImagesBatchToZip($zip, $imagesList);
             }
         }
 
@@ -400,6 +740,7 @@ class PhotoDownloaderController extends Controller {
         @unlink($tempZipPath);
         exit;
     }
+
 
     /**
      * Add image to zip with local disk check and remote fallback

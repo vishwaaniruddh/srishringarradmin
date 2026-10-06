@@ -624,11 +624,79 @@
         </div>
     </div>
 
+    <!-- ==================== REAL-TIME DOWNLOAD PROGRESS MODAL ==================== -->
+    <div id="downloadModal" class="fixed inset-0 z-50 hidden flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs" style="display:none;">
+        <div class="bg-white rounded-xl max-w-md w-full shadow-2xl border border-zinc-200 overflow-hidden transform transition-all">
+            <!-- Modal Header -->
+            <div class="p-5 border-b border-zinc-100 flex items-center gap-3 bg-zinc-50/50">
+                <div class="w-9 h-9 rounded-lg bg-zinc-900 text-white flex items-center justify-center text-sm flex-shrink-0" id="modalHeaderIconWrap">
+                    <i class="fas fa-box-archive" id="modalHeaderIcon"></i>
+                </div>
+                <div class="flex-1 min-w-0">
+                    <h3 class="text-sm font-semibold text-zinc-900 tracking-tight" id="modalTitle">Packaging Photo Archive</h3>
+                    <p class="text-xs text-zinc-500 mt-0.5 truncate" id="modalSubtitle">Collecting images and building ZIP structure...</p>
+                </div>
+            </div>
+
+            <!-- Modal Body -->
+            <div class="p-5 space-y-4">
+                <!-- Percentage & Stage label -->
+                <div class="flex items-center justify-between text-xs">
+                    <span class="font-semibold text-zinc-800" id="modalStageText">Starting download session...</span>
+                    <span class="shadcn-badge font-mono text-xs font-semibold" id="modalPercentBadge">0%</span>
+                </div>
+
+                <!-- Animated Progress Bar -->
+                <div class="w-full bg-zinc-100 h-2.5 rounded-full overflow-hidden border border-zinc-200">
+                    <div id="modalProgressBar" class="bg-zinc-900 h-full w-0 transition-all duration-200 rounded-full"></div>
+                </div>
+
+                <!-- Live Metrics Counters -->
+                <div class="grid grid-cols-2 gap-3 pt-1">
+                    <div class="bg-zinc-50 border border-zinc-200/80 p-2.5 rounded-lg text-center">
+                        <span class="text-[10px] uppercase font-semibold text-zinc-500 block tracking-wider">Products Processed</span>
+                        <span id="modalProcessedCount" class="text-xs font-semibold text-zinc-900 font-mono mt-0.5 block">0 / 0</span>
+                    </div>
+                    <div class="bg-zinc-50 border border-zinc-200/80 p-2.5 rounded-lg text-center">
+                        <span class="text-[10px] uppercase font-semibold text-zinc-500 block tracking-wider">Photos Packed</span>
+                        <span id="modalPhotosPackedCount" class="text-xs font-semibold text-zinc-900 font-mono mt-0.5 block">0 photos</span>
+                    </div>
+                </div>
+
+                <!-- Currently Processing Item -->
+                <div>
+                    <span class="text-[10px] font-semibold text-zinc-400 uppercase tracking-wider block mb-1">Current Item</span>
+                    <div id="modalCurrentItemLabel" class="text-xs text-zinc-600 font-mono truncate bg-zinc-50 border border-zinc-200/70 rounded-md px-3 py-2">
+                        Initializing catalog items...
+                    </div>
+                </div>
+            </div>
+
+            <!-- Modal Footer -->
+            <div class="p-4 bg-zinc-50 border-t border-zinc-100 flex items-center justify-between gap-2">
+                <button type="button" id="btnCancelDownload" onclick="cancelInteractiveDownload()" class="text-xs text-zinc-600 hover:text-rose-600 font-medium px-3 py-1.5 rounded hover:bg-zinc-200/70 transition-colors">
+                    <i class="fas fa-times-circle mr-1"></i> Cancel
+                </button>
+
+                <div class="flex items-center gap-2">
+                    <a id="btnDirectDownloadLink" href="#" style="display:none;" class="shadcn-btn shadcn-btn-primary shadcn-btn-sm text-xs">
+                        <i class="fas fa-download"></i> Download Ready (.zip)
+                    </a>
+                    <button type="button" id="btnCloseModal" onclick="closeDownloadModal()" style="display:none;" class="shadcn-btn shadcn-btn-sm text-xs">
+                        Close
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Floating Toast Container -->
     <div id="toast-box"></div>
 
     <script>
         let previewDebounceTimer = null;
+        let isDownloadCancelled = false;
+        let activeJobId = null;
 
         // Show Toast Notification
         function showToast(message, type = 'info') {
@@ -789,29 +857,143 @@
             }
         }
 
-        // Handle Download Form Submit
-        document.getElementById('downloaderForm').addEventListener('submit', function(e) {
+        // ==================== REAL-TIME INTERACTIVE DOWNLOAD ENGINE ====================
+
+        function openDownloadModal() {
+            const modal = document.getElementById('downloadModal');
+            modal.style.display = 'flex';
+            document.getElementById('btnCancelDownload').style.display = 'inline-flex';
+            document.getElementById('btnCloseModal').style.display = 'none';
+            document.getElementById('btnDirectDownloadLink').style.display = 'none';
+            document.getElementById('modalTitle').textContent = 'Packaging Photo Archive';
+            document.getElementById('modalSubtitle').textContent = 'Collecting images and building ZIP structure...';
+            document.getElementById('modalHeaderIconWrap').className = 'w-9 h-9 rounded-lg bg-zinc-900 text-white flex items-center justify-center text-sm flex-shrink-0';
+            document.getElementById('modalHeaderIcon').className = 'fas fa-box-archive fa-spin';
+        }
+
+        function closeDownloadModal() {
+            const modal = document.getElementById('downloadModal');
+            modal.style.display = 'none';
+        }
+
+        function updateModalState(percent, stage, processedText, packedCount, currentItem) {
+            document.getElementById('modalProgressBar').style.width = percent + '%';
+            document.getElementById('modalPercentBadge').textContent = percent + '%';
+            if (stage) document.getElementById('modalStageText').textContent = stage;
+            if (processedText) document.getElementById('modalProcessedCount').textContent = processedText;
+            if (packedCount !== null) document.getElementById('modalPhotosPackedCount').textContent = packedCount.toLocaleString() + ' photos';
+            if (currentItem) document.getElementById('modalCurrentItemLabel').textContent = currentItem;
+        }
+
+        async function cancelInteractiveDownload() {
+            isDownloadCancelled = true;
+            document.getElementById('modalStageText').textContent = 'Cancelling download...';
+            if (activeJobId) {
+                const fd = new FormData();
+                fd.append('job_id', activeJobId);
+                await fetch('index.php?controller=photodownloader&action=cancelDownloadJob', { method: 'POST', body: fd }).catch(() => {});
+            }
+            closeDownloadModal();
+            showToast('Download cancelled.', 'info');
+        }
+
+        // Intercept form submit and run high-speed chunked batch download pipeline
+        document.getElementById('downloaderForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+
             const checkedBoxes = document.querySelectorAll('.cat-checkbox:checked');
             if (checkedBoxes.length === 0) {
-                e.preventDefault();
                 showToast('Please select at least one category to download.', 'error');
                 return;
             }
 
-            const btn = document.getElementById('btnDownloadZip');
-            const icon = document.getElementById('downloadIcon');
-            const btnText = document.getElementById('downloadBtnText');
+            openDownloadModal();
+            isDownloadCancelled = false;
+            activeJobId = null;
 
-            icon.className = 'fas fa-spinner fa-spin';
-            btnText.textContent = 'Generating ZIP Archive...';
+            updateModalState(2, 'Initializing catalog products...', '0 / 0', 0, 'Preparing inventory queue...');
 
-            showToast('Preparing ZIP archive. The download will start momentarily...', 'info');
+            const form = document.getElementById('downloaderForm');
+            const formData = new FormData(form);
 
-            // Reset button state after delay
-            setTimeout(() => {
-                icon.className = 'fas fa-cloud-arrow-down';
-                btnText.textContent = 'Download ZIP Archive';
-            }, 6000);
+            try {
+                // 1. Start download job
+                const startRes = await fetch('index.php?controller=photodownloader&action=startDownloadJob', {
+                    method: 'POST',
+                    body: formData
+                });
+                const startData = await startRes.json();
+
+                if (!startData.success) {
+                    closeDownloadModal();
+                    showToast(startData.message || 'Failed to start download job.', 'error');
+                    return;
+                }
+
+                activeJobId = startData.job_id;
+                const totalChunks = startData.total_chunks;
+                const totalProducts = startData.total_products;
+
+                updateModalState(4, 'Packing products into ZIP...', `0 / ${totalProducts}`, 0, 'Starting batch processing...');
+
+                // 2. Iterate through batches with high-speed parallel fetching
+                for (let i = 0; i < totalChunks; i++) {
+                    if (isDownloadCancelled) break;
+
+                    const chunkForm = new FormData();
+                    chunkForm.append('job_id', activeJobId);
+                    chunkForm.append('chunk_index', i);
+
+                    const chunkRes = await fetch('index.php?controller=photodownloader&action=processDownloadChunk', {
+                        method: 'POST',
+                        body: chunkForm
+                    });
+                    const chunkData = await chunkRes.json();
+
+                    if (!chunkData.success) {
+                        throw new Error(chunkData.message || 'Error occurred while packing images.');
+                    }
+
+                    const pct = Math.max(5, chunkData.percent);
+                    updateModalState(
+                        pct,
+                        `Processing: ${chunkData.processed_count} / ${chunkData.total_products} products`,
+                        `${chunkData.processed_count} / ${chunkData.total_products}`,
+                        chunkData.photos_packed,
+                        `Packed: ${chunkData.current_label}`
+                    );
+
+                    if (chunkData.is_complete) break;
+                }
+
+                if (!isDownloadCancelled) {
+                    // Complete state
+                    updateModalState(100, 'ZIP Archive Ready! Download starting...', `${totalProducts} / ${totalProducts}`, null, 'Archive packaged successfully.');
+                    
+                    document.getElementById('modalTitle').textContent = 'ZIP Archive Complete!';
+                    document.getElementById('modalSubtitle').textContent = 'All photos have been packed category-wise into your ZIP file.';
+                    document.getElementById('modalHeaderIconWrap').className = 'w-9 h-9 rounded-lg bg-emerald-600 text-white flex items-center justify-center text-sm flex-shrink-0';
+                    document.getElementById('modalHeaderIcon').className = 'fas fa-check';
+
+                    const downloadUrl = `index.php?controller=photodownloader&action=serveJobZip&job_id=${activeJobId}`;
+                    const directBtn = document.getElementById('btnDirectDownloadLink');
+                    directBtn.href = downloadUrl;
+                    directBtn.style.display = 'inline-flex';
+
+                    document.getElementById('btnCancelDownload').style.display = 'none';
+                    document.getElementById('btnCloseModal').style.display = 'inline-flex';
+
+                    // Trigger browser download immediately!
+                    window.location.href = downloadUrl;
+                    showToast('ZIP archive created! Downloading to your device...', 'info');
+                }
+
+            } catch (err) {
+                if (!isDownloadCancelled) {
+                    closeDownloadModal();
+                    showToast('Download error: ' + err.message, 'error');
+                }
+            }
         });
 
         // Initialize preview on page load
@@ -821,3 +1003,4 @@
     </script>
 </body>
 </html>
+
