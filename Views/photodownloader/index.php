@@ -777,6 +777,8 @@
             }
         }
 
+        let previewAbortController = null;
+
         // On selection change: update count badge and trigger debounced preview
         function handleSelectionChange() {
             const checkedBoxes = document.querySelectorAll('.cat-checkbox:checked');
@@ -785,11 +787,16 @@
 
             // Debounced preview calculation
             clearTimeout(previewDebounceTimer);
-            previewDebounceTimer = setTimeout(fetchPreviewMetrics, 400);
+            previewDebounceTimer = setTimeout(fetchPreviewMetrics, 450);
         }
 
         // Fetch estimated metrics from backend
         async function fetchPreviewMetrics() {
+            if (previewAbortController) {
+                try { previewAbortController.abort(); } catch(e) {}
+            }
+            previewAbortController = new AbortController();
+
             const form = document.getElementById('downloaderForm');
             const formData = new FormData(form);
 
@@ -805,7 +812,9 @@
                     params.append(key, val);
                 }
 
-                const response = await fetch('index.php?controller=photodownloader&action=preview&' + params.toString());
+                const response = await fetch('index.php?controller=photodownloader&action=preview&' + params.toString(), {
+                    signal: previewAbortController.signal
+                });
                 const res = await response.json();
 
                 if (res.success && res.data) {
@@ -816,10 +825,12 @@
                     estImgBadge.textContent = '--';
                 }
             } catch (err) {
+                if (err.name === 'AbortError') return;
                 estProdBadge.textContent = '--';
                 estImgBadge.textContent = '--';
             }
         }
+
 
         // Save Configuration to Backend via AJAX
         async function saveConfigurationAjax() {

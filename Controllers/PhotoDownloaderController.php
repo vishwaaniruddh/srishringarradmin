@@ -15,6 +15,11 @@ class PhotoDownloaderController extends Controller {
     private $localUploadsDir;
 
     public function __construct() {
+        // Release session lock immediately so parallel AJAX requests never queue up as pending
+        if (session_status() === PHP_SESSION_ACTIVE) {
+            session_write_close();
+        }
+
         $this->productModel = new ProductModel();
         $this->db = $this->productModel->getDb();
         $this->db3 = $this->productModel->getDb3();
@@ -154,12 +159,13 @@ class PhotoDownloaderController extends Controller {
     }
 
     /**
-     * Calculate summary metrics for preview
+     * Calculate summary metrics for preview using fast indexed queries
      */
     private function calculatePreview($categoryKeys, $stockStatus, $imageScope) {
         $totalProducts = 0;
-        $totalImages = 0;
         $categoryBreakdown = [];
+        $garmentIds = [];
+        $jewelIds = [];
 
         $this->loadInStockMap();
 
@@ -168,64 +174,57 @@ class PhotoDownloaderController extends Controller {
             if (!$info) continue;
 
             $productCount = count($info['products']);
-            $imgCount = 0;
+            $totalProducts += $productCount;
 
             if ($productCount > 0) {
-                if ($imageScope === 'main') {
-                    // For main image, exactly 1 image per product that has an image
-                    $productIds = [];
-                    $skus = [];
+                if ($info['type'] === 'garment') {
                     foreach ($info['products'] as $p) {
-                        $productIds[] = (int)$p['id'];
-                        $skus[] = "'" . mysqli_real_escape_string($this->db, $p['sku']) . "'";
-                    }
-                    $type = $info['type'];
-                    $idCol = ($type === 'garment') ? 'gproduct_id' : 'product_id';
-                    $idList = implode(',', $productIds);
-                    $skuList = implode(',', $skus);
-
-                    $sql = "SELECT COUNT(DISTINCT pro_code) as c 
-                            FROM product_images_new 
-                            WHERE pro_code IN ($skuList) OR $idCol IN ($idList)";
-                    $res = mysqli_query($this->db, $sql);
-                    if ($res && $row = mysqli_fetch_assoc($res)) {
-                        $imgCount = (int)$row['c'];
-                    } else {
-                        $imgCount = $productCount;
+                        $garmentIds[] = (int)$p['id'];
                     }
                 } else {
-                    // All images: count all images for these products
-                    $productIds = [];
-                    $skus = [];
                     foreach ($info['products'] as $p) {
-                        $productIds[] = (int)$p['id'];
-                        $skus[] = "'" . mysqli_real_escape_string($this->db, $p['sku']) . "'";
-                    }
-                    $type = $info['type'];
-                    $idCol = ($type === 'garment') ? 'gproduct_id' : 'product_id';
-                    $idList = implode(',', $productIds);
-                    $skuList = implode(',', $skus);
-
-                    $sql = "SELECT COUNT(*) as c 
-                            FROM product_images_new 
-                            WHERE pro_code IN ($skuList) OR $idCol IN ($idList)";
-                    $res = mysqli_query($this->db, $sql);
-                    if ($res && $row = mysqli_fetch_assoc($res)) {
-                        $imgCount = (int)$row['c'];
+                        $jewelIds[] = (int)$p['id'];
                     }
                 }
             }
-
-            $totalProducts += $productCount;
-            $totalImages += $imgCount;
 
             $categoryBreakdown[] = [
                 'key' => $catKey,
                 'name' => $info['name'],
                 'department' => $info['department'],
-                'products' => $productCount,
-                'images' => $imgCount
+                'products' => $productCount
             ];
+        }
+
+        $totalImages = 0;
+        if ($imageScope === 'main') {
+            // Main image scope is exactly 1 per product
+            $totalImages = $totalProducts;
+        } else {
+            // All images: Fast indexed count queries in batches of 1000
+            $garmentIds = array_unique($garmentIds);
+            if (!empty($garmentIds)) {
+                $gChunks = array_chunk($garmentIds, 1000);
+                foreach ($gChunks as $gChunk) {
+                    $gList = implode(',', $gChunk);
+                    $gRes = mysqli_query($this->db, "SELECT COUNT(*) as c FROM product_images_new WHERE gproduct_id IN ($gList)");
+                    if ($gRes && $gRow = mysqli_fetch_assoc($gRes)) {
+                        $totalImages += (int)$gRow['c'];
+                    }
+                }
+            }
+
+            $jewelIds = array_unique($jewelIds);
+            if (!empty($jewelIds)) {
+                $jChunks = array_chunk($jewelIds, 1000);
+                foreach ($jChunks as $jChunk) {
+                    $jList = implode(',', $jChunk);
+                    $jRes = mysqli_query($this->db, "SELECT COUNT(*) as c FROM product_images_new WHERE product_id IN ($jList)");
+                    if ($jRes && $jRow = mysqli_fetch_assoc($jRes)) {
+                        $totalImages += (int)$jRow['c'];
+                    }
+                }
+            }
         }
 
         return [
@@ -238,6 +237,7 @@ class PhotoDownloaderController extends Controller {
 
     /**
      * Start a chunked download session
+
      */
     public function startDownloadJob() {
         @ini_set('memory_limit', '1024M');
