@@ -22,8 +22,19 @@ set_error_handler(['Core\ErrorHandler', 'handleError']);
 \Core\Auth::startSession();
 
 // Front Controller
-$controllerName = isset($_GET['controller']) ? ucfirst($_GET['controller']) : 'Dashboard';
+$controllerMap = [
+    'photodownloader' => 'Photodownloader',
+    'photodownload' => 'Photodownloader',
+    'wooproduct' => 'Wooproduct',
+    'aianalytics' => 'Aianalytics',
+    'aimodels' => 'Aimodels',
+    'aiplayground' => 'AiPlayground',
+    'categoryimage' => 'CategoryImage'
+];
+$rawController = strtolower(trim($_GET['controller'] ?? 'dashboard'));
+$controllerName = $controllerMap[$rawController] ?? (isset($_GET['controller']) ? ucfirst($_GET['controller']) : 'Dashboard');
 $actionName = isset($_GET['action']) ? $_GET['action'] : 'index';
+
 
 // Controllers that DON'T require authentication
 $publicControllers = ['Auth'];

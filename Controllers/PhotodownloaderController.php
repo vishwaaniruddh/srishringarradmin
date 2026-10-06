@@ -5,7 +5,7 @@ use Core\Controller;
 use Core\Database;
 use Models\ProductModel;
 
-class PhotoDownloaderController extends Controller {
+class PhotodownloaderController extends Controller {
 
     private $productModel;
     private $db;
@@ -981,6 +981,7 @@ class PhotoDownloaderController extends Controller {
 }
 
 // Support both ?controller=photodownloader and ?controller=photoDownloader
-if (!class_exists('Controllers\PhotodownloaderController', false)) {
-    class_alias(PhotoDownloaderController::class, 'Controllers\PhotodownloaderController');
+if (!class_exists('Controllers\PhotoDownloaderController', false)) {
+    class_alias(PhotodownloaderController::class, 'Controllers\PhotoDownloaderController');
 }
+
