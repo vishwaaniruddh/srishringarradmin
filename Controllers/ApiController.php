@@ -8,16 +8,30 @@ class ApiController extends Controller {
     public function stats() {
         $statsModel = new \Models\StatsModel();
         
+        $activeRentalsData = $statsModel->getActiveRentals();
+        $totalRentalRev = $statsModel->getTotalRentalRevenue();
+        $stockSummary = $statsModel->getStockSummary();
+        $categoryDist = $statsModel->getCategoryDistribution(5);
+        $revenueTrends = $statsModel->getRevenueTrends(6);
+
         $data = [
             'total_orders' => $statsModel->getTotalOrders(),
             'monthly_revenue' => $statsModel->getMonthlyRevenue(),
+            'total_rental_revenue' => $totalRentalRev['total'],
+            'total_rental_count' => $totalRentalRev['count'],
             'active_products' => $statsModel->getActiveProducts(),
-            'active_rentals' => $statsModel->getActiveRentals(),
+            'active_rentals' => $activeRentalsData['active_rentals'],
+            'booked_count' => $activeRentalsData['booked'],
+            'picked_count' => $activeRentalsData['picked'],
+            'pending_returns' => $activeRentalsData['pending_returns'],
             'jewellery_count' => $statsModel->getJewelleryCount(),
             'garments_count' => $statsModel->getGarmentsCount(),
+            'stock_summary' => $stockSummary,
+            'category_distribution' => $categoryDist,
+            'revenue_trends' => $revenueTrends,
             'out_of_stock' => $statsModel->getOutOfStockCount(),
             'low_stock' => $statsModel->getLowStockCount(),
-            'recent_bookings' => $statsModel->getRecentBookings(5)
+            'recent_bookings' => $statsModel->getRecentBookings(10)
         ];
         $this->json($data);
     }
