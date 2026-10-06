@@ -7,7 +7,7 @@
 <!-- Font Awesome -->
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
 <!-- Vercel Theme Override -->
-<link rel="stylesheet" href="assets/vercel.css">
+<link rel="stylesheet" href="assets/vercel.css?v=<?php echo file_exists(__DIR__ . '/../../assets/vercel.css') ? filemtime(__DIR__ . '/../../assets/vercel.css') : time(); ?>">
 
 <script>
     tailwind.config = {

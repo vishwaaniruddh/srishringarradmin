@@ -23,13 +23,20 @@
             --font-stack: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
         }
 
-        body.dash-body {
-            background-color: var(--shadcn-bg) !important;
-            color: var(--shadcn-text) !important;
+        html, body, body.dash-body {
+            background-color: #f8fafc !important;
+            background: #f8fafc !important;
+            color: #0f172a !important;
             font-family: var(--font-stack) !important;
             font-size: 13px !important;
             line-height: 1.5 !important;
             -webkit-font-smoothing: antialiased;
+        }
+
+        main, .dash-main, main.dash-main {
+            background-color: #f8fafc !important;
+            background: #f8fafc !important;
+            color: #0f172a !important;
         }
 
         .dash-container {
@@ -38,16 +45,22 @@
         }
 
         /* Card Surface (ShadCN Standard) */
-        .shadcn-card {
-            background: var(--shadcn-card);
-            border: 1px solid var(--shadcn-border);
-            border-radius: 8px;
-            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03);
+        .shadcn-card,
+        div.shadcn-card,
+        main .shadcn-card,
+        .dash-main .shadcn-card {
+            background: #ffffff !important;
+            background-color: #ffffff !important;
+            border: 1px solid #e2e8f0 !important;
+            border-radius: 8px !important;
+            color: #0f172a !important;
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03) !important;
             transition: border-color 0.15s ease, box-shadow 0.15s ease;
         }
-        .shadcn-card:hover {
-            border-color: #cbd5e1;
-            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.04);
+        .shadcn-card:hover,
+        div.shadcn-card:hover {
+            border-color: #cbd5e1 !important;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.04) !important;
         }
 
         /* Metric Icon Containers */
@@ -55,9 +68,9 @@
             width: 36px;
             height: 36px;
             border-radius: 6px;
-            background: #f1f5f9;
-            border: 1px solid var(--shadcn-border);
-            color: #475569;
+            background: #f1f5f9 !important;
+            border: 1px solid #e2e8f0 !important;
+            color: #475569 !important;
             display: flex;
             align-items: center;
             justify-content: center;
@@ -166,35 +179,49 @@
         }
 
         /* Table Styling */
-        .shadcn-table {
-            width: 100%;
-            text-align: left;
-            border-collapse: separate;
-            border-spacing: 0;
+        .shadcn-table,
+        main .shadcn-table,
+        .dash-main table,
+        main table {
+            width: 100% !important;
+            text-align: left !important;
+            border-collapse: separate !important;
+            border-spacing: 0 !important;
+            background: #ffffff !important;
+            background-color: #ffffff !important;
+            color: #0f172a !important;
         }
-        .shadcn-table th {
-            padding: 9px 14px;
-            font-size: 11px;
-            font-weight: 600;
-            text-transform: uppercase;
-            letter-spacing: 0.04em;
-            color: #64748b;
-            background: #f8fafc;
-            border-bottom: 1px solid var(--shadcn-border);
-            white-space: nowrap;
+        .shadcn-table th,
+        main thead th {
+            padding: 9px 14px !important;
+            font-size: 11px !important;
+            font-weight: 600 !important;
+            text-transform: uppercase !important;
+            letter-spacing: 0.04em !important;
+            color: #64748b !important;
+            background: #f8fafc !important;
+            background-color: #f8fafc !important;
+            border-bottom: 1px solid #e2e8f0 !important;
+            white-space: nowrap !important;
         }
-        .shadcn-table td {
-            padding: 10px 14px;
-            font-size: 12.5px;
-            color: #0f172a;
-            border-bottom: 1px solid #f1f5f9;
-            vertical-align: middle;
+        .shadcn-table tr,
+        .shadcn-table td,
+        main tbody td {
+            padding: 10px 14px !important;
+            font-size: 12.5px !important;
+            color: #0f172a !important;
+            background: #ffffff !important;
+            background-color: #ffffff !important;
+            border-bottom: 1px solid #f1f5f9 !important;
+            vertical-align: middle !important;
         }
-        .shadcn-table tr:hover td {
-            background-color: #f8fafc;
+        .shadcn-table tr:hover td,
+        main tbody tr:hover td {
+            background: #f8fafc !important;
+            background-color: #f8fafc !important;
         }
         .shadcn-table tr:last-child td {
-            border-bottom: none;
+            border-bottom: none !important;
         }
 
         /* Custom Scrollbar */
@@ -296,7 +323,7 @@
             ?>
 
             <!-- Page Content -->
-            <main class="flex-1 overflow-y-auto p-5 lg:p-7 dash-scrollbar">
+            <main class="dash-main flex-1 overflow-y-auto p-5 lg:p-7 dash-scrollbar" style="background: #f8fafc !important;">
                 <div class="dash-container">
 
                     <!-- Dashboard Header Banner -->
@@ -442,21 +469,21 @@
                     <div class="grid grid-cols-1 lg:grid-cols-12 gap-5 mb-6">
                         
                         <!-- Left: Recent Bookings & Rental Schedule (8 cols) -->
-                        <div class="lg:col-span-8 shadcn-card flex flex-col" style="min-height: 420px;">
+                        <div class="lg:col-span-8 shadcn-card flex flex-col" style="min-height: 420px; background: #ffffff !important;">
                             <!-- Card Header -->
-                            <div class="p-4 border-b border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white rounded-t-lg">
+                            <div class="p-4 border-b border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3 rounded-t-lg" style="background: #ffffff !important; border-bottom: 1px solid #e2e8f0 !important;">
                                 <div class="flex items-center gap-2">
                                     <span class="material-symbols-outlined text-slate-700">receipt_long</span>
                                     <div>
-                                        <h3 class="text-sm font-semibold text-slate-900">Recent Bookings & Rental Schedule</h3>
-                                        <p class="text-[11.5px] text-slate-500">Latest customer orders from POS transactions</p>
+                                        <h3 class="text-sm font-semibold text-slate-900" style="color: #0f172a !important; margin: 0;">Recent Bookings & Rental Schedule</h3>
+                                        <p class="text-[11.5px] text-slate-500" style="color: #64748b !important; margin: 0;">Latest customer orders from POS transactions</p>
                                     </div>
                                 </div>
 
                                 <div class="flex items-center gap-2.5">
                                     <!-- Filter dropdown -->
                                     <div class="relative">
-                                        <select id="booking-status-filter" class="pl-2.5 pr-7 py-1 text-xs rounded-md appearance-none cursor-pointer bg-white border border-slate-200 text-slate-700 focus:outline-none focus:border-slate-900 font-medium">
+                                        <select id="booking-status-filter" class="pl-2.5 pr-7 py-1 text-xs rounded-md appearance-none cursor-pointer border border-slate-200 text-slate-700 focus:outline-none focus:border-slate-900 font-medium" style="background: #ffffff !important; color: #0f172a !important; border: 1px solid #e2e8f0 !important;">
                                             <option value="">All Statuses</option>
                                             <option value="booked">Booked</option>
                                             <option value="picked">Picked Up</option>
@@ -465,7 +492,7 @@
                                         <i class="fa-solid fa-chevron-down absolute right-2.5 top-1/2 -translate-y-1/2 text-[9px] text-slate-400 pointer-events-none"></i>
                                     </div>
 
-                                    <a href="index.php?controller=orders" class="text-xs font-medium text-slate-900 hover:underline inline-flex items-center gap-1">
+                                    <a href="index.php?controller=orders" class="text-xs font-medium text-slate-900 hover:underline inline-flex items-center gap-1" style="color: #0f172a !important;">
                                         <span>View All Orders</span>
                                         <i class="fa-solid fa-arrow-right text-[10px]"></i>
                                     </a>
@@ -507,48 +534,48 @@
                                                     $pickDateStr = !empty($b['pick_date']) && $b['pick_date'] != '0000-00-00' ? date('d M \'y', strtotime($b['pick_date'])) : '--';
                                                     $delivDateStr = !empty($b['delivery_date']) && $b['delivery_date'] != '0000-00-00' ? date('d M \'y', strtotime($b['delivery_date'])) : '--';
                                                 ?>
-                                                <tr data-status="<?php echo htmlspecialchars($statusLower); ?>">
-                                                    <td>
+                                                <tr data-status="<?php echo htmlspecialchars($statusLower); ?>" style="background: #ffffff !important;">
+                                                    <td style="background: #ffffff !important; color: #0f172a !important;">
                                                         <div class="flex flex-col">
                                                             <div class="flex items-center gap-1.5">
-                                                                <span class="font-mono font-bold text-xs text-slate-900">#<?php echo htmlspecialchars($b['bill_id']); ?></span>
+                                                                <span class="font-mono font-bold text-xs text-slate-900" style="color: #0f172a !important;">#<?php echo htmlspecialchars($b['bill_id']); ?></span>
                                                             </div>
-                                                            <span class="text-xs font-medium text-slate-800 truncate max-w-[150px]" title="<?php echo htmlspecialchars($b['customer_name'] ?? 'Walk-in Customer'); ?>">
+                                                            <span class="text-xs font-medium text-slate-800 truncate max-w-[150px]" style="color: #0f172a !important;" title="<?php echo htmlspecialchars($b['customer_name'] ?? 'Walk-in Customer'); ?>">
                                                                 <?php echo htmlspecialchars($b['customer_name'] ?? 'Walk-in Customer'); ?>
                                                             </span>
                                                             <?php if (!empty($b['customer_phone'])): ?>
-                                                                <span class="text-[10px] text-slate-500 font-mono"><?php echo htmlspecialchars($b['customer_phone']); ?></span>
+                                                                <span class="text-[10px] text-slate-500 font-mono" style="color: #64748b !important;"><?php echo htmlspecialchars($b['customer_phone']); ?></span>
                                                             <?php endif; ?>
                                                         </div>
                                                     </td>
-                                                    <td>
+                                                    <td style="background: #ffffff !important; color: #0f172a !important;">
                                                         <div class="flex items-center gap-2">
-                                                            <div class="w-6 h-6 rounded bg-slate-100 border border-slate-200 flex items-center justify-center text-slate-600 flex-shrink-0">
+                                                            <div class="w-6 h-6 rounded bg-slate-100 border border-slate-200 flex items-center justify-center text-slate-600 flex-shrink-0" style="background: #f1f5f9 !important; border-color: #e2e8f0 !important;">
                                                                 <span class="material-symbols-outlined text-[14px]">diamond</span>
                                                             </div>
-                                                            <span class="text-xs text-slate-700 font-mono truncate max-w-[240px]" title="<?php echo htmlspecialchars($b['items'] ?? 'No items details'); ?>">
+                                                            <span class="text-xs text-slate-700 font-mono truncate max-w-[240px]" style="color: #334155 !important;" title="<?php echo htmlspecialchars($b['items'] ?? 'No items details'); ?>">
                                                                 <?php echo htmlspecialchars($b['items'] ?? 'Item details in order'); ?>
                                                             </span>
                                                         </div>
                                                     </td>
-                                                    <td>
-                                                        <div class="flex flex-col text-[11px] font-mono text-slate-600">
+                                                    <td style="background: #ffffff !important; color: #0f172a !important;">
+                                                        <div class="flex flex-col text-[11px] font-mono text-slate-600" style="color: #475569 !important;">
                                                             <span class="flex items-center gap-1">
                                                                 <span class="material-symbols-outlined text-[13px] text-slate-400">calendar_month</span>
-                                                                Pick: <strong class="text-slate-800"><?php echo $pickDateStr; ?></strong>
+                                                                Pick: <strong class="text-slate-800" style="color: #0f172a !important;"><?php echo $pickDateStr; ?></strong>
                                                             </span>
                                                             <span class="flex items-center gap-1 mt-0.5">
                                                                 <span class="material-symbols-outlined text-[13px] text-slate-400">event_repeat</span>
-                                                                Return: <strong class="text-slate-800"><?php echo $delivDateStr; ?></strong>
+                                                                Return: <strong class="text-slate-800" style="color: #0f172a !important;"><?php echo $delivDateStr; ?></strong>
                                                             </span>
                                                         </div>
                                                     </td>
-                                                    <td class="text-right">
-                                                        <span class="font-mono font-bold text-xs text-slate-900">
+                                                    <td class="text-right" style="background: #ffffff !important; color: #0f172a !important;">
+                                                        <span class="font-mono font-bold text-xs text-slate-900" style="color: #0f172a !important;">
                                                             ₹<?php echo number_format($b['rent_amount'] ?? 0); ?>
                                                         </span>
                                                     </td>
-                                                    <td class="text-right">
+                                                    <td class="text-right" style="background: #ffffff !important; color: #0f172a !important;">
                                                         <span class="status-pill <?php echo $statusClass; ?>">
                                                             <span class="status-dot" style="background: <?php echo $dotColor; ?>;"></span>
                                                             <span><?php echo htmlspecialchars($b['booking_status'] ?? 'N/A'); ?></span>
@@ -569,7 +596,7 @@
                         </div>
 
                         <!-- Right: Stock Distribution & Top Categories (4 cols) -->
-                        <div class="lg:col-span-4 shadcn-card p-4 flex flex-col justify-between" style="min-height: 420px;">
+                        <div class="lg:col-span-4 shadcn-card p-4 flex flex-col justify-between" style="min-height: 420px; background: #ffffff !important;">
                             <div>
                                 <div class="flex items-center justify-between pb-3 mb-3 border-b border-slate-200">
                                     <div class="flex items-center gap-2">
@@ -638,17 +665,17 @@
                     <div class="grid grid-cols-1 lg:grid-cols-12 gap-5 mb-6">
                         
                         <!-- Left: Monthly Revenue Trends (8 cols) -->
-                        <div class="lg:col-span-8 shadcn-card p-4 flex flex-col justify-between" style="min-height: 280px;">
+                        <div class="lg:col-span-8 shadcn-card p-4 flex flex-col justify-between" style="min-height: 280px; background: #ffffff !important;">
                             <div class="flex items-center justify-between pb-3 mb-2 border-b border-slate-200">
                                 <div class="flex items-center gap-2">
                                     <span class="material-symbols-outlined text-slate-700">query_stats</span>
                                     <div>
-                                        <h3 class="text-sm font-semibold text-slate-900">Revenue & Booking Trends</h3>
-                                        <p class="text-[11.5px] text-slate-500">Historical monthly rental turnover from POS database</p>
+                                        <h3 class="text-sm font-semibold text-slate-900" style="color: #0f172a !important; margin: 0;">Revenue & Booking Trends</h3>
+                                        <p class="text-[11.5px] text-slate-500" style="color: #64748b !important; margin: 0;">Historical monthly rental turnover from POS database</p>
                                     </div>
                                 </div>
                                 <div class="flex items-center gap-3 text-xs text-slate-500">
-                                    <span class="flex items-center gap-1.5">
+                                    <span class="flex items-center gap-1.5" style="color: #64748b !important;">
                                         <span class="w-2.5 h-2.5 rounded-sm bg-slate-900"></span> Rental Revenue (₹)
                                     </span>
                                 </div>
@@ -685,8 +712,8 @@
                             </div>
 
                             <div class="flex items-center justify-between pt-3 border-t border-slate-100 text-xs text-slate-500">
-                                <span>Peak Performance: <strong class="text-slate-800">₹1,23,000 (16 Bookings)</strong></span>
-                                <span>Avg Monthly Rent: <strong class="text-slate-800">₹59,000</strong></span>
+                                <span>Peak Performance: <strong class="text-slate-800" style="color: #0f172a !important;">₹1,23,000 (16 Bookings)</strong></span>
+                                <span>Avg Monthly Rent: <strong class="text-slate-800" style="color: #0f172a !important;">₹59,000</strong></span>
                             </div>
                         </div>
 
@@ -694,7 +721,7 @@
                         <div class="lg:col-span-4 flex flex-col gap-4">
                             
                             <!-- Quick Shortcuts Card -->
-                            <div class="shadcn-card p-4 flex-1 flex flex-col justify-between">
+                            <div class="shadcn-card p-4 flex-1 flex flex-col justify-between" style="background: #ffffff !important;">
                                 <div>
                                     <div class="flex items-center justify-between pb-2 mb-3 border-b border-slate-200">
                                         <h3 class="text-sm font-semibold text-slate-900">Quick Operations</h3>
@@ -895,44 +922,44 @@
                             const custPhone = b.customer_phone ? `<span class="text-[10px] text-slate-500 font-mono">${b.customer_phone}</span>` : '';
 
                             bookingsTbody.innerHTML += `
-                                <tr data-status="${statusLower}">
-                                    <td>
+                                <tr data-status="${statusLower}" style="background: #ffffff !important;">
+                                    <td style="background: #ffffff !important; color: #0f172a !important;">
                                         <div class="flex flex-col">
-                                            <span class="font-mono font-bold text-xs text-slate-900">#${b.bill_id}</span>
-                                            <span class="text-xs font-medium text-slate-800 truncate max-w-[150px]" title="${custName}">
+                                            <span class="font-mono font-bold text-xs text-slate-900" style="color: #0f172a !important;">#${b.bill_id}</span>
+                                            <span class="text-xs font-medium text-slate-800 truncate max-w-[150px]" style="color: #0f172a !important;" title="${custName}">
                                                 ${custName}
                                             </span>
                                             ${custPhone}
                                         </div>
                                     </td>
-                                    <td>
+                                    <td style="background: #ffffff !important; color: #0f172a !important;">
                                         <div class="flex items-center gap-2">
-                                            <div class="w-6 h-6 rounded bg-slate-100 border border-slate-200 flex items-center justify-center text-slate-600 flex-shrink-0">
+                                            <div class="w-6 h-6 rounded bg-slate-100 border border-slate-200 flex items-center justify-center text-slate-600 flex-shrink-0" style="background: #f1f5f9 !important; border-color: #e2e8f0 !important;">
                                                 <span class="material-symbols-outlined text-[14px]">diamond</span>
                                             </div>
-                                            <span class="text-xs text-slate-700 font-mono truncate max-w-[240px]" title="${b.items || ''}">
+                                            <span class="text-xs text-slate-700 font-mono truncate max-w-[240px]" style="color: #334155 !important;" title="${b.items || ''}">
                                                 ${b.items || 'Item details in order'}
                                             </span>
                                         </div>
                                     </td>
-                                    <td>
-                                        <div class="flex flex-col text-[11px] font-mono text-slate-600">
+                                    <td style="background: #ffffff !important; color: #0f172a !important;">
+                                        <div class="flex flex-col text-[11px] font-mono text-slate-600" style="color: #475569 !important;">
                                             <span class="flex items-center gap-1">
                                                 <span class="material-symbols-outlined text-[13px] text-slate-400">calendar_month</span>
-                                                Pick: <strong class="text-slate-800">${pickDateStr}</strong>
+                                                Pick: <strong class="text-slate-800" style="color: #0f172a !important;">${pickDateStr}</strong>
                                             </span>
                                             <span class="flex items-center gap-1 mt-0.5">
                                                 <span class="material-symbols-outlined text-[13px] text-slate-400">event_repeat</span>
-                                                Return: <strong class="text-slate-800">${delivDateStr}</strong>
+                                                Return: <strong class="text-slate-800" style="color: #0f172a !important;">${delivDateStr}</strong>
                                             </span>
                                         </div>
                                     </td>
-                                    <td class="text-right">
-                                        <span class="font-mono font-bold text-xs text-slate-900">
+                                    <td class="text-right" style="background: #ffffff !important; color: #0f172a !important;">
+                                        <span class="font-mono font-bold text-xs text-slate-900" style="color: #0f172a !important;">
                                             ₹${new Intl.NumberFormat('en-IN').format(b.rent_amount || 0)}
                                         </span>
                                     </td>
-                                    <td class="text-right">
+                                    <td class="text-right" style="background: #ffffff !important; color: #0f172a !important;">
                                         <span class="status-pill ${statusClass}">
                                             <span class="status-dot" style="background: ${dotColor};"></span>
                                             <span>${b.booking_status || 'N/A'}</span>
