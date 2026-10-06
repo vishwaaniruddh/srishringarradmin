@@ -629,6 +629,14 @@ class PhotodownloaderController extends Controller {
             'image_scope' => $imageScope
         ]);
 
+        // If accessed directly via browser GET, redirect to index with autostart=1
+        // so the interactive chunked batch downloader executes safely with live progress
+        // rather than hanging the browser connection during a synchronous multi-thousand image fetch
+        if ($_SERVER['REQUEST_METHOD'] === 'GET') {
+            header('Location: index.php?controller=photodownloader&action=index&autostart=1');
+            exit;
+        }
+
         if (!class_exists('\ZipArchive')) {
             header('Location: index.php?controller=photodownloader&action=index&error=' . urlencode('PHP ZipArchive extension is not enabled on this server.'));
             exit;

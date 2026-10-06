@@ -357,9 +357,7 @@
                     </div>
 
                     <!-- Main Form / Layout Grid -->
-                    <form id="downloaderForm" method="GET" action="index.php">
-                        <input type="hidden" name="controller" value="photodownloader">
-                        <input type="hidden" name="action" value="download">
+                    <form id="downloaderForm" onsubmit="event.preventDefault(); startBatchDownload();">
 
                         <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
 
@@ -420,11 +418,11 @@
                                                             </label>
                                                             <div class="flex items-center gap-2">
                                                                 <span class="shadcn-badge font-mono text-[10px] text-zinc-500 bg-zinc-50"><?php echo (int)$catData['count']; ?> items</span>
-                                                                <a href="index.php?controller=photodownloader&action=download&categories[]=<?php echo urlencode($catKey); ?>&stock_status=<?php echo urlencode($stockStatus); ?>&image_scope=<?php echo urlencode($imageScope); ?>" 
+                                                                <button type="button" onclick="downloadSingleCategory('<?php echo htmlspecialchars($catKey); ?>')" 
                                                                    title="Download only <?php echo htmlspecialchars($catData['name']); ?>" 
                                                                    class="text-zinc-400 hover:text-zinc-900 text-xs px-1.5 py-0.5 rounded hover:bg-zinc-200 transition-colors">
                                                                     <i class="fas fa-download"></i>
-                                                                </a>
+                                                                </button>
                                                             </div>
                                                         </div>
                                                     <?php endforeach; ?>
@@ -466,11 +464,11 @@
                                                             </label>
                                                             <div class="flex items-center gap-2">
                                                                 <span class="shadcn-badge font-mono text-[10px] text-zinc-500 bg-zinc-50"><?php echo (int)$catData['count']; ?> items</span>
-                                                                <a href="index.php?controller=photodownloader&action=download&categories[]=<?php echo urlencode($catKey); ?>&stock_status=<?php echo urlencode($stockStatus); ?>&image_scope=<?php echo urlencode($imageScope); ?>" 
+                                                                <button type="button" onclick="downloadSingleCategory('<?php echo htmlspecialchars($catKey); ?>')" 
                                                                    title="Download only <?php echo htmlspecialchars($catData['name']); ?>" 
                                                                    class="text-zinc-400 hover:text-zinc-900 text-xs px-1.5 py-0.5 rounded hover:bg-zinc-200 transition-colors">
                                                                     <i class="fas fa-download"></i>
-                                                                </a>
+                                                                </button>
                                                             </div>
                                                         </div>
                                                     <?php endforeach; ?>
@@ -588,7 +586,7 @@
 
                                         <!-- Action Buttons -->
                                         <div class="pt-4 border-t border-zinc-100 flex flex-col gap-2.5">
-                                            <button type="submit" id="btnDownloadZip" class="shadcn-btn shadcn-btn-primary w-full py-2.5 h-10 text-sm font-semibold justify-center">
+                                            <button type="button" id="btnDownloadZip" onclick="startBatchDownload()" class="shadcn-btn shadcn-btn-primary w-full py-2.5 h-10 text-sm font-semibold justify-center">
                                                 <i class="fas fa-cloud-arrow-down" id="downloadIcon"></i>
                                                 <span id="downloadBtnText">Download ZIP Archive</span>
                                             </button>
@@ -809,7 +807,9 @@
             try {
                 const params = new URLSearchParams();
                 for (const [key, val] of formData.entries()) {
-                    params.append(key, val);
+                    if (key !== 'controller' && key !== 'action') {
+                        params.append(key, val);
+                    }
                 }
 
                 const response = await fetch('index.php?controller=photodownloader&action=preview&' + params.toString(), {
@@ -830,7 +830,6 @@
                 estImgBadge.textContent = '--';
             }
         }
-
 
         // Save Configuration to Backend via AJAX
         async function saveConfigurationAjax() {
@@ -908,10 +907,22 @@
             showToast('Download cancelled.', 'info');
         }
 
-        // Intercept form submit and run high-speed chunked batch download pipeline
-        document.getElementById('downloaderForm').addEventListener('submit', async function(e) {
-            e.preventDefault();
+        // Trigger download for a single category
+        function downloadSingleCategory(catKey) {
+            const allCheckboxes = document.querySelectorAll('.cat-checkbox');
+            allCheckboxes.forEach(cb => {
+                cb.checked = (cb.value === catKey);
+            });
+            const chkApparel = document.getElementById('chkDeptApparel');
+            const chkJewel = document.getElementById('chkDeptJewel');
+            if (chkApparel) chkApparel.checked = false;
+            if (chkJewel) chkJewel.checked = false;
+            handleSelectionChange();
+            startBatchDownload();
+        }
 
+        // High-speed chunked batch download pipeline
+        async function startBatchDownload() {
             const checkedBoxes = document.querySelectorAll('.cat-checkbox:checked');
             if (checkedBoxes.length === 0) {
                 showToast('Please select at least one category to download.', 'error');
@@ -1005,11 +1016,20 @@
                     showToast('Download error: ' + err.message, 'error');
                 }
             }
-        });
+        }
 
-        // Initialize preview on page load
+        // Initialize preview and autostart on page load
         document.addEventListener('DOMContentLoaded', () => {
             fetchPreviewMetrics();
+
+            const urlParams = new URLSearchParams(window.location.search);
+            if (urlParams.get('autostart') === '1') {
+                const cleanUrl = window.location.pathname + '?controller=photodownloader&action=index';
+                window.history.replaceState({}, document.title, cleanUrl);
+                setTimeout(() => {
+                    startBatchDownload();
+                }, 350);
+            }
         });
     </script>
 </body>
