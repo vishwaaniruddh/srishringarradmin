@@ -415,7 +415,7 @@ class PhotodownloaderController extends Controller {
                 $raw = $im['img_name'];
                 $cleanBase = $this->sanitizeFileName(basename($raw));
                 $prefix = ($idx === 0) ? '00_main_' : sprintf('%02d_', $idx);
-                $zipEntry = "{$dept}/{$catName}/{$skuFolder}/{$prefix}{$cleanBase}";
+                $zipEntry = "{$dept}/{$catName}/{$skuFolder}_{$prefix}{$cleanBase}";
 
                 $imagesToPack[] = [
                     'raw_name' => $raw,
@@ -710,7 +710,7 @@ class PhotodownloaderController extends Controller {
                     $baseName = basename($rawName);
                     $cleanBaseName = $this->sanitizeFileName($baseName);
                     $prefix = ($imgIndex === 0) ? '00_main_' : sprintf('%02d_', $imgIndex);
-                    $zipEntryPath = "{$deptName}/{$categoryFolderName}/{$skuFolderName}/{$prefix}{$cleanBaseName}";
+                    $zipEntryPath = "{$deptName}/{$categoryFolderName}/{$skuFolderName}_{$prefix}{$cleanBaseName}";
 
                     $imagesList[] = [
                         'raw_name' => $rawName,

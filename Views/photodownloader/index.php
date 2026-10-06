@@ -278,7 +278,7 @@
                                     Category-Wise ZIP Export
                                 </span>
                             </div>
-                            <p class="text-xs text-zinc-500 mt-1">Download product images organized category-wise into a clean folder hierarchy ({Department}/{Category}/{SKU}/...).</p>
+                            <p class="text-xs text-zinc-500 mt-1">Download product images organized category-wise ({Department}/{Category}/{SKU}_00_main_image.jpg).</p>
                         </div>
 
                         <div class="flex items-center gap-2">
@@ -574,13 +574,11 @@
 📦 srishringarr_photos.zip<br>
 ├── 📁 Apparel/<br>
 │   └── 📁 Evening Gowns/<br>
-│       └── 📁 {sku}/<br>
-│           ├── 🖼️ 00_main_image.png<br>
-│           └── 🖼️ 01_other_image.png<br>
+│       ├── 🖼️ {sku}_00_main_image.png<br>
+│       └── 🖼️ {sku}_01_other_image.png<br>
 └── 📁 Jewellery/<br>
     └── 📁 Earrings/<br>
-        └── 📁 {sku}/<br>
-            └── 🖼️ 00_main_image.jpg
+        └── 🖼️ {sku}_00_main_image.jpg
                                             </div>
                                         </div>
 
