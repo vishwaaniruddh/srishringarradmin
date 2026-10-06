@@ -4,6 +4,7 @@ Config/secrets.php
 
 # Local runtime configuration / Sync state
 Config/sync_settings.json
+Config/photo_downloader_settings.json
 
 # Dependencies & Builds
 vendor/
