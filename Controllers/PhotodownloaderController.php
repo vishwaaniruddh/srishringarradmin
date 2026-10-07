@@ -230,6 +230,99 @@ class PhotodownloaderController extends Controller {
     }
 
     /**
+     * AJAX endpoint: Fetch live product photo previews from the production server for selected categories
+     */
+    public function getPhotosPreview() {
+        $categories = $_REQUEST['categories'] ?? [];
+        if (!is_array($categories)) {
+            $categories = array_filter(explode(',', (string)$categories));
+        }
+
+        if (empty($categories)) {
+            $savedSettings = $this->getSettings();
+            $categories = $savedSettings['selected_categories'] ?? [];
+        }
+
+        $stockStatus = strtolower(trim($_REQUEST['stock_status'] ?? 'all'));
+        $imageScope = strtolower(trim($_REQUEST['image_scope'] ?? 'all'));
+        $page = max(1, (int)($_REQUEST['page'] ?? 1));
+        $limit = 24;
+
+        $this->loadInStockMap();
+
+        $allProducts = [];
+        foreach ($categories as $catKey) {
+            $info = $this->getCategoryMetaAndProducts($catKey, $stockStatus);
+            if (!$info || empty($info['products'])) continue;
+            foreach ($info['products'] as $p) {
+                $p['category_name'] = $info['name'];
+                $p['department'] = $info['department'];
+                $p['category_type'] = $info['type'];
+                $allProducts[] = $p;
+            }
+        }
+
+        $totalProducts = count($allProducts);
+        $offset = ($page - 1) * $limit;
+        $slicedProducts = array_slice($allProducts, $offset, $limit);
+
+        $items = [];
+        foreach ($slicedProducts as $p) {
+            $pid = (int)$p['id'];
+            $sku = trim($p['sku']);
+            $isGarment = ($p['category_type'] === 'garment');
+
+            $imgWhere = $isGarment ? "(gproduct_id = $pid OR pro_code = '$sku')" : "(product_id = $pid OR pro_code = '$sku')";
+            $sql = "SELECT id, img_name, rank FROM product_images_new 
+                    WHERE $imgWhere 
+                      AND img_name != '' 
+                      AND (img_name LIKE '%.jpg' OR img_name LIKE '%.jpeg' OR img_name LIKE '%.png' OR img_name LIKE '%.webp')
+                    ORDER BY rank ASC, id ASC";
+            $res = mysqli_query($this->db, $sql);
+            $photos = [];
+            if ($res) {
+                while ($r = mysqli_fetch_assoc($res)) {
+                    $rawImg = trim($r['img_name']);
+                    $cleanRel = ltrim(preg_replace('#^(\.\./|\./)*(yn/uploads/|uploads/)?#i', '', $rawImg), '/');
+                    $parts = explode('/', $cleanRel);
+                    $encoded = array_map('rawurlencode', $parts);
+                    $serverUrl = 'https://srishringarr.com/yn/uploads/' . implode('/', $encoded);
+                    $photos[] = [
+                        'id' => (int)$r['id'],
+                        'raw_name' => $rawImg,
+                        'file_name' => basename($rawImg),
+                        'server_url' => $serverUrl,
+                        'rank' => (int)$r['rank']
+                    ];
+                }
+            }
+
+            if (!empty($photos)) {
+                $primaryPhoto = $photos[0];
+                $items[] = [
+                    'sku' => $sku,
+                    'title' => $p['name'],
+                    'category' => $p['category_name'],
+                    'department' => $p['department'],
+                    'primary_url' => $primaryPhoto['server_url'],
+                    'primary_filename' => $primaryPhoto['file_name'],
+                    'photos_count' => count($photos),
+                    'photos' => $photos
+                ];
+            }
+        }
+
+        $this->json([
+            'success' => true,
+            'total_products' => $totalProducts,
+            'page' => $page,
+            'total_pages' => ($totalProducts > 0 ? (int)ceil($totalProducts / $limit) : 1),
+            'server_domain' => 'https://srishringarr.com',
+            'items' => $items
+        ]);
+    }
+
+    /**
      * Calculate summary metrics for preview using fast indexed queries
      */
     private function calculatePreview($categoryKeys, $stockStatus, $imageScope, $limitProducts = 'all') {
@@ -295,7 +388,7 @@ class PhotodownloaderController extends Controller {
                     $jList = implode(',', $jChunk);
                     $jRes = mysqli_query($this->db, "SELECT COUNT(*) as c FROM product_images_new WHERE product_id IN ($jList)");
                     if ($jRes && $jRow = mysqli_fetch_assoc($jRes)) {
-                        $totalImages += (int)$gRow['c'];
+                        $totalImages += (int)$jRow['c'];
                     }
                 }
             }
@@ -982,19 +1075,26 @@ class PhotodownloaderController extends Controller {
             $corruptCount = (int)$corruptRow['c'];
         }
 
-        // 2. Query paginated duplicate groups
+        // 2. Sorting and Filter parameters
+        $sort = strtolower(trim($_REQUEST['sort'] ?? 'recent'));
+        $orderClause = ($sort === 'count') 
+            ? "occurrence_count DESC, distinct_sku_count DESC" 
+            : "max_id DESC, occurrence_count DESC";
+
+        // Query paginated duplicate groups
         $sql = "SELECT pin.img_name,
                        COUNT(*) as occurrence_count,
                        COUNT(DISTINCT pin.pro_code) as distinct_sku_count,
                        GROUP_CONCAT(DISTINCT pin.pro_code ORDER BY pin.pro_code SEPARATOR ', ') as skus,
                        GROUP_CONCAT(pin.id ORDER BY pin.id SEPARATOR ',') as image_ids,
-                       MIN(pin.id) as keep_id
+                       MIN(pin.id) as keep_id,
+                       MAX(pin.id) as max_id
                 FROM product_images_new pin
                 $joins
                 WHERE $whereClause
                 GROUP BY pin.img_name
                 HAVING $havingClause
-                ORDER BY occurrence_count DESC, distinct_sku_count DESC
+                ORDER BY $orderClause
                 LIMIT $limit OFFSET $offset";
 
         $res = mysqli_query($this->db, $sql);
@@ -1004,7 +1104,9 @@ class PhotodownloaderController extends Controller {
             while ($row = mysqli_fetch_assoc($res)) {
                 $rawImg = trim($row['img_name']);
                 $cleanRel = ltrim(preg_replace('#^(\.\./|\./)*(yn/uploads/|uploads/)?#i', '', $rawImg), '/');
-                $imgUrl = "https://srishringarr.com/yn/uploads/" . str_replace(' ', '%20', $cleanRel);
+                $parts = explode('/', $cleanRel);
+                $encoded = array_map('rawurlencode', $parts);
+                $imgUrl = "https://srishringarr.com/yn/uploads/" . implode('/', $encoded);
 
                 // Check local disk for file existence and file size
                 $localPath = $this->resolveLocalImagePath($rawImg);
@@ -1042,11 +1144,49 @@ class PhotodownloaderController extends Controller {
                     'skus' => $row['skus'],
                     'skus_list' => array_values($skusArr),
                     'keep_id' => (int)$row['keep_id'],
+                    'max_id' => (int)$row['max_id'],
                     'exists_on_disk' => $existsOnDisk,
                     'file_size_mb' => $fileSizeMb,
+                    'server_status' => null,
+                    'exists_on_server' => true,
                     'records' => $records
                 ];
             }
+        }
+
+        // Fast parallel HEAD check against live production server (taking ~0.1s for batch)
+        if (!empty($groups)) {
+            $mh = curl_multi_init();
+            $handles = [];
+            foreach ($groups as $idx => $g) {
+                $ch = curl_init($g['clean_url']);
+                curl_setopt($ch, CURLOPT_NOBODY, true);
+                curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+                curl_setopt($ch, CURLOPT_TIMEOUT, 3);
+                curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 2);
+                curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
+                curl_multi_add_handle($mh, $ch);
+                $handles[$idx] = $ch;
+            }
+
+            $active = null;
+            do {
+                $mrc = curl_multi_exec($mh, $active);
+            } while ($mrc == CURLM_CALL_MULTI_PERFORM || $active);
+
+            while ($active && $mrc == CURLM_OK) {
+                if (curl_multi_select($mh) != -1) {
+                    do { $mrc = curl_multi_exec($mh, $active); } while ($mrc == CURLM_CALL_MULTI_PERFORM);
+                }
+            }
+
+            foreach ($handles as $idx => $ch) {
+                $code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+                curl_multi_remove_handle($mh, $ch);
+                $groups[$idx]['server_status'] = (int)$code;
+                $groups[$idx]['exists_on_server'] = ($code === 200);
+            }
+            curl_multi_close($mh);
         }
 
         $totalPages = $totalGroups > 0 ? (int)ceil($totalGroups / $limit) : 1;
@@ -1055,6 +1195,7 @@ class PhotodownloaderController extends Controller {
             'success' => true,
             'category_label' => $catLabel,
             'corrupt_text_records_count' => $corruptCount,
+            'server_domain' => 'https://srishringarr.com',
             'summary' => [
                 'total_duplicate_groups' => $totalGroups,
                 'total_redundant_photos' => $totalRedundantPhotos,

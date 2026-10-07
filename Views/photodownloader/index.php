@@ -725,8 +725,39 @@
                                         </div>
                                     </div>
 
+                            </div>
+
+                            <!-- 3. LIVE PHOTO PREVIEWS DIRECT FROM PRODUCTION SERVER -->
+                            <div class="mt-8 shadcn-card">
+                                <div class="shadcn-card-header flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                                    <div>
+                                        <div class="flex items-center gap-2">
+                                            <h2 class="text-xs font-semibold text-zinc-900 uppercase tracking-wider flex items-center gap-2">
+                                                <i class="fas fa-eye text-zinc-400 text-xs"></i>
+                                                <span>3. Live Photo Previews</span>
+                                            </h2>
+                                            <span class="shadcn-badge font-mono text-[10px] bg-emerald-50 text-emerald-800 border-emerald-200">
+                                                <i class="fas fa-server mr-1 text-emerald-600"></i> Server: srishringarr.com
+                                            </span>
+                                        </div>
+                                        <p class="text-xs text-zinc-500 mt-1">Live visual sample of photos from your selected categories, loaded directly from <code>https://srishringarr.com/yn/uploads/</code> so you can review photos before downloading.</p>
+                                    </div>
+                                    <div class="flex items-center gap-2 flex-wrap">
+                                        <span id="previewPhotosSummaryBadge" class="shadcn-badge font-mono text-[11px]">Loading...</span>
+                                        <button type="button" onclick="loadPhotosPreview(1)" class="shadcn-btn shadcn-btn-sm text-xs">
+                                            <i class="fas fa-rotate mr-1 text-zinc-400"></i> Refresh Previews
+                                        </button>
+                                    </div>
                                 </div>
 
+                                <div class="p-5">
+                                    <div id="photosPreviewGrid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3.5 min-h-[160px]">
+                                        <!-- Injected dynamically via loadPhotosPreview() -->
+                                    </div>
+                                    <div id="photosPreviewPagination" class="mt-4 flex items-center justify-between pt-3 border-t border-zinc-100 text-xs">
+                                        <!-- Pagination -->
+                                    </div>
+                                </div>
                             </div>
                         </form>
 
@@ -792,7 +823,7 @@
                             <div class="shadcn-card mb-6">
                                 <div class="p-4 grid grid-cols-1 md:grid-cols-12 gap-4 items-center">
                                     <!-- Category Selector -->
-                                    <div class="md:col-span-5">
+                                    <div class="md:col-span-4">
                                         <label class="text-[11px] font-semibold text-zinc-500 uppercase tracking-wider block mb-1">Category Filter</label>
                                         <select id="dupeCategorySelect" onchange="fetchDuplicates(1)" class="w-full h-9 px-3 border border-zinc-200 rounded-md text-xs bg-white text-zinc-900 outline-none focus:border-zinc-900">
                                             <option value="all">-- All Categories (Full Storefront) --</option>
@@ -810,12 +841,21 @@
                                     </div>
 
                                     <!-- Duplicate Type Filter -->
-                                    <div class="md:col-span-4">
+                                    <div class="md:col-span-3">
                                         <label class="text-[11px] font-semibold text-zinc-500 uppercase tracking-wider block mb-1">Duplicate Type</label>
                                         <select id="dupeTypeSelect" onchange="fetchDuplicates(1)" class="w-full h-9 px-3 border border-zinc-200 rounded-md text-xs bg-white text-zinc-900 outline-none focus:border-zinc-900">
-                                            <option value="all">All Real Duplicate Photos (Images Only)</option>
-                                            <option value="multi_sku">Shared Across Multiple SKUs (Different Products)</option>
-                                            <option value="single_sku_repeated">Repeated Duplicates on Same SKU (Uploaded Multiple Times)</option>
+                                            <option value="all">All Real Duplicate Photos</option>
+                                            <option value="multi_sku">Shared Across Multiple SKUs</option>
+                                            <option value="single_sku_repeated">Repeated on Same SKU</option>
+                                        </select>
+                                    </div>
+
+                                    <!-- Sort Order -->
+                                    <div class="md:col-span-2">
+                                        <label class="text-[11px] font-semibold text-zinc-500 uppercase tracking-wider block mb-1">Sort Photos</label>
+                                        <select id="dupeSortSelect" onchange="fetchDuplicates(1)" class="w-full h-9 px-3 border border-zinc-200 rounded-md text-xs bg-white text-zinc-900 outline-none focus:border-zinc-900">
+                                            <option value="recent">Recent (2026 First)</option>
+                                            <option value="count">Most Copies</option>
                                         </select>
                                     </div>
 
@@ -1221,6 +1261,7 @@
         }
 
         let previewAbortController = null;
+        let previewPhotosAbortController = null;
 
         function handleSelectionChange() {
             const checkedBoxes = document.querySelectorAll('.cat-checkbox:checked');
@@ -1228,7 +1269,10 @@
             document.getElementById('metricSelectedCount').textContent = count;
 
             clearTimeout(previewDebounceTimer);
-            previewDebounceTimer = setTimeout(fetchPreviewMetrics, 450);
+            previewDebounceTimer = setTimeout(() => {
+                fetchPreviewMetrics();
+                loadPhotosPreview(1);
+            }, 450);
         }
 
         async function fetchPreviewMetrics() {
@@ -1270,6 +1314,117 @@
                 if (err.name === 'AbortError') return;
                 estProdBadge.textContent = '--';
                 estImgBadge.textContent = '--';
+            }
+        }
+
+        // Live Photo Previews from Production Server
+        let currentPreviewPage = 1;
+        async function loadPhotosPreview(page = 1) {
+            currentPreviewPage = page;
+            const grid = document.getElementById('photosPreviewGrid');
+            const badge = document.getElementById('previewPhotosSummaryBadge');
+            const pagination = document.getElementById('photosPreviewPagination');
+
+            if (!grid) return;
+
+            if (previewPhotosAbortController) {
+                try { previewPhotosAbortController.abort(); } catch(e) {}
+            }
+            previewPhotosAbortController = new AbortController();
+
+            grid.innerHTML = `
+                <div class="col-span-full py-10 text-center text-zinc-400">
+                    <i class="fas fa-spinner fa-spin text-xl text-zinc-900 mb-2"></i>
+                    <p class="text-xs">Fetching live product photos from production server (https://srishringarr.com)...</p>
+                </div>
+            `;
+
+            const form = document.getElementById('downloaderForm');
+            const formData = new FormData(form);
+            const params = new URLSearchParams();
+            for (const [key, val] of formData.entries()) {
+                if (key !== 'controller' && key !== 'action') {
+                    params.append(key, val);
+                }
+            }
+            params.set('controller', 'photodownloader');
+            params.set('action', 'getPhotosPreview');
+            params.set('page', page);
+
+            try {
+                const res = await fetch('index.php?' + params.toString(), {
+                    signal: previewPhotosAbortController.signal
+                });
+                const data = await res.json();
+
+                if (!data.success || !data.items || data.items.length === 0) {
+                    grid.innerHTML = `
+                        <div class="col-span-full py-10 text-center text-zinc-400">
+                            <i class="far fa-images text-2xl text-zinc-300 mb-2"></i>
+                            <p class="text-xs">No photos found for the currently selected categories.</p>
+                        </div>
+                    `;
+                    if (badge) badge.textContent = '0 products';
+                    if (pagination) pagination.innerHTML = '';
+                    return;
+                }
+
+                if (badge) {
+                    badge.textContent = `${data.total_products.toLocaleString()} products available`;
+                }
+
+                let html = '';
+                data.items.forEach(item => {
+                    const escSku = (item.sku || '').replace(/'/g, "\\'");
+                    const escTitle = (item.title || item.sku || '').replace(/'/g, "\\'");
+                    const escUrl = item.primary_url.replace(/'/g, "\\'");
+
+                    html += `
+                        <div class="group bg-white border border-zinc-200 rounded-lg p-2.5 shadow-2xs hover:border-zinc-400 transition-all flex flex-col justify-between">
+                            <div class="relative w-full aspect-square bg-zinc-50 rounded-md overflow-hidden mb-2">
+                                <img src="${item.primary_url}" alt="${item.sku}" class="w-full h-full object-cover cursor-pointer hover:scale-105 transition-transform duration-200" onerror="handleThumbError(this, '${item.primary_url}')" onclick="openImageLightbox('${escUrl}', '${escSku} - ${escTitle}')">
+                                <span class="absolute top-1.5 right-1.5 bg-black/70 backdrop-blur-xs text-white text-[10px] font-mono font-medium px-1.5 py-0.5 rounded">
+                                    ${item.photos_count} photo${item.photos_count === 1 ? '' : 's'}
+                                </span>
+                            </div>
+                            <div>
+                                <div class="flex items-center justify-between gap-1 mb-1">
+                                    <span class="text-xs font-semibold text-zinc-900 font-mono truncate" title="${item.sku}">${item.sku}</span>
+                                    <a href="${item.primary_url}" target="_blank" title="Open live image directly on srishringarr.com" class="text-zinc-400 hover:text-zinc-800 text-[10px]">
+                                        <i class="fas fa-arrow-up-right-from-square"></i>
+                                    </a>
+                                </div>
+                                <div class="text-[11px] text-zinc-500 truncate" title="${item.title}">${item.title || item.category}</div>
+                                <div class="mt-1 flex items-center justify-between text-[10px] text-zinc-400">
+                                    <span class="truncate max-w-[90px]">${item.category}</span>
+                                    <span class="text-emerald-700 font-mono">Live</span>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                });
+                grid.innerHTML = html;
+
+                // Render preview pagination
+                if (pagination && data.total_pages > 1) {
+                    pagination.innerHTML = `
+                        <div class="text-zinc-500 font-mono text-[11px]">Page ${data.page} of ${data.total_pages} (${data.total_products} products)</div>
+                        <div class="flex items-center gap-1.5">
+                            <button type="button" onclick="loadPhotosPreview(${data.page - 1})" ${data.page <= 1 ? 'disabled' : ''} class="shadcn-btn shadcn-btn-sm text-xs ${data.page <= 1 ? 'opacity-40 cursor-not-allowed' : ''}">
+                                <i class="fas fa-chevron-left mr-1"></i> Prev
+                            </button>
+                            <button type="button" onclick="loadPhotosPreview(${data.page + 1})" ${data.page >= data.total_pages ? 'disabled' : ''} class="shadcn-btn shadcn-btn-sm text-xs ${data.page >= data.total_pages ? 'opacity-40 cursor-not-allowed' : ''}">
+                                Next <i class="fas fa-chevron-right ml-1"></i>
+                            </button>
+                        </div>
+                    `;
+                } else if (pagination) {
+                    pagination.innerHTML = '';
+                }
+
+            } catch (err) {
+                if (err.name === 'AbortError') return;
+                grid.innerHTML = `<div class="col-span-full py-6 text-center text-rose-600 text-xs">Failed to load preview: ${err.message}</div>`;
             }
         }
 
@@ -1507,6 +1662,8 @@
             const dupeType = document.getElementById('dupeTypeSelect').value;
             const search = document.getElementById('dupeSearchInput').value.trim();
 
+            const sort = document.getElementById('dupeSortSelect') ? document.getElementById('dupeSortSelect').value : 'recent';
+
             container.innerHTML = `
                 <div class="py-12 text-center text-zinc-400">
                     <i class="fas fa-spinner fa-spin text-2xl text-zinc-900 mb-2"></i>
@@ -1520,6 +1677,7 @@
                     action: 'getDuplicates',
                     category: category,
                     duplicate_type: dupeType,
+                    sort: sort,
                     search: search,
                     page: page,
                     limit: 25
@@ -1587,9 +1745,15 @@
                                 <div class="min-w-0 flex-1">
                                     <div class="flex items-center gap-2 flex-wrap">
                                         <span class="text-xs font-semibold text-zinc-900 font-mono truncate max-w-sm">${g.file_name}</span>
-                                        <button type="button" onclick="copyToClipboard('${g.clean_url}', 'Image URL copied!')" title="Copy URL" class="text-zinc-400 hover:text-zinc-800 text-[11px]">
+                                        <button type="button" onclick="copyToClipboard('${g.clean_url}', 'Server image URL copied!')" title="Copy Live Server URL" class="text-zinc-400 hover:text-zinc-800 text-[11px]">
                                             <i class="far fa-copy"></i>
                                         </button>
+                                        <a href="${g.clean_url}" target="_blank" title="Open photo directly on production server (srishringarr.com)" class="text-zinc-400 hover:text-zinc-900 text-[11px]">
+                                            <i class="fas fa-arrow-up-right-from-square"></i>
+                                        </a>
+                                        ${g.exists_on_server 
+                                            ? '<span class="shadcn-badge font-mono text-[10px] bg-emerald-50 text-emerald-800 border-emerald-200"><i class="fas fa-circle-check text-emerald-600 mr-1"></i> Live on Server</span>' 
+                                            : '<span class="shadcn-badge font-mono text-[10px] bg-rose-50 text-rose-700 border-rose-200"><i class="fas fa-triangle-exclamation text-rose-500 mr-1"></i> Missing on Server</span>'}
                                         <span class="shadcn-badge font-mono text-[10px] ${isMultiSku ? 'bg-amber-50 text-amber-800 border-amber-200' : 'bg-zinc-100 text-zinc-800'}">
                                             <i class="fas fa-layer-group text-[9px] mr-1"></i> ${g.occurrence_count} copies
                                         </span>
@@ -1599,7 +1763,7 @@
                                     </div>
 
                                     <div class="text-[11px] text-zinc-400 font-mono truncate mt-0.5">
-                                        Path: ${g.img_name}
+                                        Live Server Path: <a href="${g.clean_url}" target="_blank" class="text-zinc-600 hover:underline">${g.clean_url}</a>
                                     </div>
 
                                     <div class="flex items-center gap-1.5 flex-wrap mt-2">
@@ -1614,9 +1778,13 @@
                                     <span>Details (${g.records.length})</span>
                                     <i class="fas fa-chevron-down text-[10px] ml-1"></i>
                                 </button>
-                                <button type="button" onclick="deduplicateSingleGroup('${escImg}', ${g.keep_id}, ${idx})" class="shadcn-btn shadcn-btn-sm text-xs bg-slate-900 text-white hover:bg-slate-800" title="Keeps record #${g.keep_id} and removes duplicate copies from product_images_new">
-                                    <i class="fas fa-check-double mr-1"></i> Deduplicate (Keep #1)
-                                </button>
+                                ${g.exists_on_server 
+                                    ? `<button type="button" onclick="deduplicateSingleGroup('${escImg}', ${g.keep_id}, ${idx})" class="shadcn-btn shadcn-btn-sm text-xs bg-slate-900 text-white hover:bg-slate-800" title="Keeps record #${g.keep_id} and removes duplicate copies from product_images_new">
+                                        <i class="fas fa-check-double mr-1"></i> Deduplicate (Keep #1)
+                                       </button>` 
+                                    : `<button type="button" onclick="deleteAllReferencesForGroup('${escImg}', ${idx})" class="shadcn-btn shadcn-btn-sm text-xs bg-rose-50 text-rose-700 hover:bg-rose-100 border-rose-200" title="Remove dead DB reference from product_images_new table">
+                                        <i class="fas fa-trash-can mr-1"></i> Clean Dead Ref
+                                       </button>`}
                                 <button type="button" onclick="deleteAllReferencesForGroup('${escImg}', ${idx})" class="shadcn-btn shadcn-btn-sm shadcn-btn-danger text-xs" title="Removes ALL references of this photo from product_images_new table so its reference is not found in database">
                                     <i class="fas fa-trash-can mr-1"></i> Delete All References
                                 </button>
@@ -2021,6 +2189,7 @@
         // Initialize on load
         document.addEventListener('DOMContentLoaded', () => {
             fetchPreviewMetrics();
+            loadPhotosPreview(1);
 
             // Check URL for autostart
             const urlParams = new URLSearchParams(window.location.search);
