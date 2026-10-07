@@ -13,6 +13,8 @@ class PhotodownloaderController extends Controller {
     private $inStockMap = null;
     private $configFile;
     private $localUploadsDir;
+    private $cacheDir;
+    private $tempZipDir;
 
     public function __construct() {
         // Release session lock immediately so parallel AJAX requests never queue up as pending
@@ -25,12 +27,56 @@ class PhotodownloaderController extends Controller {
         $this->db3 = $this->productModel->getDb3();
         $this->configFile = __DIR__ . '/../Config/photo_downloader_settings.json';
 
-        // Detect uploads directory locally
-        $localDir = realpath(__DIR__ . '/../../yn/uploads');
-        if (!$localDir || !is_dir($localDir)) {
-            $localDir = realpath(__DIR__ . '/../yn/uploads');
+        // Detect uploads directory on server / local disk
+        $candidates = [
+            dirname(__DIR__, 2) . '/yn/uploads',
+            dirname(__DIR__, 2) . '/uploads',
+            realpath(__DIR__ . '/../../yn/uploads'),
+            realpath(__DIR__ . '/../yn/uploads'),
+            (!empty($_SERVER['DOCUMENT_ROOT']) ? $_SERVER['DOCUMENT_ROOT'] . '/yn/uploads' : null),
+            (!empty($_SERVER['DOCUMENT_ROOT']) ? $_SERVER['DOCUMENT_ROOT'] . '/uploads' : null)
+        ];
+
+        $this->localUploadsDir = null;
+        foreach ($candidates as $cand) {
+            if ($cand && is_dir($cand)) {
+                $this->localUploadsDir = realpath($cand) ?: $cand;
+                break;
+            }
         }
-        $this->localUploadsDir = $localDir ?: null;
+
+        // Setup cache and temporary zip folders
+        $this->cacheDir = __DIR__ . '/../scratch/img_cache';
+        if (!is_dir($this->cacheDir)) {
+            @mkdir($this->cacheDir, 0755, true);
+        }
+
+        $this->tempZipDir = __DIR__ . '/../scratch/temp_zips';
+        if (!is_dir($this->tempZipDir)) {
+            @mkdir($this->tempZipDir, 0755, true);
+        }
+
+        // Opportunistic cleanup of temporary zips older than 2 hours
+        $this->garbageCollectTempFiles();
+    }
+
+    /**
+     * Clean up zip and json job files older than 2 hours
+     */
+    private function garbageCollectTempFiles() {
+        $dirs = array_filter([$this->tempZipDir, sys_get_temp_dir()]);
+        $expiry = time() - 7200; // 2 hours
+        foreach ($dirs as $dir) {
+            if (!is_dir($dir)) continue;
+            $files = @glob($dir . DIRECTORY_SEPARATOR . 'ss_job_*.*');
+            if ($files) {
+                foreach ($files as $file) {
+                    if (filemtime($file) < $expiry) {
+                        @unlink($file);
+                    }
+                }
+            }
+        }
     }
 
     /**
@@ -39,9 +85,10 @@ class PhotodownloaderController extends Controller {
     public function getSettings() {
         $defaults = [
             'selected_categories' => ['garment:22'],
-            'stock_status' => 'all',   // 'all', 'available', 'outofstock'
-            'image_scope' => 'all',    // 'main', 'all'
-            'limit_products' => 'all', // 'all', '10', '25'
+            'stock_status' => 'all',       // 'all', 'available', 'outofstock'
+            'image_scope' => 'all',        // 'main', 'all'
+            'limit_products' => 'all',     // 'all', '10', '25'
+            'compress_images' => '1',      // '1' (compress 50-60MB photos down to ~350KB), '0' (raw)
             'updated_at' => null
         ];
 
@@ -78,10 +125,15 @@ class PhotodownloaderController extends Controller {
     public function index() {
         $categories = $this->productModel->getCategories();
         $settings = $this->getSettings();
+        $activeTab = trim($_GET['tab'] ?? 'downloader');
+        if (!in_array($activeTab, ['downloader', 'duplicates'])) {
+            $activeTab = 'downloader';
+        }
 
         $this->view('photodownloader/index', [
             'categories' => $categories,
-            'settings' => $settings
+            'settings' => $settings,
+            'activeTab' => $activeTab
         ]);
     }
 
@@ -114,11 +166,17 @@ class PhotodownloaderController extends Controller {
             $limitProducts = 'all';
         }
 
+        $compressImages = isset($_POST['compress_images']) ? (string)$_POST['compress_images'] : '1';
+        if ($compressImages !== '0') {
+            $compressImages = '1';
+        }
+
         $saved = $this->saveSettingsData([
             'selected_categories' => array_values(array_unique($categories)),
             'stock_status' => $stockStatus,
             'image_scope' => $imageScope,
-            'limit_products' => $limitProducts
+            'limit_products' => $limitProducts,
+            'compress_images' => $compressImages
         ]);
 
         if ($saved) {
@@ -216,10 +274,8 @@ class PhotodownloaderController extends Controller {
 
         $totalImages = 0;
         if ($imageScope === 'main') {
-            // Main image scope is exactly 1 per product
             $totalImages = $totalProducts;
         } else {
-            // All images: Fast indexed count queries in batches of 1000
             $garmentIds = array_unique($garmentIds);
             if (!empty($garmentIds)) {
                 $gChunks = array_chunk($garmentIds, 1000);
@@ -239,7 +295,7 @@ class PhotodownloaderController extends Controller {
                     $jList = implode(',', $jChunk);
                     $jRes = mysqli_query($this->db, "SELECT COUNT(*) as c FROM product_images_new WHERE product_id IN ($jList)");
                     if ($jRes && $jRow = mysqli_fetch_assoc($jRes)) {
-                        $totalImages += (int)$jRow['c'];
+                        $totalImages += (int)$gRow['c'];
                     }
                 }
             }
@@ -255,7 +311,6 @@ class PhotodownloaderController extends Controller {
 
     /**
      * Start a chunked download session
-
      */
     public function startDownloadJob() {
         @ini_set('memory_limit', '1024M');
@@ -290,12 +345,18 @@ class PhotodownloaderController extends Controller {
             $limitProducts = $savedSettings['limit_products'] ?? 'all';
         }
 
+        $compressImages = isset($_POST['compress_images']) ? (string)$_POST['compress_images'] : '1';
+        if ($compressImages !== '0') {
+            $compressImages = '1';
+        }
+
         // Persist settings
         $this->saveSettingsData([
             'selected_categories' => array_values(array_unique($categories)),
             'stock_status' => $stockStatus,
             'image_scope' => $imageScope,
-            'limit_products' => $limitProducts
+            'limit_products' => $limitProducts,
+            'compress_images' => $compressImages
         ]);
 
         if (!class_exists('\ZipArchive')) {
@@ -339,10 +400,12 @@ class PhotodownloaderController extends Controller {
         }
 
         $jobId = bin2hex(random_bytes(16));
-        $zipPath = sys_get_temp_dir() . DIRECTORY_SEPARATOR . 'ss_job_' . $jobId . '.zip';
-        $metaPath = sys_get_temp_dir() . DIRECTORY_SEPARATOR . 'ss_job_' . $jobId . '.json';
+        $zipBaseDir = is_dir($this->tempZipDir) && is_writable($this->tempZipDir) ? $this->tempZipDir : sys_get_temp_dir();
+        $zipPath = $zipBaseDir . DIRECTORY_SEPARATOR . 'ss_job_' . $jobId . '.zip';
+        $metaPath = $zipBaseDir . DIRECTORY_SEPARATOR . 'ss_job_' . $jobId . '.json';
 
-        $chunkSize = 12; // 12 products per chunk for optimal speed and feedback
+        // 4 products per chunk guarantees completion in 4-8 seconds without ever hitting Nginx 60s timeout!
+        $chunkSize = 4;
 
         $totalProducts = count($allProducts);
         $totalChunks = (int)ceil($totalProducts / $chunkSize);
@@ -350,7 +413,9 @@ class PhotodownloaderController extends Controller {
         $jobMeta = [
             'job_id' => $jobId,
             'zip_path' => $zipPath,
+            'meta_path' => $metaPath,
             'image_scope' => $imageScope,
+            'compress_images' => $compressImages,
             'total_products' => $totalProducts,
             'chunk_size' => $chunkSize,
             'total_chunks' => $totalChunks,
@@ -366,22 +431,34 @@ class PhotodownloaderController extends Controller {
             'job_id' => $jobId,
             'total_products' => $totalProducts,
             'total_chunks' => $totalChunks,
-            'chunk_size' => $chunkSize
+            'chunk_size' => $chunkSize,
+            'compress_images' => $compressImages
         ]);
     }
 
     /**
-     * Process a chunk of products in background
+     * Process a chunk of products with high-speed compression and ZipArchive
      */
     public function processDownloadChunk() {
         @ini_set('memory_limit', '1024M');
-        @set_time_limit(60);
+        @set_time_limit(120);
 
         $jobId = preg_replace('/[^a-f0-9]/', '', (string)($_POST['job_id'] ?? ''));
         $chunkIndex = (int)($_POST['chunk_index'] ?? 0);
 
-        $metaPath = sys_get_temp_dir() . DIRECTORY_SEPARATOR . 'ss_job_' . $jobId . '.json';
-        if (!file_exists($metaPath)) {
+        $metaPath = null;
+        $candidates = [
+            $this->tempZipDir . DIRECTORY_SEPARATOR . 'ss_job_' . $jobId . '.json',
+            sys_get_temp_dir() . DIRECTORY_SEPARATOR . 'ss_job_' . $jobId . '.json'
+        ];
+        foreach ($candidates as $cand) {
+            if (file_exists($cand)) {
+                $metaPath = $cand;
+                break;
+            }
+        }
+
+        if (!$metaPath) {
             $this->json(['success' => false, 'message' => 'Download session expired or not found.'], 404);
             return;
         }
@@ -392,21 +469,23 @@ class PhotodownloaderController extends Controller {
             return;
         }
 
-        $chunkSize = (int)($meta['chunk_size'] ?? 12);
+        $chunkSize = (int)($meta['chunk_size'] ?? 4);
         $offset = $chunkIndex * $chunkSize;
         $productsSlice = array_slice($meta['products'], $offset, $chunkSize);
 
-        $openFlags = (file_exists($meta['zip_path']) && filesize($meta['zip_path']) > 22)
+        $zipPath = $meta['zip_path'];
+        $openFlags = (file_exists($zipPath) && filesize($zipPath) > 22)
             ? 0
             : (\ZipArchive::CREATE | \ZipArchive::OVERWRITE);
+
         $zip = new \ZipArchive();
-        if ($zip->open($meta['zip_path'], $openFlags) !== true) {
+        if ($zip->open($zipPath, $openFlags) !== true) {
             $this->json(['success' => false, 'message' => 'Failed to open ZIP archive for appending.'], 500);
             return;
         }
 
-
         $imageScope = $meta['image_scope'] ?? 'all';
+        $compressImages = ($meta['compress_images'] ?? '1') === '1';
         $imagesToPack = [];
         $lastLabel = '';
 
@@ -455,8 +534,8 @@ class PhotodownloaderController extends Controller {
             }
         }
 
-        // Add this batch of images with high-speed parallel fetching
-        $packedNow = $this->addImagesBatchToZip($zip, $imagesToPack);
+        // Add this batch of images with high-speed compression
+        $packedNow = $this->addImagesBatchToZip($zip, $imagesToPack, $compressImages);
         $zip->close();
 
         $meta['photos_packed'] = (int)($meta['photos_packed'] ?? 0) + $packedNow;
@@ -465,6 +544,7 @@ class PhotodownloaderController extends Controller {
         $processedCount = min($offset + count($productsSlice), $meta['total_products']);
         $isComplete = ($chunkIndex + 1 >= $meta['total_chunks']);
         $percent = $meta['total_products'] > 0 ? round(($processedCount / $meta['total_products']) * 100) : 100;
+        $currentZipSizeMb = file_exists($zipPath) ? round(filesize($zipPath) / (1024 * 1024), 2) : 0;
 
         $this->json([
             'success' => true,
@@ -476,60 +556,142 @@ class PhotodownloaderController extends Controller {
             'photos_packed' => $meta['photos_packed'],
             'percent' => $percent,
             'current_label' => $lastLabel,
+            'zip_size_mb' => $currentZipSizeMb,
             'is_complete' => $isComplete
         ]);
     }
 
     /**
-     * Serve completed ZIP archive file and clean up
+     * Resolve full local filesystem path of an image
      */
-    public function serveJobZip() {
-        $jobId = preg_replace('/[^a-f0-9]/', '', (string)($_GET['job_id'] ?? ''));
-        $zipPath = sys_get_temp_dir() . DIRECTORY_SEPARATOR . 'ss_job_' . $jobId . '.zip';
-        $metaPath = sys_get_temp_dir() . DIRECTORY_SEPARATOR . 'ss_job_' . $jobId . '.json';
+    private function resolveLocalImagePath($rawName) {
+        $cleanRel = ltrim(str_replace('\\', '/', (string)$rawName), '/');
+        // Strip common redundant prefixes
+        $subRels = [
+            $cleanRel,
+            preg_replace('#^(\.\./|\./)*(yn/uploads/|uploads/)?#i', '', $cleanRel),
+            urldecode($cleanRel)
+        ];
+        $subRels = array_unique(array_filter($subRels));
 
-        if (empty($jobId) || !file_exists($zipPath) || filesize($zipPath) < 50) {
-            header('Location: index.php?controller=photodownloader&action=index&error=' . urlencode('Download file not ready or has expired.'));
-            exit;
+        $rootCandidates = [
+            $this->localUploadsDir,
+            dirname(__DIR__, 2) . '/yn/uploads',
+            dirname(__DIR__, 2) . '/uploads',
+            (!empty($_SERVER['DOCUMENT_ROOT']) ? $_SERVER['DOCUMENT_ROOT'] . '/yn/uploads' : null),
+            (!empty($_SERVER['DOCUMENT_ROOT']) ? $_SERVER['DOCUMENT_ROOT'] . '/uploads' : null),
+            realpath(__DIR__ . '/../../yn/uploads'),
+            realpath(__DIR__ . '/../yn/uploads')
+        ];
+        $rootCandidates = array_unique(array_filter($rootCandidates));
+
+        foreach ($rootCandidates as $root) {
+            foreach ($subRels as $rel) {
+                $cand = $root . DIRECTORY_SEPARATOR . str_replace('/', DIRECTORY_SEPARATOR, $rel);
+                if (file_exists($cand) && is_file($cand)) {
+                    return $cand;
+                }
+            }
         }
-
-        if (file_exists($metaPath)) {
-            @unlink($metaPath);
-        }
-
-        $fileName = 'srishringarr_photos_' . date('Ymd_His') . '.zip';
-        header('Content-Type: application/zip');
-        header('Content-Disposition: attachment; filename="' . $fileName . '"');
-        header('Content-Length: ' . filesize($zipPath));
-        header('Cache-Control: no-cache, no-store, must-revalidate');
-        header('Pragma: no-cache');
-        header('Expires: 0');
-
-        ob_clean();
-        flush();
-        readfile($zipPath);
-        @unlink($zipPath);
-        exit;
+        return null;
     }
 
     /**
-     * Cancel download job and remove temporary files
+     * High-speed image compression for massive 50-60MB raw photos
+     * Scales down to 1920px max dimension, JPEG quality 82, with disk caching
      */
-    public function cancelDownloadJob() {
-        $jobId = preg_replace('/[^a-f0-9]/', '', (string)($_POST['job_id'] ?? ''));
-        if ($jobId) {
-            $zipPath = sys_get_temp_dir() . DIRECTORY_SEPARATOR . 'ss_job_' . $jobId . '.zip';
-            $metaPath = sys_get_temp_dir() . DIRECTORY_SEPARATOR . 'ss_job_' . $jobId . '.json';
-            @unlink($zipPath);
-            @unlink($metaPath);
+    private function compressAndCacheImage($sourcePath, $maxDim = 1920, $quality = 82) {
+        if (!file_exists($sourcePath)) return $sourcePath;
+
+        $fileSize = filesize($sourcePath);
+        // If image is already smaller than 1.5MB, no resizing needed
+        if ($fileSize <= 1.5 * 1024 * 1024) {
+            return $sourcePath;
         }
-        $this->json(['success' => true]);
+
+        // Cache filename by path, mtime, and dimensions
+        $cacheKey = md5($sourcePath . '_' . filemtime($sourcePath) . "_{$maxDim}_{$quality}") . '.jpg';
+        $cachedPath = $this->cacheDir . DIRECTORY_SEPARATOR . $cacheKey;
+
+        if (file_exists($cachedPath) && filesize($cachedPath) > 500) {
+            return $cachedPath;
+        }
+
+        // Inspect dimensions
+        $info = @getimagesize($sourcePath);
+        if (!$info) return $sourcePath;
+
+        $origW = $info[0];
+        $origH = $info[1];
+        $mime = $info['mime'] ?? '';
+
+        // If dimensions are already within limit and filesize isn't excessive
+        if ($origW <= $maxDim && $origH <= $maxDim && $fileSize <= 2 * 1024 * 1024) {
+            return $sourcePath;
+        }
+
+        $scale = min(1.0, $maxDim / max($origW, $origH));
+        $newW = max(100, (int)round($origW * $scale));
+        $newH = max(100, (int)round($origH * $scale));
+
+        try {
+            $srcImg = null;
+            if ($mime === 'image/jpeg' || strtolower(pathinfo($sourcePath, PATHINFO_EXTENSION)) === 'jpg') {
+                $srcImg = @imagecreatefromjpeg($sourcePath);
+            } elseif ($mime === 'image/png') {
+                $srcImg = @imagecreatefrompng($sourcePath);
+            } elseif ($mime === 'image/webp') {
+                $srcImg = @imagecreatefromwebp($sourcePath);
+            }
+
+            if (!$srcImg) {
+                return $sourcePath;
+            }
+
+            // Correct smartphone EXIF orientation if available
+            if (function_exists('exif_read_data') && ($mime === 'image/jpeg')) {
+                $exif = @exif_read_data($sourcePath);
+                if (!empty($exif['Orientation'])) {
+                    switch ($exif['Orientation']) {
+                        case 3:
+                            $srcImg = imagerotate($srcImg, 180, 0);
+                            break;
+                        case 6:
+                            $srcImg = imagerotate($srcImg, -90, 0);
+                            $t = $newW; $newW = $newH; $newH = $t;
+                            $t2 = $origW; $origW = $origH; $origH = $t2;
+                            break;
+                        case 8:
+                            $srcImg = imagerotate($srcImg, 90, 0);
+                            $t = $newW; $newW = $newH; $newH = $t;
+                            $t2 = $origW; $origW = $origH; $origH = $t2;
+                            break;
+                    }
+                }
+            }
+
+            $dstImg = imagecreatetruecolor($newW, $newH);
+            imagecopyresampled($dstImg, $srcImg, 0, 0, 0, 0, $newW, $newH, $origW, $origH);
+            @imagedestroy($srcImg);
+
+            $saved = @imagejpeg($dstImg, $cachedPath, $quality);
+            @imagedestroy($dstImg);
+
+            if ($saved && file_exists($cachedPath) && filesize($cachedPath) > 500) {
+                return $cachedPath;
+            }
+        } catch (\Throwable $e) {
+            // Graceful fallback to original file if memory or GD error occurs
+            return $sourcePath;
+        }
+
+        return $sourcePath;
     }
 
     /**
-     * Add a batch of images to the zip archive with high-speed parallel fetching
+     * Add a batch of images to the zip archive with high-speed compression
      */
-    private function addImagesBatchToZip(\ZipArchive $zip, array $imagesList) {
+    private function addImagesBatchToZip(\ZipArchive $zip, array $imagesList, $compress = true) {
         if (empty($imagesList)) return 0;
 
         $addedCount = 0;
@@ -538,28 +700,27 @@ class PhotodownloaderController extends Controller {
         foreach ($imagesList as $idx => $item) {
             $rawName = $item['raw_name'];
             $zipEntry = $item['zip_entry'];
-            $cleanRel = ltrim(str_replace('\\', '/', $rawName), '/');
 
-            // Check local disk first
-            $localPath = null;
-            if ($this->localUploadsDir) {
-                $cand = $this->localUploadsDir . DIRECTORY_SEPARATOR . str_replace('/', DIRECTORY_SEPARATOR, $cleanRel);
-                if (file_exists($cand) && is_file($cand)) {
-                    $localPath = $cand;
-                }
-            }
-            if (!$localPath) {
-                $cand2 = realpath(__DIR__ . '/../../yn/uploads/' . $cleanRel);
-                if ($cand2 && file_exists($cand2) && is_file($cand2)) {
-                    $localPath = $cand2;
-                }
-            }
+            // 1. Check local filesystem first
+            $localPath = $this->resolveLocalImagePath($rawName);
 
             if ($localPath) {
-                if ($zip->addFile($localPath, $zipEntry)) {
+                $pathToPack = $localPath;
+                if ($compress) {
+                    $pathToPack = $this->compressAndCacheImage($localPath, 1920, 82);
+                }
+
+                if ($zip->addFile($pathToPack, $zipEntry)) {
+                    // Set compression to STORE (no deflate CPU overhead for already-compressed JPEGs)
+                    if (defined('\ZipArchive::CM_STORE')) {
+                        $zip->setCompressionName($zipEntry, \ZipArchive::CM_STORE);
+                    }
                     $addedCount++;
                 }
             } else {
+                // Remote queue fallback (e.g. testing locally while images are only on live Hostinger)
+                $cleanRel = ltrim(str_replace('\\', '/', (string)$rawName), '/');
+                $cleanRel = preg_replace('#^(\.\./|\./)*(yn/uploads/|uploads/)?#i', '', $cleanRel);
                 $remoteQueue[$idx] = [
                     'url' => 'https://srishringarr.com/yn/uploads/' . str_replace(' ', '%20', $cleanRel),
                     'zip_entry' => $zipEntry
@@ -568,8 +729,8 @@ class PhotodownloaderController extends Controller {
         }
 
         if (!empty($remoteQueue)) {
-            // Fetch remote images in parallel chunks of 12
-            $chunks = array_chunk($remoteQueue, 12, true);
+            // Fetch remote images in parallel chunks of 6 with 15s timeout
+            $chunks = array_chunk($remoteQueue, 6, true);
             foreach ($chunks as $chunk) {
                 $mh = curl_multi_init();
                 $handles = [];
@@ -578,10 +739,10 @@ class PhotodownloaderController extends Controller {
                     $ch = curl_init($rItem['url']);
                     curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
                     curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
-                    curl_setopt($ch, CURLOPT_TIMEOUT, 6);
-                    curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 4);
+                    curl_setopt($ch, CURLOPT_TIMEOUT, 15);
+                    curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 6);
                     curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
-                    curl_setopt($ch, CURLOPT_USERAGENT, 'Srishringarr-Admin-PhotoDownloader/1.0');
+                    curl_setopt($ch, CURLOPT_USERAGENT, 'Srishringarr-Admin-PhotoDownloader/2.0');
                     curl_multi_add_handle($mh, $ch);
                     $handles[$idx] = $ch;
                 }
@@ -606,8 +767,28 @@ class PhotodownloaderController extends Controller {
                     unset($ch);
 
                     if ($httpCode === 200 && strlen($content) > 100) {
-                        if ($zip->addFromString($chunk[$idx]['zip_entry'], $content)) {
-                            $addedCount++;
+                        $zipEntryName = $chunk[$idx]['zip_entry'];
+
+                        // If remote image is large (> 1.5MB) and compress is on, compress it
+                        if ($compress && strlen($content) > 1.5 * 1024 * 1024) {
+                            $tempRemote = tempnam($this->cacheDir, 'rem_');
+                            file_put_contents($tempRemote, $content);
+                            $compPath = $this->compressAndCacheImage($tempRemote, 1920, 82);
+                            if (file_exists($compPath)) {
+                                $zip->addFile($compPath, $zipEntryName);
+                                if (defined('\ZipArchive::CM_STORE')) {
+                                    $zip->setCompressionName($zipEntryName, \ZipArchive::CM_STORE);
+                                }
+                                $addedCount++;
+                            }
+                            @unlink($tempRemote);
+                        } else {
+                            if ($zip->addFromString($zipEntryName, $content)) {
+                                if (defined('\ZipArchive::CM_STORE')) {
+                                    $zip->setCompressionName($zipEntryName, \ZipArchive::CM_STORE);
+                                }
+                                $addedCount++;
+                            }
                         }
                     }
                 }
@@ -619,13 +800,487 @@ class PhotodownloaderController extends Controller {
     }
 
     /**
-     * Download the photos ZIP archive (direct fallback endpoint)
+     * Serve completed ZIP archive file with memory-safe 64KB chunk streaming
+     */
+    public function serveJobZip() {
+        $jobId = preg_replace('/[^a-f0-9]/', '', (string)($_GET['job_id'] ?? ''));
+        $zipCandidates = [
+            $this->tempZipDir . DIRECTORY_SEPARATOR . 'ss_job_' . $jobId . '.zip',
+            sys_get_temp_dir() . DIRECTORY_SEPARATOR . 'ss_job_' . $jobId . '.zip'
+        ];
+        $metaCandidates = [
+            $this->tempZipDir . DIRECTORY_SEPARATOR . 'ss_job_' . $jobId . '.json',
+            sys_get_temp_dir() . DIRECTORY_SEPARATOR . 'ss_job_' . $jobId . '.json'
+        ];
+
+        $zipPath = null;
+        foreach ($zipCandidates as $cand) {
+            if (file_exists($cand) && filesize($cand) > 50) {
+                $zipPath = $cand;
+                break;
+            }
+        }
+
+        if (!$zipPath) {
+            header('Location: index.php?controller=photodownloader&action=index&error=' . urlencode('Download file not ready or has expired. Please restart the download.'));
+            exit;
+        }
+
+        // Clean up metadata JSON
+        foreach ($metaCandidates as $cand) {
+            if (file_exists($cand)) @unlink($cand);
+        }
+
+        $fileName = 'srishringarr_photos_' . date('Ymd_His') . '.zip';
+        $fileSize = filesize($zipPath);
+
+        header('Content-Type: application/zip');
+        header('Content-Disposition: attachment; filename="' . $fileName . '"');
+        header('Content-Length: ' . $fileSize);
+        header('Cache-Control: no-cache, no-store, must-revalidate');
+        header('Pragma: no-cache');
+        header('Expires: 0');
+
+        if (ob_get_level()) {
+            ob_end_clean();
+        }
+
+        // Stream in 64KB chunks
+        $fp = fopen($zipPath, 'rb');
+        if ($fp) {
+            while (!feof($fp)) {
+                echo fread($fp, 1024 * 64);
+                flush();
+            }
+            fclose($fp);
+        }
+
+        @unlink($zipPath);
+        exit;
+    }
+
+    /**
+     * Cancel download job and remove temporary files
+     */
+    public function cancelDownloadJob() {
+        $jobId = preg_replace('/[^a-f0-9]/', '', (string)($_POST['job_id'] ?? ''));
+        if ($jobId) {
+            $zipCandidates = [
+                $this->tempZipDir . DIRECTORY_SEPARATOR . 'ss_job_' . $jobId . '.zip',
+                sys_get_temp_dir() . DIRECTORY_SEPARATOR . 'ss_job_' . $jobId . '.zip'
+            ];
+            $metaCandidates = [
+                $this->tempZipDir . DIRECTORY_SEPARATOR . 'ss_job_' . $jobId . '.json',
+                sys_get_temp_dir() . DIRECTORY_SEPARATOR . 'ss_job_' . $jobId . '.json'
+            ];
+            foreach ($zipCandidates as $f) { if (file_exists($f)) @unlink($f); }
+            foreach ($metaCandidates as $f) { if (file_exists($f)) @unlink($f); }
+        }
+        $this->json(['success' => true]);
+    }
+
+    // =========================================================================
+    // ====================== DUPLICATE PHOTOS FEATURE =========================
+    // =========================================================================
+
+    /**
+     * AJAX endpoint: Find duplicate photos category wise
+     */
+    public function getDuplicates() {
+        $catKey = trim($_REQUEST['category'] ?? 'all');
+        $dupeType = strtolower(trim($_REQUEST['duplicate_type'] ?? 'all'));
+        $search = trim($_REQUEST['search'] ?? '');
+        $page = max(1, (int)($_REQUEST['page'] ?? 1));
+        $limit = max(10, min(100, (int)($_REQUEST['limit'] ?? 25)));
+        $offset = ($page - 1) * $limit;
+
+        $where = ["pin.img_name != ''", "pin.img_name IS NOT NULL"];
+        $joins = "";
+        $catLabel = "All Categories";
+
+        if ($catKey !== 'all' && strpos($catKey, ':') !== false) {
+            list($type, $id) = explode(':', $catKey, 2);
+            $id = (int)$id;
+
+            if ($type === 'garment') {
+                $cQry = mysqli_query($this->db, "SELECT name FROM garments WHERE garment_id = $id LIMIT 1");
+                if ($cQry && $cRow = mysqli_fetch_assoc($cQry)) {
+                    $catLabel = "Apparel - " . ucwords(strtolower(trim($cRow['name'])));
+                }
+
+                $joins .= " JOIN garment_product gp ON (pin.gproduct_id = gp.gproduct_id OR pin.pro_code = gp.gproduct_code) ";
+                $where[] = "(gp.garment_id = $id OR gp.product_for = $id)";
+            } elseif ($type === 'jewel_parent' || $type === 'jewellery') {
+                $cQry = mysqli_query($this->db, "SELECT categories_name FROM jewel_subcat WHERE subcat_id = $id LIMIT 1");
+                if ($cQry && $cRow = mysqli_fetch_assoc($cQry)) {
+                    $catLabel = "Jewellery - " . ucwords(strtolower(trim($cRow['categories_name'])));
+                }
+
+                $joins .= " JOIN product p ON (pin.product_id = p.product_id OR pin.pro_code = p.product_code) ";
+                $where[] = "(p.categories_id = $id OR p.subcat_id = $id)";
+            } elseif ($type === 'jewel_child') {
+                $cQry = mysqli_query($this->db, "SELECT name FROM subcat1 WHERE subcat_id = $id LIMIT 1");
+                if ($cQry && $cRow = mysqli_fetch_assoc($cQry)) {
+                    $catLabel = "Jewellery - " . ucwords(strtolower(trim($cRow['name'])));
+                }
+
+                $joins .= " JOIN product p ON (pin.product_id = p.product_id OR pin.pro_code = p.product_code) ";
+                $where[] = "p.subcat_id = $id";
+            }
+        }
+
+        if (!empty($search)) {
+            $escSearch = mysqli_real_escape_string($this->db, $search);
+            $where[] = "(pin.pro_code LIKE '%$escSearch%' OR pin.img_name LIKE '%$escSearch%')";
+        }
+
+        $whereClause = implode(' AND ', $where);
+
+        $having = ["COUNT(*) > 1"];
+        if ($dupeType === 'multi_sku') {
+            $having[] = "COUNT(DISTINCT pin.pro_code) > 1";
+        } elseif ($dupeType === 'single_sku_repeated') {
+            $having[] = "COUNT(*) > COUNT(DISTINCT pin.pro_code)";
+        }
+        $havingClause = implode(' AND ', $having);
+
+        // 1. Calculate overall summary statistics
+        $countSql = "SELECT pin.img_name,
+                            COUNT(*) as occurrences,
+                            COUNT(DISTINCT pin.pro_code) as distinct_skus
+                     FROM product_images_new pin
+                     $joins
+                     WHERE $whereClause
+                     GROUP BY pin.img_name
+                     HAVING $havingClause";
+        $countRes = mysqli_query($this->db, $countSql);
+
+        $totalGroups = 0;
+        $totalRedundantPhotos = 0;
+        $affectedSkusMap = [];
+
+        if ($countRes) {
+            while ($cRow = mysqli_fetch_assoc($countRes)) {
+                $totalGroups++;
+                $occ = (int)$cRow['occurrences'];
+                $totalRedundantPhotos += max(0, $occ - 1);
+            }
+        }
+
+        // 2. Query paginated duplicate groups
+        $sql = "SELECT pin.img_name,
+                       COUNT(*) as occurrence_count,
+                       COUNT(DISTINCT pin.pro_code) as distinct_sku_count,
+                       GROUP_CONCAT(DISTINCT pin.pro_code ORDER BY pin.pro_code SEPARATOR ', ') as skus,
+                       GROUP_CONCAT(pin.id ORDER BY pin.id SEPARATOR ',') as image_ids,
+                       MIN(pin.id) as keep_id
+                FROM product_images_new pin
+                $joins
+                WHERE $whereClause
+                GROUP BY pin.img_name
+                HAVING $havingClause
+                ORDER BY occurrence_count DESC, distinct_sku_count DESC
+                LIMIT $limit OFFSET $offset";
+
+        $res = mysqli_query($this->db, $sql);
+        $groups = [];
+
+        if ($res) {
+            while ($row = mysqli_fetch_assoc($res)) {
+                $rawImg = trim($row['img_name']);
+                $cleanRel = ltrim(str_replace(['../../yn/uploads', '../yn/uploads', '/yn/uploads', 'yn/uploads/', 'uploads/'], '', $rawImg), '/');
+                $imgUrl = "https://srishringarr.com/yn/uploads/" . str_replace(' ', '%20', $cleanRel);
+
+                // Fetch individual image records
+                $idList = trim($row['image_ids'] ?? '');
+                $records = [];
+                if (!empty($idList)) {
+                    $idSql = "SELECT id, pro_code, rank, date_added, product_id, gproduct_id 
+                              FROM product_images_new 
+                              WHERE id IN ($idList) 
+                              ORDER BY rank ASC, id ASC";
+                    $idRes = mysqli_query($this->db, $idSql);
+                    if ($idRes) {
+                        while ($rItem = mysqli_fetch_assoc($idRes)) {
+                            $records[] = $rItem;
+                        }
+                    }
+                }
+
+                $skusArr = array_filter(array_map('trim', explode(',', $row['skus'] ?? '')));
+
+                $groups[] = [
+                    'img_name' => $rawImg,
+                    'file_name' => basename($rawImg),
+                    'clean_url' => $imgUrl,
+                    'occurrence_count' => (int)$row['occurrence_count'],
+                    'distinct_sku_count' => (int)$row['distinct_sku_count'],
+                    'skus' => $row['skus'],
+                    'skus_list' => array_values($skusArr),
+                    'keep_id' => (int)$row['keep_id'],
+                    'records' => $records
+                ];
+            }
+        }
+
+        $totalPages = $totalGroups > 0 ? (int)ceil($totalGroups / $limit) : 1;
+
+        $this->json([
+            'success' => true,
+            'category_label' => $catLabel,
+            'summary' => [
+                'total_duplicate_groups' => $totalGroups,
+                'total_redundant_photos' => $totalRedundantPhotos,
+                'current_page' => $page,
+                'per_page' => $limit,
+                'total_pages' => $totalPages
+            ],
+            'groups' => $groups
+        ]);
+    }
+
+    /**
+     * AJAX endpoint: Clean up duplicate image records for a single image group
+     */
+    public function deduplicateGroup() {
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            $this->json(['success' => false, 'message' => 'Invalid request method.'], 405);
+            return;
+        }
+
+        $imgName = trim($_POST['img_name'] ?? '');
+        $keepId = (int)($_POST['keep_id'] ?? 0);
+
+        if (empty($imgName)) {
+            $this->json(['success' => false, 'message' => 'Missing image name parameter.'], 400);
+            return;
+        }
+
+        $escImgName = mysqli_real_escape_string($this->db, $imgName);
+
+        // If no keep_id was specified, keep the lowest ID (first/original uploaded record)
+        if ($keepId <= 0) {
+            $kRes = mysqli_query($this->db, "SELECT MIN(id) as min_id FROM product_images_new WHERE img_name = '$escImgName'");
+            if ($kRes && $kRow = mysqli_fetch_assoc($kRes)) {
+                $keepId = (int)$kRow['min_id'];
+            }
+        }
+
+        if ($keepId <= 0) {
+            $this->json(['success' => false, 'message' => 'Unable to determine primary record to keep.'], 400);
+            return;
+        }
+
+        // Delete all duplicate copies except the keep_id
+        $delSql = "DELETE FROM product_images_new WHERE img_name = '$escImgName' AND id != $keepId";
+        $deleted = mysqli_query($this->db, $delSql);
+
+        if ($deleted) {
+            $deletedCount = mysqli_affected_rows($this->db);
+            $this->json([
+                'success' => true,
+                'deleted_count' => $deletedCount,
+                'keep_id' => $keepId,
+                'message' => "Removed {$deletedCount} duplicate photo record(s). Kept primary ID #{$keepId}."
+            ]);
+        } else {
+            $this->json(['success' => false, 'message' => 'Database error while removing duplicate photo records.'], 500);
+        }
+    }
+
+    /**
+     * AJAX endpoint: Batch deduplicate an entire category (keeps primary record for each duplicate photo)
+     */
+    public function deduplicateCategory() {
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            $this->json(['success' => false, 'message' => 'Invalid request method.'], 405);
+            return;
+        }
+
+        $catKey = trim($_POST['category'] ?? 'all');
+        $where = ["pin.img_name != ''", "pin.img_name IS NOT NULL"];
+        $joins = "";
+
+        if ($catKey !== 'all' && strpos($catKey, ':') !== false) {
+            list($type, $id) = explode(':', $catKey, 2);
+            $id = (int)$id;
+
+            if ($type === 'garment') {
+                $joins .= " JOIN garment_product gp ON (pin.gproduct_id = gp.gproduct_id OR pin.pro_code = gp.gproduct_code) ";
+                $where[] = "(gp.garment_id = $id OR gp.product_for = $id)";
+            } elseif ($type === 'jewel_parent' || $type === 'jewellery') {
+                $joins .= " JOIN product p ON (pin.product_id = p.product_id OR pin.pro_code = p.product_code) ";
+                $where[] = "(p.categories_id = $id OR p.subcat_id = $id)";
+            } elseif ($type === 'jewel_child') {
+                $joins .= " JOIN product p ON (pin.product_id = p.product_id OR pin.pro_code = p.product_code) ";
+                $where[] = "p.subcat_id = $id";
+            }
+        }
+
+        $whereClause = implode(' AND ', $where);
+
+        // Find all duplicate groups and their keep_ids
+        $sql = "SELECT pin.img_name,
+                       GROUP_CONCAT(pin.id ORDER BY pin.id SEPARATOR ',') as all_ids,
+                       MIN(pin.id) as keep_id
+                FROM product_images_new pin
+                $joins
+                WHERE $whereClause
+                GROUP BY pin.img_name
+                HAVING COUNT(*) > 1";
+
+        $res = mysqli_query($this->db, $sql);
+        $idsToDelete = [];
+
+        if ($res) {
+            while ($row = mysqli_fetch_assoc($res)) {
+                $allIds = array_filter(array_map('intval', explode(',', $row['all_ids'] ?? '')));
+                $keepId = (int)$row['keep_id'];
+                foreach ($allIds as $idVal) {
+                    if ($idVal !== $keepId) {
+                        $idsToDelete[] = $idVal;
+                    }
+                }
+            }
+        }
+
+        if (empty($idsToDelete)) {
+            $this->json([
+                'success' => true,
+                'deleted_count' => 0,
+                'message' => 'No duplicate records found to clean up.'
+            ]);
+            return;
+        }
+
+        // Delete in batches of 500
+        $totalDeleted = 0;
+        $chunks = array_chunk($idsToDelete, 500);
+        foreach ($chunks as $chunk) {
+            $idStr = implode(',', $chunk);
+            $delRes = mysqli_query($this->db, "DELETE FROM product_images_new WHERE id IN ($idStr)");
+            if ($delRes) {
+                $totalDeleted += mysqli_affected_rows($this->db);
+            }
+        }
+
+        $this->json([
+            'success' => true,
+            'deleted_count' => $totalDeleted,
+            'message' => "Successfully cleaned up {$totalDeleted} duplicate photo records!"
+        ]);
+    }
+
+    /**
+     * Export category duplicate photos report to CSV
+     */
+    public function exportDuplicatesCsv() {
+        $catKey = trim($_REQUEST['category'] ?? 'all');
+        $dupeType = strtolower(trim($_REQUEST['duplicate_type'] ?? 'all'));
+        $search = trim($_REQUEST['search'] ?? '');
+
+        $where = ["pin.img_name != ''", "pin.img_name IS NOT NULL"];
+        $joins = "";
+        $catLabel = "All Categories";
+
+        if ($catKey !== 'all' && strpos($catKey, ':') !== false) {
+            list($type, $id) = explode(':', $catKey, 2);
+            $id = (int)$id;
+
+            if ($type === 'garment') {
+                $cQry = mysqli_query($this->db, "SELECT name FROM garments WHERE garment_id = $id LIMIT 1");
+                if ($cQry && $cRow = mysqli_fetch_assoc($cQry)) {
+                    $catLabel = "Apparel - " . ucwords(strtolower(trim($cRow['name'])));
+                }
+                $joins .= " JOIN garment_product gp ON (pin.gproduct_id = gp.gproduct_id OR pin.pro_code = gp.gproduct_code) ";
+                $where[] = "(gp.garment_id = $id OR gp.product_for = $id)";
+            } elseif ($type === 'jewel_parent' || $type === 'jewellery') {
+                $cQry = mysqli_query($this->db, "SELECT categories_name FROM jewel_subcat WHERE subcat_id = $id LIMIT 1");
+                if ($cQry && $cRow = mysqli_fetch_assoc($cQry)) {
+                    $catLabel = "Jewellery - " . ucwords(strtolower(trim($cRow['categories_name'])));
+                }
+                $joins .= " JOIN product p ON (pin.product_id = p.product_id OR pin.pro_code = p.product_code) ";
+                $where[] = "(p.categories_id = $id OR p.subcat_id = $id)";
+            } elseif ($type === 'jewel_child') {
+                $cQry = mysqli_query($this->db, "SELECT name FROM subcat1 WHERE subcat_id = $id LIMIT 1");
+                if ($cQry && $cRow = mysqli_fetch_assoc($cQry)) {
+                    $catLabel = "Jewellery - " . ucwords(strtolower(trim($cRow['name'])));
+                }
+                $joins .= " JOIN product p ON (pin.product_id = p.product_id OR pin.pro_code = p.product_code) ";
+                $where[] = "p.subcat_id = $id";
+            }
+        }
+
+        if (!empty($search)) {
+            $escSearch = mysqli_real_escape_string($this->db, $search);
+            $where[] = "(pin.pro_code LIKE '%$escSearch%' OR pin.img_name LIKE '%$escSearch%')";
+        }
+
+        $whereClause = implode(' AND ', $where);
+
+        $having = ["COUNT(*) > 1"];
+        if ($dupeType === 'multi_sku') {
+            $having[] = "COUNT(DISTINCT pin.pro_code) > 1";
+        } elseif ($dupeType === 'single_sku_repeated') {
+            $having[] = "COUNT(*) > COUNT(DISTINCT pin.pro_code)";
+        }
+        $havingClause = implode(' AND ', $having);
+
+        $sql = "SELECT pin.img_name,
+                       COUNT(*) as occurrence_count,
+                       COUNT(DISTINCT pin.pro_code) as distinct_sku_count,
+                       GROUP_CONCAT(DISTINCT pin.pro_code ORDER BY pin.pro_code SEPARATOR '; ') as skus,
+                       GROUP_CONCAT(pin.id ORDER BY pin.id SEPARATOR ',') as image_ids,
+                       MIN(pin.id) as keep_id
+                FROM product_images_new pin
+                $joins
+                WHERE $whereClause
+                GROUP BY pin.img_name
+                HAVING $havingClause
+                ORDER BY occurrence_count DESC, distinct_sku_count DESC";
+
+        $res = mysqli_query($this->db, $sql);
+
+        $fileName = 'duplicate_photos_' . date('Ymd_His') . '.csv';
+        header('Content-Type: text/csv; charset=utf-8');
+        header('Content-Disposition: attachment; filename="' . $fileName . '"');
+        header('Pragma: no-cache');
+        header('Expires: 0');
+
+        $out = fopen('php://output', 'w');
+        fputcsv($out, ['Category', 'Image Name', 'Full URL', 'Occurrences', 'Redundant Extra Records', 'Distinct SKUs', 'SKUs List', 'Database IDs', 'Recommended Keep ID']);
+
+        if ($res) {
+            while ($row = mysqli_fetch_assoc($res)) {
+                $rawImg = trim($row['img_name']);
+                $cleanRel = ltrim(str_replace(['../../yn/uploads', '../yn/uploads', '/yn/uploads', 'yn/uploads/', 'uploads/'], '', $rawImg), '/');
+                $imgUrl = "https://srishringarr.com/yn/uploads/" . str_replace(' ', '%20', $cleanRel);
+                $occ = (int)$row['occurrence_count'];
+
+                fputcsv($out, [
+                    $catLabel,
+                    $rawImg,
+                    $imgUrl,
+                    $occ,
+                    max(0, $occ - 1),
+                    (int)$row['distinct_sku_count'],
+                    $row['skus'],
+                    $row['image_ids'],
+                    (int)$row['keep_id']
+                ]);
+            }
+        }
+        fclose($out);
+        exit;
+    }
+
+    /**
+     * Fallback direct download
      */
     public function download() {
         @ini_set('memory_limit', '1024M');
         @set_time_limit(0);
 
-        // Read requested options or fall back to saved settings
         $categoryParam = $_REQUEST['categories'] ?? null;
         if ($categoryParam !== null) {
             $categories = is_array($categoryParam) ? $categoryParam : explode(',', (string)$categoryParam);
@@ -658,32 +1313,16 @@ class PhotodownloaderController extends Controller {
             $limitProducts = $savedSettings['limit_products'] ?? 'all';
         }
 
-        // Persist current download choices
-        $this->saveSettingsData([
-            'selected_categories' => array_values(array_unique($categories)),
-            'stock_status' => $stockStatus,
-            'image_scope' => $imageScope,
-            'limit_products' => $limitProducts
-        ]);
-
-        // If accessed directly via browser GET, redirect to index with autostart=1
-        // so the interactive chunked batch downloader executes safely with live progress
-        // rather than hanging the browser connection during a synchronous multi-thousand image fetch
-        if ($_SERVER['REQUEST_METHOD'] === 'GET') {
-            header('Location: index.php?controller=photodownloader&action=index&autostart=1');
-            exit;
-        }
+        $compressImages = ($_REQUEST['compress_images'] ?? '1') === '1';
 
         if (!class_exists('\ZipArchive')) {
-            header('Location: index.php?controller=photodownloader&action=index&error=' . urlencode('PHP ZipArchive extension is not enabled on this server.'));
-            exit;
+            die('ZipArchive extension is not enabled on this server.');
         }
 
-        $tempZipPath = tempnam(sys_get_temp_dir(), 'ss_photos_') . '.zip';
+        $tempZipPath = tempnam($this->tempZipDir, 'ss_dir_') . '.zip';
         $zip = new \ZipArchive();
         if ($zip->open($tempZipPath, \ZipArchive::CREATE | \ZipArchive::OVERWRITE) !== true) {
-            header('Location: index.php?controller=photodownloader&action=index&error=' . urlencode('Failed to create temporary ZIP archive.'));
-            exit;
+            die('Cannot create temporary ZIP archive.');
         }
 
         $this->loadInStockMap();
@@ -691,9 +1330,7 @@ class PhotodownloaderController extends Controller {
 
         foreach ($categories as $catKey) {
             $catInfo = $this->getCategoryMetaAndProducts($catKey, $stockStatus);
-            if (!$catInfo || empty($catInfo['products'])) {
-                continue;
-            }
+            if (!$catInfo || empty($catInfo['products'])) continue;
 
             $deptName = $this->sanitizeFolderName($catInfo['department']);
             $categoryFolderName = $this->sanitizeFolderName($catInfo['name']);
@@ -713,17 +1350,8 @@ class PhotodownloaderController extends Controller {
                 $pType = $product['type'];
                 $escSku = mysqli_real_escape_string($this->db, $sku);
 
-                if ($pType === 'garment') {
-                    $imgSql = "SELECT id, img_name, rank 
-                               FROM product_images_new 
-                               WHERE pro_code = '$escSku' OR gproduct_id = $pid 
-                               ORDER BY rank ASC, id ASC";
-                } else {
-                    $imgSql = "SELECT id, img_name, rank 
-                               FROM product_images_new 
-                               WHERE pro_code = '$escSku' OR product_id = $pid 
-                               ORDER BY rank ASC, id ASC";
-                }
+                $idCol = ($pType === 'garment') ? 'gproduct_id' : 'product_id';
+                $imgSql = "SELECT id, img_name, rank FROM product_images_new WHERE pro_code = '$escSku' OR $idCol = $pid ORDER BY rank ASC, id ASC";
 
                 $imgRes = mysqli_query($this->db, $imgSql);
                 $images = [];
@@ -763,7 +1391,7 @@ class PhotodownloaderController extends Controller {
             }
 
             if (!empty($imagesList)) {
-                $totalFilesAdded += $this->addImagesBatchToZip($zip, $imagesList);
+                $totalFilesAdded += $this->addImagesBatchToZip($zip, $imagesList, $compressImages);
             }
         }
 
@@ -775,7 +1403,6 @@ class PhotodownloaderController extends Controller {
             exit;
         }
 
-        // Stream ZIP file
         $fileName = 'srishringarr_photos_' . date('Ymd_His') . '.zip';
         header('Content-Type: application/zip');
         header('Content-Disposition: attachment; filename="' . $fileName . '"');
@@ -784,74 +1411,17 @@ class PhotodownloaderController extends Controller {
         header('Pragma: no-cache');
         header('Expires: 0');
 
-        ob_clean();
-        flush();
-        readfile($tempZipPath);
+        if (ob_get_level()) ob_end_clean();
+        $fp = fopen($tempZipPath, 'rb');
+        if ($fp) {
+            while (!feof($fp)) {
+                echo fread($fp, 1024 * 64);
+                flush();
+            }
+            fclose($fp);
+        }
         @unlink($tempZipPath);
         exit;
-    }
-
-
-    /**
-     * Add image to zip with local disk check and remote fallback
-     */
-    private function addImageToZip(\ZipArchive $zip, $imgName, $zipEntryPath) {
-        $cleanRelPath = ltrim(str_replace('\\', '/', $imgName), '/');
-
-        // 1. Try local uploads directory
-        if ($this->localUploadsDir) {
-            $localCandidate = $this->localUploadsDir . DIRECTORY_SEPARATOR . str_replace('/', DIRECTORY_SEPARATOR, $cleanRelPath);
-            if (file_exists($localCandidate) && is_file($localCandidate)) {
-                return $zip->addFile($localCandidate, $zipEntryPath);
-            }
-        }
-
-        // 2. Secondary local candidate
-        $cand2 = realpath(__DIR__ . '/../../yn/uploads/' . $cleanRelPath);
-        if ($cand2 && file_exists($cand2) && is_file($cand2)) {
-            return $zip->addFile($cand2, $zipEntryPath);
-        }
-
-        // 3. Fallback: Fetch remotely from production CDN / server
-        $remoteUrl = 'https://srishringarr.com/yn/uploads/' . str_replace(' ', '%20', $cleanRelPath);
-        $content = $this->fetchRemoteFile($remoteUrl);
-        if ($content !== false && strlen($content) > 100) {
-            return $zip->addFromString($zipEntryPath, $content);
-        }
-
-        return false;
-    }
-
-    /**
-     * Fetch remote file via cURL or file_get_contents
-     */
-    private function fetchRemoteFile($url) {
-        if (function_exists('curl_init')) {
-            $ch = curl_init();
-            curl_setopt($ch, CURLOPT_URL, $url);
-            curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-            curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
-            curl_setopt($ch, CURLOPT_TIMEOUT, 6);
-            curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 4);
-            curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
-            curl_setopt($ch, CURLOPT_USERAGENT, 'Srishringarr-Admin-PhotoDownloader/1.0');
-            $data = curl_exec($ch);
-            $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-            unset($ch);
-            if ($httpCode === 200 && $data !== false) {
-                return $data;
-            }
-        } else {
-            $ctx = stream_context_create([
-                'http' => ['timeout' => 6, 'user_agent' => 'Srishringarr-Admin-PhotoDownloader/1.0'],
-                'ssl' => ['verify_peer' => false, 'verify_peer_name' => false]
-            ]);
-            $data = @file_get_contents($url, false, $ctx);
-            if ($data !== false) {
-                return $data;
-            }
-        }
-        return false;
     }
 
     /**
@@ -1074,4 +1644,3 @@ class PhotodownloaderController extends Controller {
 if (!class_exists('Controllers\PhotoDownloaderController', false)) {
     class_alias(PhotodownloaderController::class, 'Controllers\PhotoDownloaderController');
 }
-

@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <title>Photo Downloader - Srishringarr</title>
+    <title>Photo Downloader &amp; Duplicate Photos - Srishringarr</title>
     <?php include __DIR__ . '/../partials/head.php'; ?>
     <style>
         /* Exact ShadCN UI Standards (Slate / Zinc Theme) */
@@ -25,6 +25,31 @@
         .page-container {
             max-width: 1440px;
             margin: 0 auto;
+        }
+
+        /* Tab Navigation Bar */
+        .tab-nav-btn {
+            background: transparent;
+            color: #71717a;
+            border: 1px solid transparent;
+            cursor: pointer;
+            padding: 8px 16px;
+            border-radius: 8px;
+            font-size: 13px;
+            font-weight: 500;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.15s ease;
+        }
+        .tab-nav-btn:hover {
+            color: #09090b;
+            background: #f4f4f5;
+        }
+        .tab-nav-btn.active {
+            background: #09090b !important;
+            color: #ffffff !important;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
         }
 
         /* Metric Cards */
@@ -95,7 +120,7 @@
 
         .shadcn-btn-sm {
             height: 28px;
-            padding: 0 9px;
+            padding: 0 10px;
             font-size: 11.5px;
             border-radius: 5px;
         }
@@ -110,6 +135,16 @@
             background: #27272a !important;
             border-color: #27272a !important;
             color: #ffffff !important;
+        }
+
+        .shadcn-btn-danger {
+            background: #ffffff !important;
+            border-color: #fca5a5 !important;
+            color: #dc2626 !important;
+        }
+        .shadcn-btn-danger:hover {
+            background: #fef2f2 !important;
+            border-color: #f87171 !important;
         }
 
         /* Neutral Badges */
@@ -137,6 +172,7 @@
         .status-dot-success { background-color: #10b981; }
         .status-dot-primary { background-color: #09090b; }
         .status-dot-warning { background-color: #f59e0b; }
+        .status-dot-danger  { background-color: #ef4444; }
 
         /* Search input */
         .search-input-wrap {
@@ -154,8 +190,8 @@
         }
         .search-input-wrap input {
             width: 100%;
-            height: 32px;
-            padding: 0 10px 0 30px;
+            height: 34px;
+            padding: 0 10px 0 32px;
             border-radius: 6px;
             border: 1px solid #e4e4e7;
             background: #ffffff;
@@ -238,6 +274,32 @@
             from { opacity: 0; transform: translateY(8px); }
             to { opacity: 1; transform: translateY(0); }
         }
+
+        /* Duplicate Photo Card */
+        .duplicate-card {
+            background: #ffffff;
+            border: 1px solid #e4e4e7;
+            border-radius: 8px;
+            padding: 14px;
+            transition: all 0.15s ease;
+        }
+        .duplicate-card:hover {
+            border-color: #cbd5e1;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+        }
+        .img-thumb-preview {
+            width: 72px;
+            height: 72px;
+            border-radius: 6px;
+            object-fit: cover;
+            background: #f1f5f9;
+            border: 1px solid #e2e8f0;
+            cursor: pointer;
+            transition: transform 0.15s ease;
+        }
+        .img-thumb-preview:hover {
+            transform: scale(1.05);
+        }
     </style>
 </head>
 <body class="bg-gray-50 font-sans text-gray-900">
@@ -250,7 +312,7 @@
         <div class="flex-1 flex flex-col min-w-0 overflow-hidden">
             <!-- Topbar -->
             <?php 
-            $pageTitle = 'Photo Downloader';
+            $pageTitle = 'Photo Management';
             include __DIR__ . '/../partials/topbar.php'; 
             ?>
 
@@ -268,24 +330,27 @@
                         </div>
                     <?php endif; ?>
 
-                    <!-- Header Banner -->
+                    <!-- Tab Navigation Header -->
                     <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
                         <div>
-                            <div class="flex items-center gap-2">
-                                <h1 class="text-xl font-semibold text-zinc-900 tracking-tight">Photo Downloader</h1>
-                                <span class="shadcn-badge font-mono text-[11px]">
-                                    <span class="status-dot status-dot-success mr-1"></span>
-                                    Category-Wise ZIP Export
-                                </span>
+                            <div class="inline-flex p-1 bg-zinc-200/70 rounded-lg border border-zinc-200">
+                                <button type="button" id="tabNavDownloader" onclick="switchMainTab('downloader')" class="tab-nav-btn <?php echo ($activeTab !== 'duplicates') ? 'active' : ''; ?>">
+                                    <i class="fas fa-cloud-arrow-down"></i>
+                                    <span>Photo Downloader</span>
+                                </button>
+                                <button type="button" id="tabNavDuplicates" onclick="switchMainTab('duplicates')" class="tab-nav-btn <?php echo ($activeTab === 'duplicates') ? 'active' : ''; ?>">
+                                    <i class="fas fa-clone"></i>
+                                    <span>Duplicate Photos</span>
+                                    <span class="shadcn-badge font-mono text-[10px] ml-1 bg-white text-zinc-900">Scanner</span>
+                                </button>
                             </div>
-                            <p class="text-xs text-zinc-500 mt-1">Download product images organized category-wise ({Department}/{Category}/{SKU}_00_main_image.jpg).</p>
                         </div>
 
                         <div class="flex items-center gap-2">
                             <span id="savedTimestampBadge" class="text-xs text-zinc-500 bg-white border border-zinc-200 px-2.5 py-1.5 rounded-md">
                                 <i class="far fa-clock text-zinc-400 mr-1"></i>
                                 <span id="savedTimestampText">
-                                    <?php echo !empty($settings['updated_at']) ? 'Config saved: ' . date('M j, Y g:i A', strtotime($settings['updated_at'])) : 'Default Configuration'; ?>
+                                    <?php echo !empty($settings['updated_at']) ? 'Config saved: ' . date('M j, Y g:i A', strtotime($settings['updated_at'])) : 'Photo Downloader Active'; ?>
                                 </span>
                             </span>
                         </div>
@@ -296,363 +361,513 @@
                         $stockStatus = $settings['stock_status'] ?? 'all';
                         $imageScope = $settings['image_scope'] ?? 'all';
                         $limitProducts = $settings['limit_products'] ?? 'all';
+                        $compressImages = $settings['compress_images'] ?? '1';
 
                         $totalApparelCats = count($categories['Apparel']['children'] ?? []);
                         $totalJewelCats = count($categories['Jewellery']['children'] ?? []);
                         $totalAllCats = $totalApparelCats + $totalJewelCats;
                     ?>
 
-                    <!-- Metrics / Summary Row -->
-                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-                        <div class="shadcn-stat-card">
-                            <div>
-                                <span class="text-[11px] font-medium text-zinc-500 uppercase tracking-wider block">Total Categories</span>
-                                <div class="flex items-baseline gap-2 mt-1">
-                                    <span class="text-xl font-semibold text-zinc-900"><?php echo number_format($totalAllCats); ?></span>
-                                    <span class="text-xs text-zinc-400">catalog nodes</span>
-                                </div>
+                    <!-- ========================================================================= -->
+                    <!-- ======================= TAB 1: PHOTO DOWNLOADER ========================= -->
+                    <!-- ========================================================================= -->
+                    <div id="tabContentDownloader" style="<?php echo ($activeTab === 'duplicates') ? 'display: none;' : ''; ?>">
+
+                        <!-- Header Banner -->
+                        <div class="mb-5">
+                            <div class="flex items-center gap-2">
+                                <h1 class="text-lg font-semibold text-zinc-900 tracking-tight">Category-Wise Photo Archive</h1>
+                                <span class="shadcn-badge font-mono text-[11px]">
+                                    <span class="status-dot status-dot-success mr-1"></span>
+                                    High-Speed ZIP Packaging
+                                </span>
                             </div>
-                            <div class="w-8 h-8 rounded-md bg-zinc-100 border border-zinc-200 flex items-center justify-center text-zinc-600 text-xs">
-                                <i class="fas fa-layer-group"></i>
-                            </div>
+                            <p class="text-xs text-zinc-500 mt-1">Download product images organized category-wise ({Department}/{Category}/{SKU}_00_main_image.jpg). Large 50-60MB raw photos are automatically compressed on server into crisp 2K resolution (~350KB) for instant downloads without 504 timeouts.</p>
                         </div>
 
-                        <div class="shadcn-stat-card">
-                            <div>
-                                <span class="text-[11px] font-medium text-zinc-500 uppercase tracking-wider block">Selected Categories</span>
-                                <div class="flex items-baseline gap-2 mt-1">
-                                    <span id="metricSelectedCount" class="text-xl font-semibold text-zinc-900"><?php echo count($selectedCats); ?></span>
-                                    <span class="text-xs text-zinc-400">chosen for zip</span>
-                                </div>
-                            </div>
-                            <div class="w-8 h-8 rounded-md bg-zinc-100 border border-zinc-200 flex items-center justify-center text-zinc-600 text-xs">
-                                <i class="fas fa-check-square"></i>
-                            </div>
-                        </div>
-
-                        <div class="shadcn-stat-card">
-                            <div>
-                                <span class="text-[11px] font-medium text-zinc-500 uppercase tracking-wider block">Estimated Products</span>
-                                <div class="flex items-baseline gap-2 mt-1">
-                                    <span id="metricEstProducts" class="text-xl font-semibold text-zinc-900 font-mono">--</span>
-                                    <span class="text-xs text-zinc-400">items</span>
-                                </div>
-                            </div>
-                            <div class="w-8 h-8 rounded-md bg-zinc-100 border border-zinc-200 flex items-center justify-center text-zinc-600 text-xs">
-                                <i class="fas fa-boxes-stacked"></i>
-                            </div>
-                        </div>
-
-                        <div class="shadcn-stat-card">
-                            <div>
-                                <span class="text-[11px] font-medium text-zinc-500 uppercase tracking-wider block">Estimated Photos</span>
-                                <div class="flex items-baseline gap-2 mt-1">
-                                    <span id="metricEstImages" class="text-xl font-semibold text-zinc-900 font-mono">--</span>
-                                    <span class="text-xs text-zinc-400">in archive</span>
-                                </div>
-                            </div>
-                            <div class="w-8 h-8 rounded-md bg-zinc-100 border border-zinc-200 flex items-center justify-center text-zinc-600 text-xs">
-                                <i class="fas fa-images"></i>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Main Form / Layout Grid -->
-                    <form id="downloaderForm" onsubmit="event.preventDefault(); startBatchDownload();">
-
-                        <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-
-                            <!-- ==================== LEFT COLUMN: CATEGORY SELECTION ==================== -->
-                            <div class="lg:col-span-7 space-y-6">
-
-                                <div class="shadcn-card">
-                                    <div class="shadcn-card-header">
-                                        <div>
-                                            <h2 class="text-xs font-semibold text-zinc-900 uppercase tracking-wider flex items-center gap-2">
-                                                <i class="fas fa-folder-tree text-zinc-400 text-xs"></i>
-                                                <span>1. Category Selection</span>
-                                            </h2>
-                                            <p class="text-xs text-zinc-500 mt-0.5">Select which product categories will be included in the photo download archive.</p>
-                                        </div>
-
-                                        <div class="flex items-center gap-1.5 flex-wrap">
-                                            <button type="button" onclick="selectCategoriesFilter('all')" class="text-xs text-zinc-600 hover:text-zinc-900 font-medium px-2 py-1 rounded hover:bg-zinc-100 transition-colors">Select All</button>
-                                            <span class="text-zinc-300">|</span>
-                                            <button type="button" onclick="selectCategoriesFilter('apparel')" class="text-xs text-zinc-600 hover:text-zinc-900 font-medium px-2 py-1 rounded hover:bg-zinc-100 transition-colors">All Apparel</button>
-                                            <span class="text-zinc-300">|</span>
-                                            <button type="button" onclick="selectCategoriesFilter('jewel')" class="text-xs text-zinc-600 hover:text-zinc-900 font-medium px-2 py-1 rounded hover:bg-zinc-100 transition-colors">All Jewellery</button>
-                                            <span class="text-zinc-300">|</span>
-                                            <button type="button" onclick="selectCategoriesFilter('none')" class="text-xs text-rose-600 hover:text-rose-800 font-medium px-2 py-1 rounded hover:bg-rose-50 transition-colors">Clear All</button>
-                                        </div>
+                        <!-- Metrics / Summary Row -->
+                        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+                            <div class="shadcn-stat-card">
+                                <div>
+                                    <span class="text-[11px] font-medium text-zinc-500 uppercase tracking-wider block">Total Categories</span>
+                                    <div class="flex items-baseline gap-2 mt-1">
+                                        <span class="text-xl font-semibold text-zinc-900"><?php echo number_format($totalAllCats); ?></span>
+                                        <span class="text-xs text-zinc-400">catalog nodes</span>
                                     </div>
+                                </div>
+                                <div class="w-8 h-8 rounded-md bg-zinc-100 border border-zinc-200 flex items-center justify-center text-zinc-600 text-xs">
+                                    <i class="fas fa-layer-group"></i>
+                                </div>
+                            </div>
 
-                                    <div class="p-4 border-b border-zinc-100 bg-zinc-50/50">
-                                        <div class="search-input-wrap">
-                                            <i class="fas fa-search search-icon"></i>
-                                            <input type="text" id="catSearchInput" placeholder="Filter category by name (e.g. Evening Gowns, Earrings)..." autocomplete="off" onkeyup="filterCategoryList(this.value)">
-                                        </div>
+                            <div class="shadcn-stat-card">
+                                <div>
+                                    <span class="text-[11px] font-medium text-zinc-500 uppercase tracking-wider block">Selected Categories</span>
+                                    <div class="flex items-baseline gap-2 mt-1">
+                                        <span id="metricSelectedCount" class="text-xl font-semibold text-zinc-900"><?php echo count($selectedCats); ?></span>
+                                        <span class="text-xs text-zinc-400">chosen for zip</span>
                                     </div>
+                                </div>
+                                <div class="w-8 h-8 rounded-md bg-zinc-100 border border-zinc-200 flex items-center justify-center text-zinc-600 text-xs">
+                                    <i class="fas fa-check-square"></i>
+                                </div>
+                            </div>
 
-                                    <div class="p-5 space-y-6">
+                            <div class="shadcn-stat-card">
+                                <div>
+                                    <span class="text-[11px] font-medium text-zinc-500 uppercase tracking-wider block">Estimated Products</span>
+                                    <div class="flex items-baseline gap-2 mt-1">
+                                        <span id="metricEstProducts" class="text-xl font-semibold text-zinc-900 font-mono">--</span>
+                                        <span class="text-xs text-zinc-400">items</span>
+                                    </div>
+                                </div>
+                                <div class="w-8 h-8 rounded-md bg-zinc-100 border border-zinc-200 flex items-center justify-center text-zinc-600 text-xs">
+                                    <i class="fas fa-boxes-stacked"></i>
+                                </div>
+                            </div>
 
-                                        <!-- Department 1: Apparel -->
-                                        <div class="dept-container" data-dept="apparel">
-                                            <div class="flex items-center justify-between border-b border-zinc-200 pb-2.5 mb-3">
-                                                <div class="flex items-center gap-2">
-                                                    <input type="checkbox" id="chkDeptApparel" class="w-4 h-4 accent-zinc-900 rounded cursor-pointer" onchange="toggleDeptCheckboxes('apparel', this.checked)">
-                                                    <label for="chkDeptApparel" class="text-xs font-semibold text-zinc-900 cursor-pointer select-none flex items-center gap-1.5">
-                                                        <i class="fas fa-tshirt text-zinc-500"></i>
-                                                        <span>Apparel &amp; Garments</span>
-                                                    </label>
+                            <div class="shadcn-stat-card">
+                                <div>
+                                    <span class="text-[11px] font-medium text-zinc-500 uppercase tracking-wider block">Estimated Photos</span>
+                                    <div class="flex items-baseline gap-2 mt-1">
+                                        <span id="metricEstImages" class="text-xl font-semibold text-zinc-900 font-mono">--</span>
+                                        <span class="text-xs text-zinc-400">in archive</span>
+                                    </div>
+                                </div>
+                                <div class="w-8 h-8 rounded-md bg-zinc-100 border border-zinc-200 flex items-center justify-center text-zinc-600 text-xs">
+                                    <i class="fas fa-images"></i>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Main Form / Layout Grid -->
+                        <form id="downloaderForm" onsubmit="event.preventDefault(); startBatchDownload();">
+
+                            <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+
+                                <!-- LEFT COLUMN: CATEGORY SELECTION -->
+                                <div class="lg:col-span-7 space-y-6">
+
+                                    <div class="shadcn-card">
+                                        <div class="shadcn-card-header">
+                                            <div>
+                                                <h2 class="text-xs font-semibold text-zinc-900 uppercase tracking-wider flex items-center gap-2">
+                                                    <i class="fas fa-folder-tree text-zinc-400 text-xs"></i>
+                                                    <span>1. Category Selection</span>
+                                                </h2>
+                                                <p class="text-xs text-zinc-500 mt-0.5">Select which product categories will be included in the photo download archive.</p>
+                                            </div>
+
+                                            <div class="flex items-center gap-1.5 flex-wrap">
+                                                <button type="button" onclick="selectCategoriesFilter('all')" class="text-xs text-zinc-600 hover:text-zinc-900 font-medium px-2 py-1 rounded hover:bg-zinc-100 transition-colors">Select All</button>
+                                                <span class="text-zinc-300">|</span>
+                                                <button type="button" onclick="selectCategoriesFilter('apparel')" class="text-xs text-zinc-600 hover:text-zinc-900 font-medium px-2 py-1 rounded hover:bg-zinc-100 transition-colors">All Apparel</button>
+                                                <span class="text-zinc-300">|</span>
+                                                <button type="button" onclick="selectCategoriesFilter('jewel')" class="text-xs text-zinc-600 hover:text-zinc-900 font-medium px-2 py-1 rounded hover:bg-zinc-100 transition-colors">All Jewellery</button>
+                                                <span class="text-zinc-300">|</span>
+                                                <button type="button" onclick="selectCategoriesFilter('none')" class="text-xs text-rose-600 hover:text-rose-800 font-medium px-2 py-1 rounded hover:bg-rose-50 transition-colors">Clear All</button>
+                                            </div>
+                                        </div>
+
+                                        <div class="p-4 border-b border-zinc-100 bg-zinc-50/50">
+                                            <div class="search-input-wrap">
+                                                <i class="fas fa-search search-icon"></i>
+                                                <input type="text" id="catSearchInput" placeholder="Filter category by name (e.g. Evening Gowns, Earrings)..." autocomplete="off" onkeyup="filterCategoryList(this.value)">
+                                            </div>
+                                        </div>
+
+                                        <div class="p-5 space-y-6">
+
+                                            <!-- Department 1: Apparel -->
+                                            <div class="dept-container" data-dept="apparel">
+                                                <div class="flex items-center justify-between border-b border-zinc-200 pb-2.5 mb-3">
+                                                    <div class="flex items-center gap-2">
+                                                        <input type="checkbox" id="chkDeptApparel" class="w-4 h-4 accent-zinc-900 rounded cursor-pointer" onchange="toggleDeptCheckboxes('apparel', this.checked)">
+                                                        <label for="chkDeptApparel" class="text-xs font-semibold text-zinc-900 cursor-pointer select-none flex items-center gap-1.5">
+                                                            <i class="fas fa-tshirt text-zinc-500"></i>
+                                                            <span>Apparel &amp; Garments</span>
+                                                        </label>
+                                                    </div>
+                                                    <span class="shadcn-badge font-mono text-[10px]"><?php echo count($categories['Apparel']['children'] ?? []); ?> categories</span>
                                                 </div>
-                                                <span class="shadcn-badge font-mono text-[10px]"><?php echo count($categories['Apparel']['children'] ?? []); ?> categories</span>
-                                            </div>
 
-                                            <div class="space-y-1 max-h-64 overflow-y-auto custom-scrollbar pr-1" id="apparelCatList">
-                                                <?php if (!empty($categories['Apparel']['children'])): ?>
-                                                    <?php foreach ($categories['Apparel']['children'] as $catKey => $catData): ?>
-                                                        <?php $isChecked = in_array($catKey, $selectedCats); ?>
-                                                        <div class="cat-item-row flex items-center justify-between p-2 rounded hover:bg-zinc-50 transition-colors group" data-name="<?php echo strtolower(htmlspecialchars($catData['name'])); ?>">
-                                                            <label class="flex items-center gap-2.5 cursor-pointer flex-1 min-w-0 select-none">
-                                                                <input type="checkbox" name="categories[]" value="<?php echo htmlspecialchars($catKey); ?>" <?php echo $isChecked ? 'checked' : ''; ?> class="cat-checkbox cat-apparel w-4 h-4 accent-zinc-900 rounded cursor-pointer" onchange="handleSelectionChange()">
-                                                                <span class="text-xs text-zinc-800 group-hover:text-zinc-950 font-medium truncate"><?php echo htmlspecialchars($catData['name']); ?></span>
-                                                            </label>
-                                                            <div class="flex items-center gap-2">
-                                                                <span class="shadcn-badge font-mono text-[10px] text-zinc-500 bg-zinc-50"><?php echo (int)$catData['count']; ?> items</span>
-                                                                <button type="button" onclick="downloadSingleCategory('<?php echo htmlspecialchars($catKey); ?>')" 
-                                                                   title="Download only <?php echo htmlspecialchars($catData['name']); ?>" 
-                                                                   class="text-zinc-400 hover:text-zinc-900 text-xs px-1.5 py-0.5 rounded hover:bg-zinc-200 transition-colors">
-                                                                    <i class="fas fa-download"></i>
-                                                                </button>
+                                                <div class="space-y-1 max-h-64 overflow-y-auto custom-scrollbar pr-1" id="apparelCatList">
+                                                    <?php if (!empty($categories['Apparel']['children'])): ?>
+                                                        <?php foreach ($categories['Apparel']['children'] as $catKey => $catData): ?>
+                                                            <?php $isChecked = in_array($catKey, $selectedCats); ?>
+                                                            <div class="cat-item-row flex items-center justify-between p-2 rounded hover:bg-zinc-50 transition-colors group" data-name="<?php echo strtolower(htmlspecialchars($catData['name'])); ?>">
+                                                                <label class="flex items-center gap-2.5 cursor-pointer flex-1 min-w-0 select-none">
+                                                                    <input type="checkbox" name="categories[]" value="<?php echo htmlspecialchars($catKey); ?>" <?php echo $isChecked ? 'checked' : ''; ?> class="cat-checkbox cat-apparel w-4 h-4 accent-zinc-900 rounded cursor-pointer" onchange="handleSelectionChange()">
+                                                                    <span class="text-xs text-zinc-800 group-hover:text-zinc-950 font-medium truncate"><?php echo htmlspecialchars($catData['name']); ?></span>
+                                                                </label>
+                                                                <div class="flex items-center gap-2">
+                                                                    <span class="shadcn-badge font-mono text-[10px] text-zinc-500 bg-zinc-50"><?php echo (int)$catData['count']; ?> items</span>
+                                                                    <button type="button" onclick="downloadSingleCategory('<?php echo htmlspecialchars($catKey); ?>')" 
+                                                                       title="Download only <?php echo htmlspecialchars($catData['name']); ?>" 
+                                                                       class="text-zinc-400 hover:text-zinc-900 text-xs px-1.5 py-0.5 rounded hover:bg-zinc-200 transition-colors">
+                                                                        <i class="fas fa-download"></i>
+                                                                    </button>
+                                                                </div>
                                                             </div>
-                                                        </div>
-                                                    <?php endforeach; ?>
-                                                <?php else: ?>
-                                                    <p class="text-xs text-zinc-400 py-3 text-center">No apparel categories found.</p>
-                                                <?php endif; ?>
-                                            </div>
-                                        </div>
-
-                                        <!-- Department 2: Jewellery -->
-                                        <div class="dept-container" data-dept="jewel">
-                                            <div class="flex items-center justify-between border-b border-zinc-200 pb-2.5 mb-3">
-                                                <div class="flex items-center gap-2">
-                                                    <input type="checkbox" id="chkDeptJewel" class="w-4 h-4 accent-zinc-900 rounded cursor-pointer" onchange="toggleDeptCheckboxes('jewel', this.checked)">
-                                                    <label for="chkDeptJewel" class="text-xs font-semibold text-zinc-900 cursor-pointer select-none flex items-center gap-1.5">
-                                                        <i class="fas fa-gem text-zinc-500"></i>
-                                                        <span>Jewellery Collection</span>
-                                                    </label>
+                                                        <?php endforeach; ?>
+                                                    <?php else: ?>
+                                                        <p class="text-xs text-zinc-400 py-3 text-center">No apparel categories found.</p>
+                                                    <?php endif; ?>
                                                 </div>
-                                                <span class="shadcn-badge font-mono text-[10px]"><?php echo count($categories['Jewellery']['children'] ?? []); ?> categories</span>
                                             </div>
 
-                                            <div class="space-y-1 max-h-80 overflow-y-auto custom-scrollbar pr-1" id="jewelCatList">
-                                                <?php if (!empty($categories['Jewellery']['children'])): ?>
-                                                    <?php foreach ($categories['Jewellery']['children'] as $catKey => $catData): ?>
-                                                        <?php 
-                                                            $isChecked = in_array($catKey, $selectedCats);
-                                                            $isSub = str_starts_with($catKey, 'jewel_child:');
-                                                        ?>
-                                                        <div class="cat-item-row flex items-center justify-between p-2 rounded hover:bg-zinc-50 transition-colors group <?php echo $isSub ? 'ml-4 bg-zinc-50/40' : ''; ?>" data-name="<?php echo strtolower(htmlspecialchars($catData['name'])); ?>">
-                                                            <label class="flex items-center gap-2.5 cursor-pointer flex-1 min-w-0 select-none">
-                                                                <?php if ($isSub): ?>
-                                                                    <span class="text-zinc-300 font-mono text-xs select-none">└─</span>
-                                                                <?php endif; ?>
-                                                                <input type="checkbox" name="categories[]" value="<?php echo htmlspecialchars($catKey); ?>" <?php echo $isChecked ? 'checked' : ''; ?> class="cat-checkbox cat-jewel w-4 h-4 accent-zinc-900 rounded cursor-pointer" onchange="handleSelectionChange()">
-                                                                <span class="text-xs <?php echo $isSub ? 'text-zinc-600 font-normal' : 'text-zinc-900 font-semibold'; ?> group-hover:text-zinc-950 truncate">
-                                                                    <?php echo htmlspecialchars($catData['name']); ?>
-                                                                </span>
-                                                            </label>
-                                                            <div class="flex items-center gap-2">
-                                                                <span class="shadcn-badge font-mono text-[10px] text-zinc-500 bg-zinc-50"><?php echo (int)$catData['count']; ?> items</span>
-                                                                <button type="button" onclick="downloadSingleCategory('<?php echo htmlspecialchars($catKey); ?>')" 
-                                                                   title="Download only <?php echo htmlspecialchars($catData['name']); ?>" 
-                                                                   class="text-zinc-400 hover:text-zinc-900 text-xs px-1.5 py-0.5 rounded hover:bg-zinc-200 transition-colors">
-                                                                    <i class="fas fa-download"></i>
-                                                                </button>
+                                            <!-- Department 2: Jewellery -->
+                                            <div class="dept-container" data-dept="jewel">
+                                                <div class="flex items-center justify-between border-b border-zinc-200 pb-2.5 mb-3">
+                                                    <div class="flex items-center gap-2">
+                                                        <input type="checkbox" id="chkDeptJewel" class="w-4 h-4 accent-zinc-900 rounded cursor-pointer" onchange="toggleDeptCheckboxes('jewel', this.checked)">
+                                                        <label for="chkDeptJewel" class="text-xs font-semibold text-zinc-900 cursor-pointer select-none flex items-center gap-1.5">
+                                                            <i class="fas fa-gem text-zinc-500"></i>
+                                                            <span>Jewellery Collection</span>
+                                                        </label>
+                                                    </div>
+                                                    <span class="shadcn-badge font-mono text-[10px]"><?php echo count($categories['Jewellery']['children'] ?? []); ?> categories</span>
+                                                </div>
+
+                                                <div class="space-y-1 max-h-80 overflow-y-auto custom-scrollbar pr-1" id="jewelCatList">
+                                                    <?php if (!empty($categories['Jewellery']['children'])): ?>
+                                                        <?php foreach ($categories['Jewellery']['children'] as $catKey => $catData): ?>
+                                                            <?php $isChecked = in_array($catKey, $selectedCats); ?>
+                                                            <div class="cat-item-row flex items-center justify-between p-2 rounded hover:bg-zinc-50 transition-colors group" data-name="<?php echo strtolower(htmlspecialchars($catData['name'])); ?>">
+                                                                <label class="flex items-center gap-2.5 cursor-pointer flex-1 min-w-0 select-none">
+                                                                    <input type="checkbox" name="categories[]" value="<?php echo htmlspecialchars($catKey); ?>" <?php echo $isChecked ? 'checked' : ''; ?> class="cat-checkbox cat-jewel w-4 h-4 accent-zinc-900 rounded cursor-pointer" onchange="handleSelectionChange()">
+                                                                    <span class="text-xs text-zinc-800 group-hover:text-zinc-950 font-medium truncate"><?php echo htmlspecialchars($catData['name']); ?></span>
+                                                                </label>
+                                                                <div class="flex items-center gap-2">
+                                                                    <span class="shadcn-badge font-mono text-[10px] text-zinc-500 bg-zinc-50"><?php echo (int)$catData['count']; ?> items</span>
+                                                                    <button type="button" onclick="downloadSingleCategory('<?php echo htmlspecialchars($catKey); ?>')" 
+                                                                       title="Download only <?php echo htmlspecialchars($catData['name']); ?>" 
+                                                                       class="text-zinc-400 hover:text-zinc-900 text-xs px-1.5 py-0.5 rounded hover:bg-zinc-200 transition-colors">
+                                                                        <i class="fas fa-download"></i>
+                                                                    </button>
+                                                                </div>
                                                             </div>
-                                                        </div>
-                                                    <?php endforeach; ?>
-                                                <?php else: ?>
-                                                    <p class="text-xs text-zinc-400 py-3 text-center">No jewellery categories found.</p>
-                                                <?php endif; ?>
+                                                        <?php endforeach; ?>
+                                                    <?php else: ?>
+                                                        <p class="text-xs text-zinc-400 py-3 text-center">No jewellery categories found.</p>
+                                                    <?php endif; ?>
+                                                </div>
                                             </div>
-                                        </div>
 
+                                        </div>
                                     </div>
+
                                 </div>
 
-                            </div>
+                                <!-- RIGHT COLUMN: OPTIONS & DOWNLOAD TRIGGER -->
+                                <div class="lg:col-span-5 space-y-6">
 
-                            <!-- ==================== RIGHT COLUMN: FILTERS & ACTIONS ==================== -->
-                            <div class="lg:col-span-5 space-y-6">
-
-                                <!-- Card 2: Stock & Image Filters -->
-                                <div class="shadcn-card">
-                                    <div class="shadcn-card-header">
-                                        <div>
+                                    <div class="shadcn-card">
+                                        <div class="shadcn-card-header">
                                             <h2 class="text-xs font-semibold text-zinc-900 uppercase tracking-wider flex items-center gap-2">
                                                 <i class="fas fa-sliders text-zinc-400 text-xs"></i>
-                                                <span>2. Stock &amp; Photo Options</span>
+                                                <span>2. Downloader Options</span>
                                             </h2>
-                                            <p class="text-xs text-zinc-500 mt-0.5">Filter products by stock status and decide whether to download main photo or all photos.</p>
-                                        </div>
-                                    </div>
-
-                                    <div class="p-5 space-y-5">
-
-                                        <!-- Stock Status Option -->
-                                        <div>
-                                            <label class="text-xs font-semibold text-zinc-900 block mb-2">
-                                                Product Stock Availability:
-                                            </label>
-                                            <div class="space-y-2">
-                                                <label class="radio-option-card <?php echo $stockStatus === 'all' ? 'selected' : ''; ?>" onclick="selectRadio(this, 'stock_status', 'all')">
-                                                    <input type="radio" name="stock_status" value="all" <?php echo $stockStatus === 'all' ? 'checked' : ''; ?> class="accent-zinc-900 mt-0.5" onchange="handleSelectionChange()">
-                                                    <div>
-                                                        <div class="text-xs font-semibold text-zinc-900">All Products</div>
-                                                        <div class="text-[11px] text-zinc-500">Include every catalog product regardless of current POS stock level.</div>
-                                                    </div>
-                                                </label>
-
-                                                <label class="radio-option-card <?php echo $stockStatus === 'available' ? 'selected' : ''; ?>" onclick="selectRadio(this, 'stock_status', 'available')">
-                                                    <input type="radio" name="stock_status" value="available" <?php echo $stockStatus === 'available' ? 'checked' : ''; ?> class="accent-zinc-900 mt-0.5" onchange="handleSelectionChange()">
-                                                    <div>
-                                                        <div class="text-xs font-semibold text-zinc-900 flex items-center gap-1.5">
-                                                            <span>Available Products (In Stock)</span>
-                                                            <span class="status-dot status-dot-success"></span>
-                                                        </div>
-                                                        <div class="text-[11px] text-zinc-500">Only download products that currently have POS inventory (quantity &gt; 0).</div>
-                                                    </div>
-                                                </label>
-
-                                                <label class="radio-option-card <?php echo $stockStatus === 'outofstock' ? 'selected' : ''; ?>" onclick="selectRadio(this, 'stock_status', 'outofstock')">
-                                                    <input type="radio" name="stock_status" value="outofstock" <?php echo $stockStatus === 'outofstock' ? 'checked' : ''; ?> class="accent-zinc-900 mt-0.5" onchange="handleSelectionChange()">
-                                                    <div>
-                                                        <div class="text-xs font-semibold text-zinc-900 flex items-center gap-1.5">
-                                                            <span>Out of Stock Products</span>
-                                                            <span class="status-dot status-dot-warning"></span>
-                                                        </div>
-                                                        <div class="text-[11px] text-zinc-500">Only download products where POS stock is 0 or sold out.</div>
-                                                    </div>
-                                                </label>
-                                            </div>
+                                            <span class="shadcn-badge text-[10px]">Server Packager</span>
                                         </div>
 
-                                        <!-- Image Scope Option -->
-                                        <div class="pt-3 border-t border-zinc-100">
-                                            <label class="text-xs font-semibold text-zinc-900 block mb-2">
-                                                Image Download Scope:
-                                            </label>
-                                            <div class="space-y-2">
-                                                <label class="radio-option-card <?php echo $imageScope === 'all' ? 'selected' : ''; ?>" onclick="selectRadio(this, 'image_scope', 'all')">
-                                                    <input type="radio" name="image_scope" value="all" <?php echo $imageScope === 'all' ? 'checked' : ''; ?> class="accent-zinc-900 mt-0.5" onchange="handleSelectionChange()">
+                                        <div class="p-5 space-y-5">
+
+                                            <!-- Compression Option (CRITICAL FIX FOR 504 TIMEOUT) -->
+                                            <div class="p-3.5 bg-emerald-50/60 border border-emerald-200/80 rounded-lg">
+                                                <div class="flex items-start gap-2.5">
+                                                    <input type="checkbox" id="chkCompressImages" name="compress_images" value="1" <?php echo $compressImages === '1' ? 'checked' : ''; ?> class="accent-emerald-700 w-4 h-4 mt-0.5 cursor-pointer" onchange="handleSelectionChange()">
                                                     <div>
-                                                        <div class="text-xs font-semibold text-zinc-900 flex items-center gap-1.5">
-                                                            <span>All Images (Recommended)</span>
-                                                            <span class="shadcn-badge text-[10px]">Complete</span>
+                                                        <label for="chkCompressImages" class="text-xs font-semibold text-emerald-950 cursor-pointer flex items-center gap-1.5">
+                                                            <span>Server Image Compression &amp; Speed Boost</span>
+                                                            <span class="shadcn-badge text-[9px] bg-emerald-100 text-emerald-800 border-emerald-300">Recommended</span>
+                                                        </label>
+                                                        <p class="text-[11px] text-emerald-800/90 mt-1 leading-relaxed">
+                                                            Compresses large 50-60MB camera photos to high-res 2K (~350KB) on the server before packing into ZIP. <strong>Fixes 504 Gateway Timeouts</strong> and reduces ZIP size by 99% for 100x faster downloads.
+                                                        </p>
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            <!-- Stock Status Option -->
+                                            <div>
+                                                <label class="text-xs font-semibold text-zinc-900 block mb-2">
+                                                    Product Stock Availability:
+                                                </label>
+                                                <div class="space-y-2">
+                                                    <label class="radio-option-card <?php echo $stockStatus === 'all' ? 'selected' : ''; ?>" onclick="selectRadio(this, 'stock_status', 'all')">
+                                                        <input type="radio" name="stock_status" value="all" <?php echo $stockStatus === 'all' ? 'checked' : ''; ?> class="accent-zinc-900 mt-0.5" onchange="handleSelectionChange()">
+                                                        <div>
+                                                            <div class="text-xs font-semibold text-zinc-900">All Products</div>
+                                                            <div class="text-[11px] text-zinc-500">Include every catalog product regardless of current POS stock level.</div>
                                                         </div>
-                                                        <div class="text-[11px] text-zinc-500">Downloads main hero image + all supplementary gallery angles for each product.</div>
-                                                    </div>
-                                                </label>
+                                                    </label>
 
-                                                <label class="radio-option-card <?php echo $imageScope === 'main' ? 'selected' : ''; ?>" onclick="selectRadio(this, 'image_scope', 'main')">
-                                                    <input type="radio" name="image_scope" value="main" <?php echo $imageScope === 'main' ? 'checked' : ''; ?> class="accent-zinc-900 mt-0.5" onchange="handleSelectionChange()">
-                                                    <div>
-                                                        <div class="text-xs font-semibold text-zinc-900">Main Image Only</div>
-                                                        <div class="text-[11px] text-zinc-500">Downloads only the primary featured cover photo for each SKU (faster download).</div>
-                                                    </div>
-                                                </label>
-                                            </div>
-                                        </div>
-
-                                        <!-- Download Limit Option (Quick Testing) -->
-                                        <div class="pt-3 border-t border-zinc-100">
-                                            <div class="flex items-center justify-between mb-2">
-                                                <label class="text-xs font-semibold text-zinc-900 block">
-                                                    Download Limit / Sample Size:
-                                                </label>
-                                                <span class="shadcn-badge font-mono text-[10px]">Testing Option</span>
-                                            </div>
-                                            <div class="space-y-2">
-                                                <label class="radio-option-card <?php echo $limitProducts === 'all' ? 'selected' : ''; ?>" onclick="selectRadio(this, 'limit_products', 'all')">
-                                                    <input type="radio" name="limit_products" value="all" <?php echo $limitProducts === 'all' ? 'checked' : ''; ?> class="accent-zinc-900 mt-0.5" onchange="handleSelectionChange()">
-                                                    <div>
-                                                        <div class="text-xs font-semibold text-zinc-900">All Products (Full Export)</div>
-                                                        <div class="text-[11px] text-zinc-500">Download every product in each selected category.</div>
-                                                    </div>
-                                                </label>
-
-                                                <label class="radio-option-card <?php echo $limitProducts === '10' ? 'selected' : ''; ?>" onclick="selectRadio(this, 'limit_products', '10')">
-                                                    <input type="radio" name="limit_products" value="10" <?php echo $limitProducts === '10' ? 'checked' : ''; ?> class="accent-zinc-900 mt-0.5" onchange="handleSelectionChange()">
-                                                    <div>
-                                                        <div class="text-xs font-semibold text-zinc-900 flex items-center gap-1.5">
-                                                            <span>Max 10 Products (Quick Test)</span>
-                                                            <span class="shadcn-badge text-[10px] bg-emerald-50 text-emerald-700 border-emerald-200">Recommended for Testing</span>
+                                                    <label class="radio-option-card <?php echo $stockStatus === 'available' ? 'selected' : ''; ?>" onclick="selectRadio(this, 'stock_status', 'available')">
+                                                        <input type="radio" name="stock_status" value="available" <?php echo $stockStatus === 'available' ? 'checked' : ''; ?> class="accent-zinc-900 mt-0.5" onchange="handleSelectionChange()">
+                                                        <div>
+                                                            <div class="text-xs font-semibold text-zinc-900 flex items-center gap-1.5">
+                                                                <span>Available Products (In Stock)</span>
+                                                                <span class="status-dot status-dot-success"></span>
+                                                            </div>
+                                                            <div class="text-[11px] text-zinc-500">Only download products that currently have POS inventory (quantity &gt; 0).</div>
                                                         </div>
-                                                        <div class="text-[11px] text-zinc-500">Downloads max 10 products per category for lightning-fast testing (approx 3-5s).</div>
-                                                    </div>
-                                                </label>
+                                                    </label>
 
-                                                <label class="radio-option-card <?php echo $limitProducts === '25' ? 'selected' : ''; ?>" onclick="selectRadio(this, 'limit_products', '25')">
-                                                    <input type="radio" name="limit_products" value="25" <?php echo $limitProducts === '25' ? 'checked' : ''; ?> class="accent-zinc-900 mt-0.5" onchange="handleSelectionChange()">
-                                                    <div>
-                                                        <div class="text-xs font-semibold text-zinc-900">Max 25 Products per Category</div>
-                                                        <div class="text-[11px] text-zinc-500">Moderate sample size for testing larger batch packages.</div>
-                                                    </div>
-                                                </label>
+                                                    <label class="radio-option-card <?php echo $stockStatus === 'outofstock' ? 'selected' : ''; ?>" onclick="selectRadio(this, 'stock_status', 'outofstock')">
+                                                        <input type="radio" name="stock_status" value="outofstock" <?php echo $stockStatus === 'outofstock' ? 'checked' : ''; ?> class="accent-zinc-900 mt-0.5" onchange="handleSelectionChange()">
+                                                        <div>
+                                                            <div class="text-xs font-semibold text-zinc-900 flex items-center gap-1.5">
+                                                                <span>Out of Stock Products</span>
+                                                                <span class="status-dot status-dot-warning"></span>
+                                                            </div>
+                                                            <div class="text-[11px] text-zinc-500">Only download products where POS stock is 0 or sold out.</div>
+                                                        </div>
+                                                    </label>
+                                                </div>
                                             </div>
-                                        </div>
 
-                                        <!-- Folder Hierarchy Preview Box -->
-                                        <div class="pt-3 border-t border-zinc-100">
-                                            <span class="text-[11px] font-semibold text-zinc-600 block mb-1.5">
-                                                <i class="fas fa-sitemap mr-1 text-zinc-400"></i> Resulting ZIP Directory Structure:
-                                            </span>
-                                            <div class="folder-tree">
-📦 srishringarr_photos.zip<br>
-├── 📁 Apparel/<br>
-│   └── 📁 Evening Gowns/<br>
-│       ├── 🖼️ {sku}_00_main_image.png<br>
-│       └── 🖼️ {sku}_01_other_image.png<br>
-└── 📁 Jewellery/<br>
-    └── 📁 Earrings/<br>
+                                            <!-- Image Scope Option -->
+                                            <div class="pt-3 border-t border-zinc-100">
+                                                <label class="text-xs font-semibold text-zinc-900 block mb-2">
+                                                    Image Download Scope:
+                                                </label>
+                                                <div class="space-y-2">
+                                                    <label class="radio-option-card <?php echo $imageScope === 'all' ? 'selected' : ''; ?>" onclick="selectRadio(this, 'image_scope', 'all')">
+                                                        <input type="radio" name="image_scope" value="all" <?php echo $imageScope === 'all' ? 'checked' : ''; ?> class="accent-zinc-900 mt-0.5" onchange="handleSelectionChange()">
+                                                        <div>
+                                                            <div class="text-xs font-semibold text-zinc-900 flex items-center gap-1.5">
+                                                                <span>All Images (Recommended)</span>
+                                                                <span class="shadcn-badge text-[10px]">Complete</span>
+                                                            </div>
+                                                            <div class="text-[11px] text-zinc-500">Downloads main hero image + all supplementary gallery angles for each product.</div>
+                                                        </div>
+                                                    </label>
+
+                                                    <label class="radio-option-card <?php echo $imageScope === 'main' ? 'selected' : ''; ?>" onclick="selectRadio(this, 'image_scope', 'main')">
+                                                        <input type="radio" name="image_scope" value="main" <?php echo $imageScope === 'main' ? 'checked' : ''; ?> class="accent-zinc-900 mt-0.5" onchange="handleSelectionChange()">
+                                                        <div>
+                                                            <div class="text-xs font-semibold text-zinc-900">Main Image Only</div>
+                                                            <div class="text-[11px] text-zinc-500">Downloads only the primary featured cover photo for each SKU (faster download).</div>
+                                                        </div>
+                                                    </label>
+                                                </div>
+                                            </div>
+
+                                            <!-- Download Limit Option -->
+                                            <div class="pt-3 border-t border-zinc-100">
+                                                <div class="flex items-center justify-between mb-2">
+                                                    <label class="text-xs font-semibold text-zinc-900 block">
+                                                        Download Limit / Sample Size:
+                                                    </label>
+                                                    <span class="shadcn-badge font-mono text-[10px]">Testing Option</span>
+                                                </div>
+                                                <div class="space-y-2">
+                                                    <label class="radio-option-card <?php echo $limitProducts === 'all' ? 'selected' : ''; ?>" onclick="selectRadio(this, 'limit_products', 'all')">
+                                                        <input type="radio" name="limit_products" value="all" <?php echo $limitProducts === 'all' ? 'checked' : ''; ?> class="accent-zinc-900 mt-0.5" onchange="handleSelectionChange()">
+                                                        <div>
+                                                            <div class="text-xs font-semibold text-zinc-900">All Products (Full Export)</div>
+                                                            <div class="text-[11px] text-zinc-500">Download every product in each selected category.</div>
+                                                        </div>
+                                                    </label>
+
+                                                    <label class="radio-option-card <?php echo $limitProducts === '10' ? 'selected' : ''; ?>" onclick="selectRadio(this, 'limit_products', '10')">
+                                                        <input type="radio" name="limit_products" value="10" <?php echo $limitProducts === '10' ? 'checked' : ''; ?> class="accent-zinc-900 mt-0.5" onchange="handleSelectionChange()">
+                                                        <div>
+                                                            <div class="text-xs font-semibold text-zinc-900 flex items-center gap-1.5">
+                                                                <span>Max 10 Products (Quick Test)</span>
+                                                                <span class="shadcn-badge text-[10px] bg-emerald-50 text-emerald-700 border-emerald-200">Fast Sample</span>
+                                                            </div>
+                                                            <div class="text-[11px] text-zinc-500">Downloads max 10 products per category for quick verification.</div>
+                                                        </div>
+                                                    </label>
+
+                                                    <label class="radio-option-card <?php echo $limitProducts === '25' ? 'selected' : ''; ?>" onclick="selectRadio(this, 'limit_products', '25')">
+                                                        <input type="radio" name="limit_products" value="25" <?php echo $limitProducts === '25' ? 'checked' : ''; ?> class="accent-zinc-900 mt-0.5" onchange="handleSelectionChange()">
+                                                        <div>
+                                                            <div class="text-xs font-semibold text-zinc-900">Max 25 Products per Category</div>
+                                                            <div class="text-[11px] text-zinc-500">Moderate sample size for testing larger batch packages.</div>
+                                                        </div>
+                                                    </label>
+                                                </div>
+                                            </div>
+
+                                            <!-- Folder Hierarchy Preview Box -->
+                                            <div class="pt-3 border-t border-zinc-100">
+                                                <span class="text-[11px] font-semibold text-zinc-600 block mb-1.5">
+                                                    <i class="fas fa-sitemap mr-1 text-zinc-400"></i> Resulting ZIP Directory Structure:
+                                                </span>
+                                                <div class="folder-tree">
+📦 srishringarr_photos.zip
+├── 📁 Apparel/
+│   └── 📁 Evening Gowns/
+│       ├── 🖼️ {sku}_00_main_image.jpg
+│       └── 🖼️ {sku}_01_other_image.jpg
+└── 📁 Jewellery/
+    └── 📁 Earrings/
         └── 🖼️ {sku}_00_main_image.jpg
+                                                </div>
                                             </div>
+
+                                            <!-- Action Buttons -->
+                                            <div class="pt-4 border-t border-zinc-100 flex flex-col gap-2.5">
+                                                <button type="button" id="btnDownloadZip" onclick="startBatchDownload()" class="shadcn-btn shadcn-btn-primary w-full py-2.5 h-10 text-sm font-semibold justify-center">
+                                                    <i class="fas fa-cloud-arrow-down" id="downloadIcon"></i>
+                                                    <span id="downloadBtnText">Create &amp; Download ZIP Archive</span>
+                                                </button>
+
+                                                <button type="button" id="btnSaveConfig" onclick="saveConfigurationAjax()" class="shadcn-btn w-full py-2 h-9 text-xs justify-center font-medium">
+                                                    <i class="fas fa-floppy-disk text-zinc-400" id="saveIcon"></i>
+                                                    <span>Save Configuration to Backend</span>
+                                                </button>
+                                            </div>
+
                                         </div>
-
-                                        <!-- Action Buttons -->
-                                        <div class="pt-4 border-t border-zinc-100 flex flex-col gap-2.5">
-                                            <button type="button" id="btnDownloadZip" onclick="startBatchDownload()" class="shadcn-btn shadcn-btn-primary w-full py-2.5 h-10 text-sm font-semibold justify-center">
-                                                <i class="fas fa-cloud-arrow-down" id="downloadIcon"></i>
-                                                <span id="downloadBtnText">Download ZIP Archive</span>
-                                            </button>
-
-                                            <button type="button" id="btnSaveConfig" onclick="saveConfigurationAjax()" class="shadcn-btn w-full py-2 h-9 text-xs justify-center font-medium">
-                                                <i class="fas fa-floppy-disk text-zinc-400" id="saveIcon"></i>
-                                                <span>Save Configuration to Backend</span>
-                                            </button>
-                                        </div>
-
                                     </div>
-                                </div>
 
-                                <!-- Tips / Notes Card -->
-                                <div class="p-4 bg-zinc-100/60 border border-zinc-200/80 rounded-lg text-xs text-zinc-600 space-y-1.5">
-                                    <div class="font-semibold text-zinc-800 flex items-center gap-1.5">
-                                        <i class="fas fa-circle-info text-zinc-400"></i>
-                                        <span>Pro Tips &amp; Persistence</span>
-                                    </div>
-                                    <p class="text-[11px] text-zinc-500 leading-relaxed">
-                                        &bull; Selected categories and filter choices are saved in the backend and will be remembered the next time you visit.<br>
-                                        &bull; Each product SKU folder keeps its images neatly numbered with the primary photo ranked first as <code class="bg-zinc-200/70 px-1 py-0.5 rounded text-zinc-800 font-mono text-[10px]">00_main_...</code>.
-                                    </p>
                                 </div>
 
                             </div>
+                        </form>
 
+                    </div>
+
+                    <!-- ========================================================================= -->
+                    <!-- ======================= TAB 2: DUPLICATE PHOTOS ========================= -->
+                    <!-- ========================================================================= -->
+                    <div id="tabContentDuplicates" style="<?php echo ($activeTab !== 'duplicates') ? 'display: none;' : ''; ?>">
+
+                        <!-- Header Banner -->
+                        <div class="mb-5 flex flex-col md:flex-row md:items-center justify-between gap-4">
+                            <div>
+                                <div class="flex items-center gap-2">
+                                    <h1 class="text-lg font-semibold text-zinc-900 tracking-tight">Category-Wise Duplicate Photo Finder</h1>
+                                    <span class="shadcn-badge font-mono text-[11px]">
+                                        <span class="status-dot status-dot-warning mr-1"></span>
+                                        Catalog Deduplication
+                                    </span>
+                                </div>
+                                <p class="text-xs text-zinc-500 mt-1">Scan product photos category-wise to identify duplicate image uploads across SKUs or repeated multiple times within the same product, and clean up redundant database entries.</p>
+                            </div>
+
+                            <div class="flex items-center gap-2 flex-wrap">
+                                <button type="button" onclick="exportDuplicatesCsv()" class="shadcn-btn shadcn-btn-sm text-xs">
+                                    <i class="fas fa-file-csv text-zinc-500 mr-1"></i>
+                                    <span>Export CSV Report</span>
+                                </button>
+                                <button type="button" onclick="confirmDeduplicateCategory()" id="btnDeduplicateCat" class="shadcn-btn shadcn-btn-sm shadcn-btn-danger text-xs">
+                                    <i class="fas fa-trash-can mr-1"></i>
+                                    <span>Deduplicate Current Category</span>
+                                </button>
+                            </div>
                         </div>
-                    </form>
+
+                        <!-- Duplicate Filters Card -->
+                        <div class="shadcn-card mb-6">
+                            <div class="p-4 grid grid-cols-1 md:grid-cols-12 gap-4 items-center">
+                                <!-- Category Selector -->
+                                <div class="md:col-span-5">
+                                    <label class="text-[11px] font-semibold text-zinc-500 uppercase tracking-wider block mb-1">Category Filter</label>
+                                    <select id="dupeCategorySelect" onchange="fetchDuplicates(1)" class="w-full h-9 px-3 border border-zinc-200 rounded-md text-xs bg-white text-zinc-900 outline-none focus:border-zinc-900">
+                                        <option value="all">-- All Categories (Full Storefront) --</option>
+                                        <optgroup label="Apparel &amp; Garments">
+                                            <?php foreach (($categories['Apparel']['children'] ?? []) as $cKey => $cItem): ?>
+                                                <option value="<?php echo htmlspecialchars($cKey); ?>"><?php echo htmlspecialchars($cItem['name']); ?> (<?php echo (int)$cItem['count']; ?> items)</option>
+                                            <?php endforeach; ?>
+                                        </optgroup>
+                                        <optgroup label="Jewellery">
+                                            <?php foreach (($categories['Jewellery']['children'] ?? []) as $cKey => $cItem): ?>
+                                                <option value="<?php echo htmlspecialchars($cKey); ?>"><?php echo htmlspecialchars($cItem['name']); ?> (<?php echo (int)$cItem['count']; ?> items)</option>
+                                            <?php endforeach; ?>
+                                        </optgroup>
+                                    </select>
+                                </div>
+
+                                <!-- Duplicate Type Filter -->
+                                <div class="md:col-span-4">
+                                    <label class="text-[11px] font-semibold text-zinc-500 uppercase tracking-wider block mb-1">Duplicate Type</label>
+                                    <select id="dupeTypeSelect" onchange="fetchDuplicates(1)" class="w-full h-9 px-3 border border-zinc-200 rounded-md text-xs bg-white text-zinc-900 outline-none focus:border-zinc-900">
+                                        <option value="all">All Duplicates (Any duplicate occurrence)</option>
+                                        <option value="multi_sku">Shared Across Multiple SKUs (Different Products)</option>
+                                        <option value="single_sku_repeated">Repeated Duplicates on Same SKU (Uploaded Multiple Times)</option>
+                                    </select>
+                                </div>
+
+                                <!-- Search Box -->
+                                <div class="md:col-span-3">
+                                    <label class="text-[11px] font-semibold text-zinc-500 uppercase tracking-wider block mb-1">Search SKU / Image</label>
+                                    <div class="search-input-wrap">
+                                        <i class="fas fa-search search-icon"></i>
+                                        <input type="text" id="dupeSearchInput" placeholder="Filter by SKU or image..." oninput="debounceDupeSearch()">
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Duplicate Summary KPIs -->
+                        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
+                            <div class="shadcn-stat-card">
+                                <div>
+                                    <span class="text-[11px] font-medium text-zinc-500 uppercase tracking-wider block">Duplicate Image Groups</span>
+                                    <div class="flex items-baseline gap-2 mt-1">
+                                        <span id="dupeKpiGroups" class="text-xl font-semibold text-zinc-900 font-mono">--</span>
+                                        <span class="text-xs text-zinc-400">unique duplicate photos</span>
+                                    </div>
+                                </div>
+                                <div class="w-8 h-8 rounded-md bg-zinc-100 border border-zinc-200 flex items-center justify-center text-zinc-600 text-xs">
+                                    <i class="fas fa-clone"></i>
+                                </div>
+                            </div>
+
+                            <div class="shadcn-stat-card">
+                                <div>
+                                    <span class="text-[11px] font-medium text-zinc-500 uppercase tracking-wider block">Redundant Extra Records</span>
+                                    <div class="flex items-baseline gap-2 mt-1">
+                                        <span id="dupeKpiRedundant" class="text-xl font-semibold text-rose-600 font-mono">--</span>
+                                        <span class="text-xs text-zinc-400">extra rows in DB</span>
+                                    </div>
+                                </div>
+                                <div class="w-8 h-8 rounded-md bg-rose-50 border border-rose-200 flex items-center justify-center text-rose-600 text-xs">
+                                    <i class="fas fa-trash-can"></i>
+                                </div>
+                            </div>
+
+                            <div class="shadcn-stat-card">
+                                <div>
+                                    <span class="text-[11px] font-medium text-zinc-500 uppercase tracking-wider block">Current Scope</span>
+                                    <div class="flex items-baseline gap-2 mt-1">
+                                        <span id="dupeKpiScope" class="text-sm font-semibold text-zinc-900 truncate max-w-[200px]">All Categories</span>
+                                    </div>
+                                </div>
+                                <div class="w-8 h-8 rounded-md bg-zinc-100 border border-zinc-200 flex items-center justify-center text-zinc-600 text-xs">
+                                    <i class="fas fa-filter"></i>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Duplicate Photos Listing Area -->
+                        <div class="shadcn-card">
+                            <div class="shadcn-card-header">
+                                <div class="flex items-center gap-2">
+                                    <h2 class="text-xs font-semibold text-zinc-900 uppercase tracking-wider flex items-center gap-2">
+                                        <i class="fas fa-images text-zinc-400 text-xs"></i>
+                                        <span>Duplicate Photos Catalog</span>
+                                    </h2>
+                                    <span id="dupeResultsCountBadge" class="shadcn-badge font-mono text-[10px]">Loading...</span>
+                                </div>
+
+                                <div class="flex items-center gap-2" id="dupePaginationControls">
+                                    <!-- Dynamic pagination populated by JS -->
+                                </div>
+                            </div>
+
+                            <!-- List Container -->
+                            <div id="dupeListContainer" class="p-5 space-y-4 min-h-[220px]">
+                                <!-- Injected dynamically via fetchDuplicates() -->
+                            </div>
+                        </div>
+
+                    </div>
 
                 </div>
             </main>
@@ -698,24 +913,36 @@
                     </div>
                 </div>
 
-                <!-- Currently Processing Item -->
-                <div>
-                    <span class="text-[10px] font-semibold text-zinc-400 uppercase tracking-wider block mb-1">Current Item</span>
-                    <div id="modalCurrentItemLabel" class="text-xs text-zinc-600 font-mono truncate bg-zinc-50 border border-zinc-200/70 rounded-md px-3 py-2">
-                        Initializing catalog items...
-                    </div>
+                <!-- Live ZIP File Size -->
+                <div class="bg-zinc-50 border border-zinc-200/80 p-2.5 rounded-lg flex items-center justify-between text-xs">
+                    <span class="text-zinc-500 font-medium flex items-center gap-1.5">
+                        <i class="fas fa-file-zipper text-zinc-400"></i> Server ZIP Size:
+                    </span>
+                    <span id="modalZipSize" class="font-mono font-semibold text-zinc-900">0.0 MB</span>
+                </div>
+
+                <!-- Current Item Status -->
+                <div class="p-3 bg-zinc-100/60 rounded-lg border border-zinc-200/60 text-xs">
+                    <span class="text-zinc-400 block text-[10px] uppercase tracking-wider font-semibold">Current Batch</span>
+                    <div id="modalCurrentItemLabel" class="text-zinc-700 font-medium truncate mt-0.5">Initializing packaging pipeline...</div>
+                </div>
+
+                <!-- Retry Notification banner (hidden by default) -->
+                <div id="modalRetryNotice" class="hidden p-2.5 bg-amber-50 border border-amber-200 text-amber-800 rounded-md text-xs flex items-center gap-2">
+                    <i class="fas fa-arrows-rotate fa-spin text-amber-600"></i>
+                    <span id="modalRetryText">Server busy, retrying batch...</span>
                 </div>
             </div>
 
             <!-- Modal Footer -->
-            <div class="p-4 bg-zinc-50 border-t border-zinc-100 flex items-center justify-between gap-2">
-                <button type="button" id="btnCancelDownload" onclick="cancelInteractiveDownload()" class="text-xs text-zinc-600 hover:text-rose-600 font-medium px-3 py-1.5 rounded hover:bg-zinc-200/70 transition-colors">
-                    <i class="fas fa-times-circle mr-1"></i> Cancel
+            <div class="p-4 border-t border-zinc-100 bg-zinc-50 flex items-center justify-between gap-3">
+                <button type="button" id="btnCancelDownload" onclick="cancelInteractiveDownload()" class="shadcn-btn shadcn-btn-sm text-xs text-zinc-600 hover:text-rose-600">
+                    <i class="fas fa-xmark text-zinc-400 mr-1"></i> Cancel
                 </button>
 
                 <div class="flex items-center gap-2">
-                    <a id="btnDirectDownloadLink" href="#" style="display:none;" class="shadcn-btn shadcn-btn-primary shadcn-btn-sm text-xs">
-                        <i class="fas fa-download"></i> Download Ready (.zip)
+                    <a id="btnDirectDownloadLink" href="#" style="display:none;" class="shadcn-btn shadcn-btn-sm shadcn-btn-primary text-xs">
+                        <i class="fas fa-download mr-1"></i> Download ZIP
                     </a>
                     <button type="button" id="btnCloseModal" onclick="closeDownloadModal()" style="display:none;" class="shadcn-btn shadcn-btn-sm text-xs">
                         Close
@@ -725,25 +952,74 @@
         </div>
     </div>
 
-    <!-- Floating Toast Container -->
+    <!-- ==================== IMAGE LIGHTBOX MODAL ==================== -->
+    <div id="imageLightboxModal" class="fixed inset-0 z-50 hidden flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm" style="display:none;" onclick="closeImageLightbox()">
+        <div class="relative max-w-3xl max-h-[90vh] bg-zinc-900 rounded-xl overflow-hidden shadow-2xl p-2 flex flex-col items-center" onclick="event.stopPropagation()">
+            <div class="w-full flex items-center justify-between p-2 text-white/80 border-b border-zinc-800 mb-2">
+                <span id="lightboxTitle" class="text-xs font-mono truncate max-w-md text-zinc-300">Image Preview</span>
+                <button type="button" onclick="closeImageLightbox()" class="text-zinc-400 hover:text-white text-lg p-1">&times;</button>
+            </div>
+            <img id="lightboxImg" src="" alt="Preview" class="max-h-[75vh] max-w-full object-contain rounded">
+        </div>
+    </div>
+
+    <!-- Toast Notification Container -->
     <div id="toast-box"></div>
 
     <script>
-        let previewDebounceTimer = null;
-        let isDownloadCancelled = false;
-        let activeJobId = null;
+        // Tab switching
+        function switchMainTab(tabName) {
+            const btnDownloader = document.getElementById('tabNavDownloader');
+            const btnDuplicates = document.getElementById('tabNavDuplicates');
+            const contentDownloader = document.getElementById('tabContentDownloader');
+            const contentDuplicates = document.getElementById('tabContentDuplicates');
 
-        // Show Toast Notification
+            if (tabName === 'duplicates') {
+                btnDuplicates.classList.add('active');
+                btnDownloader.classList.remove('active');
+                contentDuplicates.style.display = 'block';
+                contentDownloader.style.display = 'none';
+
+                // Update URL query state without full reload
+                const url = new URL(window.location);
+                url.searchParams.set('tab', 'duplicates');
+                window.history.replaceState({}, '', url);
+
+                // Fetch duplicates if not loaded yet
+                fetchDuplicates(currentDupePage);
+            } else {
+                btnDownloader.classList.add('active');
+                btnDuplicates.classList.remove('active');
+                contentDownloader.style.display = 'block';
+                contentDuplicates.style.display = 'none';
+
+                const url = new URL(window.location);
+                url.searchParams.delete('tab');
+                window.history.replaceState({}, '', url);
+            }
+        }
+
+        // Lightbox
+        function openImageLightbox(url, title) {
+            document.getElementById('lightboxImg').src = url;
+            document.getElementById('lightboxTitle').textContent = title || 'Image Preview';
+            document.getElementById('imageLightboxModal').style.display = 'flex';
+        }
+        function closeImageLightbox() {
+            document.getElementById('imageLightboxModal').style.display = 'none';
+        }
+
+        // Toast feedback
         function showToast(message, type = 'info') {
             const box = document.getElementById('toast-box');
             const toast = document.createElement('div');
             toast.className = 'toast-msg';
-            
-            let icon = '<i class="fas fa-check-circle text-emerald-400"></i>';
-            if (type === 'error') icon = '<i class="fas fa-exclamation-triangle text-rose-400"></i>';
-            if (type === 'info') icon = '<i class="fas fa-info-circle text-sky-400"></i>';
 
-            toast.innerHTML = `${icon} <span>${message}</span>`;
+            let icon = 'fas fa-check-circle text-emerald-400';
+            if (type === 'error') icon = 'fas fa-exclamation-circle text-rose-400';
+            if (type === 'warning') icon = 'fas fa-triangle-exclamation text-amber-400';
+
+            toast.innerHTML = `<i class="${icon}"></i> <span>${message}</span>`;
             box.appendChild(toast);
 
             setTimeout(() => {
@@ -751,55 +1027,76 @@
                 toast.style.transform = 'translateY(8px)';
                 toast.style.transition = 'all 0.2s ease';
                 setTimeout(() => toast.remove(), 200);
-            }, 3000);
+            }, 3500);
         }
 
-        // Search category names in the list
-        function filterCategoryList(term) {
-            const query = term.toLowerCase().trim();
-            const rows = document.querySelectorAll('.cat-item-row');
-
-            rows.forEach(row => {
-                const name = row.getAttribute('data-name') || '';
-                if (!query || name.includes(query)) {
-                    row.style.display = 'flex';
-                } else {
-                    row.style.display = 'none';
-                }
+        // Copy text to clipboard
+        function copyToClipboard(text, msg = 'Copied to clipboard!') {
+            navigator.clipboard.writeText(text).then(() => {
+                showToast(msg);
+            }).catch(() => {
+                const ta = document.createElement('textarea');
+                ta.value = text;
+                document.body.appendChild(ta);
+                ta.select();
+                document.execCommand('copy');
+                ta.remove();
+                showToast(msg);
             });
         }
 
-        // Select All / Dept / None
-        function selectCategoriesFilter(type) {
-            const allCheckboxes = document.querySelectorAll('.cat-checkbox');
+        // ==================== PHOTO DOWNLOADER LOGIC ====================
+        let previewDebounceTimer = null;
+        let activeJobId = null;
+        let isDownloadCancelled = false;
 
-            if (type === 'all') {
-                allCheckboxes.forEach(cb => cb.checked = true);
-                document.getElementById('chkDeptApparel').checked = true;
-                document.getElementById('chkDeptJewel').checked = true;
-            } else if (type === 'none') {
-                allCheckboxes.forEach(cb => cb.checked = false);
-                document.getElementById('chkDeptApparel').checked = false;
-                document.getElementById('chkDeptJewel').checked = false;
-            } else if (type === 'apparel') {
-                document.querySelectorAll('.cat-apparel').forEach(cb => cb.checked = true);
-                document.getElementById('chkDeptApparel').checked = true;
-            } else if (type === 'jewel') {
-                document.querySelectorAll('.cat-jewel').forEach(cb => cb.checked = true);
-                document.getElementById('chkDeptJewel').checked = true;
-            }
-
-            handleSelectionChange();
+        function filterCategoryList(query) {
+            const cleanQ = query.trim().toLowerCase();
+            const rows = document.querySelectorAll('.cat-item-row');
+            rows.forEach(row => {
+                const name = row.getAttribute('data-name') || '';
+                row.style.display = (cleanQ === '' || name.includes(cleanQ)) ? 'flex' : 'none';
+            });
         }
 
-        // Toggle Department checkboxes
         function toggleDeptCheckboxes(dept, isChecked) {
-            const selector = dept === 'apparel' ? '.cat-apparel' : '.cat-jewel';
-            document.querySelectorAll(selector).forEach(cb => cb.checked = isChecked);
+            const cls = (dept === 'apparel') ? '.cat-apparel' : '.cat-jewel';
+            const checkboxes = document.querySelectorAll(cls);
+            checkboxes.forEach(cb => {
+                if (cb.closest('.cat-item-row').style.display !== 'none') {
+                    cb.checked = isChecked;
+                }
+            });
             handleSelectionChange();
         }
 
-        // Radio Option Card Click handler
+        function selectCategoriesFilter(scope) {
+            const allCheckboxes = document.querySelectorAll('.cat-checkbox');
+            const chkApparel = document.getElementById('chkDeptApparel');
+            const chkJewel = document.getElementById('chkDeptJewel');
+
+            if (scope === 'all') {
+                allCheckboxes.forEach(cb => cb.checked = true);
+                if (chkApparel) chkApparel.checked = true;
+                if (chkJewel) chkJewel.checked = true;
+            } else if (scope === 'none') {
+                allCheckboxes.forEach(cb => cb.checked = false);
+                if (chkApparel) chkApparel.checked = false;
+                if (chkJewel) chkJewel.checked = false;
+            } else if (scope === 'apparel') {
+                document.querySelectorAll('.cat-apparel').forEach(cb => cb.checked = true);
+                document.querySelectorAll('.cat-jewel').forEach(cb => cb.checked = false);
+                if (chkApparel) chkApparel.checked = true;
+                if (chkJewel) chkJewel.checked = false;
+            } else if (scope === 'jewel') {
+                document.querySelectorAll('.cat-apparel').forEach(cb => cb.checked = false);
+                document.querySelectorAll('.cat-jewel').forEach(cb => cb.checked = true);
+                if (chkApparel) chkApparel.checked = false;
+                if (chkJewel) chkJewel.checked = true;
+            }
+            handleSelectionChange();
+        }
+
         function selectRadio(cardElement, radioName, value) {
             const container = cardElement.closest('.space-y-2');
             container.querySelectorAll('.radio-option-card').forEach(c => c.classList.remove('selected'));
@@ -814,18 +1111,15 @@
 
         let previewAbortController = null;
 
-        // On selection change: update count badge and trigger debounced preview
         function handleSelectionChange() {
             const checkedBoxes = document.querySelectorAll('.cat-checkbox:checked');
             const count = checkedBoxes.length;
             document.getElementById('metricSelectedCount').textContent = count;
 
-            // Debounced preview calculation
             clearTimeout(previewDebounceTimer);
             previewDebounceTimer = setTimeout(fetchPreviewMetrics, 450);
         }
 
-        // Fetch estimated metrics from backend
         async function fetchPreviewMetrics() {
             if (previewAbortController) {
                 try { previewAbortController.abort(); } catch(e) {}
@@ -868,7 +1162,6 @@
             }
         }
 
-        // Save Configuration to Backend via AJAX
         async function saveConfigurationAjax() {
             const btn = document.getElementById('btnSaveConfig');
             const icon = document.getElementById('saveIcon');
@@ -888,7 +1181,7 @@
                 const res = await response.json();
 
                 if (res.success) {
-                    showToast('Configuration saved to backend successfully!');
+                    showToast('Configuration saved successfully!');
                     if (res.settings && res.settings.updated_at) {
                         const dateObj = new Date(res.settings.updated_at.replace(/-/g, '/'));
                         document.getElementById('savedTimestampText').textContent = 'Config saved: ' + dateObj.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit', hour12: true });
@@ -904,16 +1197,15 @@
             }
         }
 
-        // ==================== REAL-TIME INTERACTIVE DOWNLOAD ENGINE ====================
-
         function openDownloadModal() {
             const modal = document.getElementById('downloadModal');
             modal.style.display = 'flex';
             document.getElementById('btnCancelDownload').style.display = 'inline-flex';
             document.getElementById('btnCloseModal').style.display = 'none';
             document.getElementById('btnDirectDownloadLink').style.display = 'none';
+            document.getElementById('modalRetryNotice').classList.add('hidden');
             document.getElementById('modalTitle').textContent = 'Packaging Photo Archive';
-            document.getElementById('modalSubtitle').textContent = 'Collecting images and building ZIP structure...';
+            document.getElementById('modalSubtitle').textContent = 'Compressing and building ZIP structure on server...';
             document.getElementById('modalHeaderIconWrap').className = 'w-9 h-9 rounded-lg bg-zinc-900 text-white flex items-center justify-center text-sm flex-shrink-0';
             document.getElementById('modalHeaderIcon').className = 'fas fa-box-archive fa-spin';
         }
@@ -923,13 +1215,16 @@
             modal.style.display = 'none';
         }
 
-        function updateModalState(percent, stage, processedText, packedCount, currentItem) {
+        function updateModalState(percent, stage, processedText, packedCount, currentItem, zipSizeMb) {
             document.getElementById('modalProgressBar').style.width = percent + '%';
             document.getElementById('modalPercentBadge').textContent = percent + '%';
             if (stage) document.getElementById('modalStageText').textContent = stage;
             if (processedText) document.getElementById('modalProcessedCount').textContent = processedText;
-            if (packedCount !== null) document.getElementById('modalPhotosPackedCount').textContent = packedCount.toLocaleString() + ' photos';
+            if (packedCount !== null && packedCount !== undefined) document.getElementById('modalPhotosPackedCount').textContent = packedCount.toLocaleString() + ' photos';
             if (currentItem) document.getElementById('modalCurrentItemLabel').textContent = currentItem;
+            if (zipSizeMb !== undefined && zipSizeMb !== null) {
+                document.getElementById('modalZipSize').textContent = zipSizeMb + ' MB';
+            }
         }
 
         async function cancelInteractiveDownload() {
@@ -944,7 +1239,6 @@
             showToast('Download cancelled.', 'info');
         }
 
-        // Trigger download for a single category
         function downloadSingleCategory(catKey) {
             const allCheckboxes = document.querySelectorAll('.cat-checkbox');
             allCheckboxes.forEach(cb => {
@@ -958,7 +1252,7 @@
             startBatchDownload();
         }
 
-        // High-speed chunked batch download pipeline
+        // High-Speed Chunked Batch Download Engine with Auto-Retry
         async function startBatchDownload() {
             const checkedBoxes = document.querySelectorAll('.cat-checkbox:checked');
             if (checkedBoxes.length === 0) {
@@ -970,13 +1264,13 @@
             isDownloadCancelled = false;
             activeJobId = null;
 
-            updateModalState(2, 'Initializing catalog products...', '0 / 0', 0, 'Preparing inventory queue...');
+            updateModalState(2, 'Initializing packaging queue on server...', '0 / 0', 0, 'Scanning catalog database...', 0.0);
 
             const form = document.getElementById('downloaderForm');
             const formData = new FormData(form);
 
             try {
-                // 1. Start download job
+                // 1. Initialize job
                 const startRes = await fetch('index.php?controller=photodownloader&action=startDownloadJob', {
                     method: 'POST',
                     body: formData
@@ -993,9 +1287,9 @@
                 const totalChunks = startData.total_chunks;
                 const totalProducts = startData.total_products;
 
-                updateModalState(4, 'Packing products into ZIP...', `0 / ${totalProducts}`, 0, 'Starting batch processing...');
+                updateModalState(4, 'Compressing & packing photos into ZIP...', `0 / ${totalProducts}`, 0, 'Starting batch processing...', 0.0);
 
-                // 2. Iterate through batches with high-speed parallel fetching
+                // 2. Process chunks with resilience and auto-retry
                 for (let i = 0; i < totalChunks; i++) {
                     if (isDownloadCancelled) break;
 
@@ -1003,15 +1297,43 @@
                     chunkForm.append('job_id', activeJobId);
                     chunkForm.append('chunk_index', i);
 
-                    const chunkRes = await fetch('index.php?controller=photodownloader&action=processDownloadChunk', {
-                        method: 'POST',
-                        body: chunkForm
-                    });
-                    const chunkData = await chunkRes.json();
+                    let chunkData = null;
+                    let retries = 0;
+                    const maxRetries = 3;
 
-                    if (!chunkData.success) {
-                        throw new Error(chunkData.message || 'Error occurred while packing images.');
+                    while (retries < maxRetries && !isDownloadCancelled) {
+                        try {
+                            const chunkRes = await fetch('index.php?controller=photodownloader&action=processDownloadChunk', {
+                                method: 'POST',
+                                body: chunkForm
+                            });
+
+                            if (!chunkRes.ok) {
+                                throw new Error(`Server returned HTTP ${chunkRes.status}`);
+                            }
+
+                            chunkData = await chunkRes.json();
+                            if (!chunkData.success) {
+                                throw new Error(chunkData.message || 'Chunk error');
+                            }
+
+                            // Success
+                            document.getElementById('modalRetryNotice').classList.add('hidden');
+                            break;
+                        } catch (err) {
+                            retries++;
+                            if (retries >= maxRetries) {
+                                throw new Error(`Batch ${i + 1}/${totalChunks} failed after 3 attempts: ${err.message}`);
+                            }
+                            // Show retry notice in modal
+                            const retryNotice = document.getElementById('modalRetryNotice');
+                            retryNotice.classList.remove('hidden');
+                            document.getElementById('modalRetryText').textContent = `Retrying batch ${i + 1} of ${totalChunks} (attempt ${retries + 1}/${maxRetries})...`;
+                            await new Promise(r => setTimeout(r, 2000));
+                        }
                     }
+
+                    if (!chunkData) break;
 
                     const pct = Math.max(5, chunkData.percent);
                     updateModalState(
@@ -1019,7 +1341,8 @@
                         `Processing: ${chunkData.processed_count} / ${chunkData.total_products} products`,
                         `${chunkData.processed_count} / ${chunkData.total_products}`,
                         chunkData.photos_packed,
-                        `Packed: ${chunkData.current_label}`
+                        `Packed: ${chunkData.current_label}`,
+                        chunkData.zip_size_mb
                     );
 
                     if (chunkData.is_complete) break;
@@ -1027,10 +1350,10 @@
 
                 if (!isDownloadCancelled) {
                     // Complete state
-                    updateModalState(100, 'ZIP Archive Ready! Download starting...', `${totalProducts} / ${totalProducts}`, null, 'Archive packaged successfully.');
+                    updateModalState(100, 'ZIP Archive Complete! Download starting...', `${totalProducts} / ${totalProducts}`, null, 'Archive packaged successfully on server.');
                     
-                    document.getElementById('modalTitle').textContent = 'ZIP Archive Complete!';
-                    document.getElementById('modalSubtitle').textContent = 'All photos have been packed category-wise into your ZIP file.';
+                    document.getElementById('modalTitle').textContent = 'ZIP Archive Ready!';
+                    document.getElementById('modalSubtitle').textContent = 'Your photos are packaged into the ZIP archive.';
                     document.getElementById('modalHeaderIconWrap').className = 'w-9 h-9 rounded-lg bg-emerald-600 text-white flex items-center justify-center text-sm flex-shrink-0';
                     document.getElementById('modalHeaderIcon').className = 'fas fa-check';
 
@@ -1042,23 +1365,284 @@
                     document.getElementById('btnCancelDownload').style.display = 'none';
                     document.getElementById('btnCloseModal').style.display = 'inline-flex';
 
-                    // Trigger browser download immediately!
+                    // Trigger direct browser download
                     window.location.href = downloadUrl;
-                    showToast('ZIP archive created! Downloading to your device...', 'info');
+                    showToast('ZIP archive created! Downloading now...', 'info');
                 }
 
             } catch (err) {
                 if (!isDownloadCancelled) {
                     closeDownloadModal();
-                    showToast('Download error: ' + err.message, 'error');
+                    showToast('Packaging error: ' + err.message, 'error');
                 }
             }
         }
 
-        // Initialize preview and autostart on page load
+        // ==================== DUPLICATE PHOTOS LOGIC ====================
+        let currentDupePage = 1;
+        let dupeSearchTimer = null;
+
+        function debounceDupeSearch() {
+            clearTimeout(dupeSearchTimer);
+            dupeSearchTimer = setTimeout(() => {
+                fetchDuplicates(1);
+            }, 350);
+        }
+
+        async function fetchDuplicates(page = 1) {
+            currentDupePage = page;
+            const container = document.getElementById('dupeListContainer');
+            const category = document.getElementById('dupeCategorySelect').value;
+            const dupeType = document.getElementById('dupeTypeSelect').value;
+            const search = document.getElementById('dupeSearchInput').value.trim();
+
+            container.innerHTML = `
+                <div class="py-12 text-center text-zinc-400">
+                    <i class="fas fa-spinner fa-spin text-2xl text-zinc-900 mb-2"></i>
+                    <p class="text-xs">Scanning catalog for duplicate photos...</p>
+                </div>
+            `;
+
+            try {
+                const params = new URLSearchParams({
+                    controller: 'photodownloader',
+                    action: 'getDuplicates',
+                    category: category,
+                    duplicate_type: dupeType,
+                    search: search,
+                    page: page,
+                    limit: 25
+                });
+
+                const res = await fetch('index.php?' + params.toString());
+                const data = await res.json();
+
+                if (!data.success) {
+                    container.innerHTML = `<div class="p-4 text-center text-rose-600 text-xs">Error: ${data.message || 'Failed to scan duplicates.'}</div>`;
+                    return;
+                }
+
+                // Update KPIs
+                document.getElementById('dupeKpiGroups').textContent = data.summary.total_duplicate_groups.toLocaleString();
+                document.getElementById('dupeKpiRedundant').textContent = data.summary.total_redundant_photos.toLocaleString();
+                document.getElementById('dupeKpiScope').textContent = data.category_label || 'All Categories';
+                document.getElementById('dupeResultsCountBadge').textContent = `${data.summary.total_duplicate_groups} groups found`;
+
+                // Update Pagination Controls
+                renderDupePagination(data.summary);
+
+                // Render groups
+                if (data.groups.length === 0) {
+                    container.innerHTML = `
+                        <div class="py-12 text-center text-zinc-400">
+                            <div class="w-12 h-12 rounded-full bg-emerald-50 text-emerald-600 flex items-center justify-center mx-auto mb-3 text-lg border border-emerald-200">
+                                <i class="fas fa-check"></i>
+                            </div>
+                            <h3 class="text-sm font-semibold text-zinc-900">No Duplicate Photos Found!</h3>
+                            <p class="text-xs text-zinc-500 mt-1">Every photo in this category is unique and cleanly indexed.</p>
+                        </div>
+                    `;
+                    return;
+                }
+
+                let html = '';
+                data.groups.forEach((g, idx) => {
+                    const escImg = g.img_name.replace(/'/g, "\\'");
+                    const skusHtml = g.skus_list.map(s => `
+                        <span class="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-mono font-medium bg-zinc-100 text-zinc-800 border border-zinc-200">
+                            ${s}
+                        </span>
+                    `).join(' ');
+
+                    const isMultiSku = g.distinct_sku_count > 1;
+
+                    html += `
+                        <div class="duplicate-card flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between" id="dupeCard_${idx}">
+                            <div class="flex items-center gap-3.5 min-w-0 flex-1">
+                                <img src="${g.clean_url}" alt="Photo" class="img-thumb-preview" onerror="this.src='https://placehold.co/72x72/f1f5f9/64748b?text=No+Img'" onclick="openImageLightbox('${g.clean_url}', '${g.file_name}')">
+                                
+                                <div class="min-w-0 flex-1">
+                                    <div class="flex items-center gap-2 flex-wrap">
+                                        <span class="text-xs font-semibold text-zinc-900 font-mono truncate max-w-sm">${g.file_name}</span>
+                                        <button type="button" onclick="copyToClipboard('${g.clean_url}', 'Image URL copied!')" title="Copy URL" class="text-zinc-400 hover:text-zinc-800 text-[11px]">
+                                            <i class="far fa-copy"></i>
+                                        </button>
+                                        <span class="shadcn-badge font-mono text-[10px] ${isMultiSku ? 'bg-amber-50 text-amber-800 border-amber-200' : 'bg-zinc-100 text-zinc-800'}">
+                                            <i class="fas fa-layer-group text-[9px] mr-1"></i> ${g.occurrence_count} copies
+                                        </span>
+                                        <span class="shadcn-badge font-mono text-[10px] ${isMultiSku ? 'bg-purple-50 text-purple-800 border-purple-200' : 'bg-zinc-100 text-zinc-700'}">
+                                            ${g.distinct_sku_count} ${g.distinct_sku_count === 1 ? 'SKU' : 'Different SKUs'}
+                                        </span>
+                                    </div>
+
+                                    <div class="text-[11px] text-zinc-400 font-mono truncate mt-0.5">
+                                        Path: ${g.img_name}
+                                    </div>
+
+                                    <div class="flex items-center gap-1.5 flex-wrap mt-2">
+                                        <span class="text-[11px] text-zinc-500 font-medium">SKUs:</span>
+                                        ${skusHtml}
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="flex items-center gap-2 flex-shrink-0 self-end sm:self-center">
+                                <button type="button" onclick="toggleDupeDetails(${idx})" class="shadcn-btn shadcn-btn-sm text-xs">
+                                    <span>Details (${g.records.length})</span>
+                                    <i class="fas fa-chevron-down text-[10px] ml-1"></i>
+                                </button>
+                                <button type="button" onclick="deduplicateSingleGroup('${escImg}', ${g.keep_id}, ${idx})" class="shadcn-btn shadcn-btn-sm shadcn-btn-danger text-xs">
+                                    <i class="fas fa-trash-can mr-1"></i> Deduplicate (Keep #1)
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Expandable Details Row -->
+                        <div id="dupeDetails_${idx}" class="hidden p-3.5 bg-zinc-50 border border-t-0 border-zinc-200 rounded-b-lg -mt-3 text-xs space-y-2">
+                            <div class="font-semibold text-zinc-700 text-[11px] uppercase tracking-wider mb-1">
+                                Database Records in <code class="bg-zinc-200 px-1 py-0.5 rounded font-mono">product_images_new</code>:
+                            </div>
+                            <div class="divide-y divide-zinc-200">
+                                ${g.records.map((r, rIdx) => `
+                                    <div class="py-1.5 flex items-center justify-between text-zinc-600">
+                                        <div class="flex items-center gap-2">
+                                            <span class="font-mono text-zinc-900 font-medium">#${r.id}</span>
+                                            <span class="shadcn-badge font-mono text-[10px]">SKU: ${r.pro_code}</span>
+                                            <span class="text-zinc-400 text-[11px]">Rank: ${r.rank}</span>
+                                            <span class="text-zinc-400 text-[11px]">Date: ${r.date_added}</span>
+                                        </div>
+                                        <div>
+                                            ${rIdx === 0 ? '<span class="text-emerald-700 font-semibold text-[11px] bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">Keep (Primary)</span>' : '<span class="text-rose-600 font-semibold text-[11px] bg-rose-50 px-2 py-0.5 rounded border border-rose-200">Redundant Copy</span>'}
+                                        </div>
+                                    </div>
+                                `).join('')}
+                            </div>
+                        </div>
+                    `;
+                });
+
+                container.innerHTML = html;
+
+            } catch (err) {
+                container.innerHTML = `<div class="p-4 text-center text-rose-600 text-xs">Scan failed: ${err.message}</div>`;
+            }
+        }
+
+        function toggleDupeDetails(idx) {
+            const el = document.getElementById(`dupeDetails_${idx}`);
+            if (el) {
+                el.classList.toggle('hidden');
+            }
+        }
+
+        function renderDupePagination(summary) {
+            const wrap = document.getElementById('dupePaginationControls');
+            if (summary.total_pages <= 1) {
+                wrap.innerHTML = '';
+                return;
+            }
+
+            wrap.innerHTML = `
+                <button type="button" onclick="fetchDuplicates(${summary.current_page - 1})" ${summary.current_page <= 1 ? 'disabled' : ''} class="shadcn-btn shadcn-btn-sm text-xs ${summary.current_page <= 1 ? 'opacity-40 cursor-not-allowed' : ''}">
+                    <i class="fas fa-chevron-left mr-1"></i> Prev
+                </button>
+                <span class="text-xs text-zinc-500 font-mono px-2">Page ${summary.current_page} of ${summary.total_pages}</span>
+                <button type="button" onclick="fetchDuplicates(${summary.current_page + 1})" ${summary.current_page >= summary.total_pages ? 'disabled' : ''} class="shadcn-btn shadcn-btn-sm text-xs ${summary.current_page >= summary.total_pages ? 'opacity-40 cursor-not-allowed' : ''}">
+                    Next <i class="fas fa-chevron-right ml-1"></i>
+                </button>
+            `;
+        }
+
+        async function deduplicateSingleGroup(imgName, keepId, cardIdx) {
+            if (!confirm(`Are you sure you want to remove duplicate entries for this photo?\n\nThis will keep primary record #${keepId} and safely delete all redundant duplicate records in the database.`)) {
+                return;
+            }
+
+            try {
+                const fd = new FormData();
+                fd.append('img_name', imgName);
+                fd.append('keep_id', keepId);
+
+                const res = await fetch('index.php?controller=photodownloader&action=deduplicateGroup', {
+                    method: 'POST',
+                    body: fd
+                });
+                const data = await res.json();
+
+                if (data.success) {
+                    showToast(data.message || 'Duplicate photo records removed successfully!');
+                    const card = document.getElementById(`dupeCard_${cardIdx}`);
+                    const details = document.getElementById(`dupeDetails_${cardIdx}`);
+                    if (card) card.remove();
+                    if (details) details.remove();
+                    // Refresh count KPI
+                    fetchDuplicates(currentDupePage);
+                } else {
+                    showToast(data.message || 'Failed to remove duplicates.', 'error');
+                }
+            } catch (err) {
+                showToast('Network error: ' + err.message, 'error');
+            }
+        }
+
+        async function confirmDeduplicateCategory() {
+            const catSelect = document.getElementById('dupeCategorySelect');
+            const catName = catSelect.options[catSelect.selectedIndex].text;
+            const catVal = catSelect.value;
+
+            if (!confirm(`⚠️ DEDUPLICATION CONFIRMATION\n\nAre you sure you want to deduplicate ALL photos in:\n"${catName}"?\n\nFor every duplicate photo in this category, the primary copy will be preserved and all redundant duplicate records will be removed from the database.\n\nProceed?`)) {
+                return;
+            }
+
+            const btn = document.getElementById('btnDeduplicateCat');
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-1"></i> Deduplicating...';
+
+            try {
+                const fd = new FormData();
+                fd.append('category', catVal);
+
+                const res = await fetch('index.php?controller=photodownloader&action=deduplicateCategory', {
+                    method: 'POST',
+                    body: fd
+                });
+                const data = await res.json();
+
+                if (data.success) {
+                    showToast(data.message || 'Category deduplicated successfully!');
+                    fetchDuplicates(1);
+                } else {
+                    showToast(data.message || 'Failed to deduplicate category.', 'error');
+                }
+            } catch (err) {
+                showToast('Network error: ' + err.message, 'error');
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fas fa-trash-can mr-1"></i> Deduplicate Current Category';
+            }
+        }
+
+        function exportDuplicatesCsv() {
+            const category = document.getElementById('dupeCategorySelect').value;
+            const dupeType = document.getElementById('dupeTypeSelect').value;
+            const search = document.getElementById('dupeSearchInput').value.trim();
+
+            const params = new URLSearchParams({
+                controller: 'photodownloader',
+                action: 'exportDuplicatesCsv',
+                category: category,
+                duplicate_type: dupeType,
+                search: search
+            });
+
+            window.location.href = 'index.php?' + params.toString();
+        }
+
+        // Initialize on load
         document.addEventListener('DOMContentLoaded', () => {
             fetchPreviewMetrics();
 
+            // Check URL for autostart
             const urlParams = new URLSearchParams(window.location.search);
             if (urlParams.get('autostart') === '1') {
                 const cleanUrl = window.location.pathname + '?controller=photodownloader&action=index';
@@ -1067,8 +1651,12 @@
                     startBatchDownload();
                 }, 350);
             }
+
+            // Check if duplicates tab requested
+            if (urlParams.get('tab') === 'duplicates') {
+                switchMainTab('duplicates');
+            }
         });
     </script>
 </body>
 </html>
-
