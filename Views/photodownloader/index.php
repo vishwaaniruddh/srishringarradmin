@@ -724,8 +724,8 @@
 
                                         </div>
                                     </div>
-
-                            </div>
+                                </div> <!-- close lg:col-span-5 -->
+                            </div> <!-- close grid grid-cols-1 lg:grid-cols-12 -->
 
                             <!-- 3. LIVE PHOTO PREVIEWS DIRECT FROM PRODUCTION SERVER -->
                             <div class="mt-8 shadcn-card">
