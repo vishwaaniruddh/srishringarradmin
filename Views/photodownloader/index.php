@@ -737,17 +737,31 @@
                     <!-- ========================================================================= -->
                     <div id="tabContentDuplicates" style="<?php echo ($activeTab !== 'duplicates') ? 'display: none;' : ''; ?>">
 
+                        <!-- Corrupted Text Records Alert Banner -->
+                        <div id="corruptRecordsBanner" class="mb-5 p-3.5 bg-amber-50 border border-amber-200 text-amber-900 rounded-lg flex items-center justify-between text-xs" style="display: none;">
+                            <div class="flex items-center gap-2.5">
+                                <i class="fas fa-triangle-exclamation text-amber-600 text-base"></i>
+                                <div>
+                                    <div class="font-semibold text-amber-950">Corrupted Text Entries Detected in Database</div>
+                                    <div class="text-[11px] text-amber-800 mt-0.5">Found <strong id="corruptCountText">0</strong> non-image text records (such as <code>/4.Featuring attractive designs</code>) in <code>product_images_new</code> table.</div>
+                                </div>
+                            </div>
+                            <button type="button" id="btnPurgeCorrupt" onclick="purgeCorruptedRecords()" class="shadcn-btn shadcn-btn-sm text-xs bg-amber-600 hover:bg-amber-700 text-white font-medium flex-shrink-0">
+                                <i class="fas fa-broom mr-1"></i> Purge From Database
+                            </button>
+                        </div>
+
                         <!-- Header Banner -->
                         <div class="mb-5 flex flex-col md:flex-row md:items-center justify-between gap-4">
                             <div>
                                 <div class="flex items-center gap-2">
-                                    <h1 class="text-lg font-semibold text-zinc-900 tracking-tight">Category-Wise Duplicate Photo Finder</h1>
+                                    <h1 class="text-lg font-semibold text-zinc-900 tracking-tight">Duplicate &amp; Unreferenced Photo Manager</h1>
                                     <span class="shadcn-badge font-mono text-[11px]">
                                         <span class="status-dot status-dot-warning mr-1"></span>
                                         Catalog Deduplication
                                     </span>
                                 </div>
-                                <p class="text-xs text-zinc-500 mt-1">Scan product photos category-wise to identify duplicate image uploads across SKUs or repeated multiple times within the same product, and clean up redundant database entries.</p>
+                                <p class="text-xs text-zinc-500 mt-1">Scan catalog photos category-wise to find duplicate image entries, or scan server disk for unreferenced photos whose reference is not found in <code>product_images_new</code> table.</p>
                             </div>
 
                             <div class="flex items-center gap-2 flex-wrap">
@@ -762,51 +776,63 @@
                             </div>
                         </div>
 
-                        <!-- Duplicate Filters Card -->
-                        <div class="shadcn-card mb-6">
-                            <div class="p-4 grid grid-cols-1 md:grid-cols-12 gap-4 items-center">
-                                <!-- Category Selector -->
-                                <div class="md:col-span-5">
-                                    <label class="text-[11px] font-semibold text-zinc-500 uppercase tracking-wider block mb-1">Category Filter</label>
-                                    <select id="dupeCategorySelect" onchange="fetchDuplicates(1)" class="w-full h-9 px-3 border border-zinc-200 rounded-md text-xs bg-white text-zinc-900 outline-none focus:border-zinc-900">
-                                        <option value="all">-- All Categories (Full Storefront) --</option>
-                                        <optgroup label="Apparel &amp; Garments">
-                                            <?php foreach (($categories['Apparel']['children'] ?? []) as $cKey => $cItem): ?>
-                                                <option value="<?php echo htmlspecialchars($cKey); ?>"><?php echo htmlspecialchars($cItem['name']); ?> (<?php echo (int)$cItem['count']; ?> items)</option>
-                                            <?php endforeach; ?>
-                                        </optgroup>
-                                        <optgroup label="Jewellery">
-                                            <?php foreach (($categories['Jewellery']['children'] ?? []) as $cKey => $cItem): ?>
-                                                <option value="<?php echo htmlspecialchars($cKey); ?>"><?php echo htmlspecialchars($cItem['name']); ?> (<?php echo (int)$cItem['count']; ?> items)</option>
-                                            <?php endforeach; ?>
-                                        </optgroup>
-                                    </select>
-                                </div>
+                        <!-- Sub-View Switcher -->
+                        <div class="flex items-center gap-2 mb-4">
+                            <button type="button" id="subTabDupes" onclick="switchDupeView('catalog')" class="shadcn-btn shadcn-btn-sm shadcn-btn-primary text-xs">
+                                <i class="fas fa-clone mr-1"></i> Catalog Duplicate Photos
+                            </button>
+                            <button type="button" id="subTabUnreferenced" onclick="switchDupeView('unreferenced')" class="shadcn-btn shadcn-btn-sm text-xs">
+                                <i class="fas fa-file-circle-question mr-1"></i> Unreferenced Server Photos (No DB Reference)
+                            </button>
+                        </div>
 
-                                <!-- Duplicate Type Filter -->
-                                <div class="md:col-span-4">
-                                    <label class="text-[11px] font-semibold text-zinc-500 uppercase tracking-wider block mb-1">Duplicate Type</label>
-                                    <select id="dupeTypeSelect" onchange="fetchDuplicates(1)" class="w-full h-9 px-3 border border-zinc-200 rounded-md text-xs bg-white text-zinc-900 outline-none focus:border-zinc-900">
-                                        <option value="all">All Duplicates (Any duplicate occurrence)</option>
-                                        <option value="multi_sku">Shared Across Multiple SKUs (Different Products)</option>
-                                        <option value="single_sku_repeated">Repeated Duplicates on Same SKU (Uploaded Multiple Times)</option>
-                                    </select>
-                                </div>
+                        <!-- ==================== SUB-VIEW 1: CATALOG DUPLICATE PHOTOS ==================== -->
+                        <div id="subViewCatalogDupes">
+                            <!-- Duplicate Filters Card -->
+                            <div class="shadcn-card mb-6">
+                                <div class="p-4 grid grid-cols-1 md:grid-cols-12 gap-4 items-center">
+                                    <!-- Category Selector -->
+                                    <div class="md:col-span-5">
+                                        <label class="text-[11px] font-semibold text-zinc-500 uppercase tracking-wider block mb-1">Category Filter</label>
+                                        <select id="dupeCategorySelect" onchange="fetchDuplicates(1)" class="w-full h-9 px-3 border border-zinc-200 rounded-md text-xs bg-white text-zinc-900 outline-none focus:border-zinc-900">
+                                            <option value="all">-- All Categories (Full Storefront) --</option>
+                                            <optgroup label="Apparel &amp; Garments">
+                                                <?php foreach (($categories['Apparel']['children'] ?? []) as $cKey => $cItem): ?>
+                                                    <option value="<?php echo htmlspecialchars($cKey); ?>"><?php echo htmlspecialchars($cItem['name']); ?> (<?php echo (int)$cItem['count']; ?> items)</option>
+                                                <?php endforeach; ?>
+                                            </optgroup>
+                                            <optgroup label="Jewellery">
+                                                <?php foreach (($categories['Jewellery']['children'] ?? []) as $cKey => $cItem): ?>
+                                                    <option value="<?php echo htmlspecialchars($cKey); ?>"><?php echo htmlspecialchars($cItem['name']); ?> (<?php echo (int)$cItem['count']; ?> items)</option>
+                                                <?php endforeach; ?>
+                                            </optgroup>
+                                        </select>
+                                    </div>
 
-                                <!-- Search Box -->
-                                <div class="md:col-span-3">
-                                    <label class="text-[11px] font-semibold text-zinc-500 uppercase tracking-wider block mb-1">Search SKU / Image</label>
-                                    <div class="search-input-wrap">
-                                        <i class="fas fa-search search-icon"></i>
-                                        <input type="text" id="dupeSearchInput" placeholder="Filter by SKU or image..." oninput="debounceDupeSearch()">
+                                    <!-- Duplicate Type Filter -->
+                                    <div class="md:col-span-4">
+                                        <label class="text-[11px] font-semibold text-zinc-500 uppercase tracking-wider block mb-1">Duplicate Type</label>
+                                        <select id="dupeTypeSelect" onchange="fetchDuplicates(1)" class="w-full h-9 px-3 border border-zinc-200 rounded-md text-xs bg-white text-zinc-900 outline-none focus:border-zinc-900">
+                                            <option value="all">All Real Duplicate Photos (Images Only)</option>
+                                            <option value="multi_sku">Shared Across Multiple SKUs (Different Products)</option>
+                                            <option value="single_sku_repeated">Repeated Duplicates on Same SKU (Uploaded Multiple Times)</option>
+                                        </select>
+                                    </div>
+
+                                    <!-- Search Box -->
+                                    <div class="md:col-span-3">
+                                        <label class="text-[11px] font-semibold text-zinc-500 uppercase tracking-wider block mb-1">Search SKU / Image</label>
+                                        <div class="search-input-wrap">
+                                            <i class="fas fa-search search-icon"></i>
+                                            <input type="text" id="dupeSearchInput" placeholder="Filter by SKU or image..." oninput="debounceDupeSearch()">
+                                        </div>
                                     </div>
                                 </div>
                             </div>
-                        </div>
 
-                        <!-- Duplicate Summary KPIs -->
-                        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
-                            <div class="shadcn-stat-card">
+                            <!-- Duplicate Summary KPIs -->
+                            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
+                                <div class="shadcn-stat-card">
                                 <div>
                                     <span class="text-[11px] font-medium text-zinc-500 uppercase tracking-wider block">Duplicate Image Groups</span>
                                     <div class="flex items-baseline gap-2 mt-1">
@@ -866,8 +892,93 @@
                                 <!-- Injected dynamically via fetchDuplicates() -->
                             </div>
                         </div>
-
                     </div>
+
+                    <!-- ==================== SUB-VIEW 2: UNREFERENCED SERVER PHOTOS ==================== -->
+                    <div id="subViewUnreferenced" style="display: none;">
+                        <div class="shadcn-card mb-6">
+                            <div class="p-4 flex flex-col md:flex-row md:items-center justify-between gap-4">
+                                <div class="flex items-center gap-3">
+                                    <div>
+                                        <label class="text-[11px] font-semibold text-zinc-500 uppercase tracking-wider block mb-1">Server Upload Folder</label>
+                                        <input type="text" id="unreferencedFolderInput" value="2026/08" placeholder="e.g. 2026/08 or 2026/10" class="h-9 px-3 border border-zinc-200 rounded-md text-xs bg-white text-zinc-900 outline-none focus:border-zinc-900 w-44 font-mono">
+                                    </div>
+                                    <div class="pt-4">
+                                        <button type="button" onclick="fetchUnreferencedPhotos()" class="shadcn-btn shadcn-btn-sm shadcn-btn-primary text-xs">
+                                            <i class="fas fa-magnifying-glass mr-1"></i> Scan Folder
+                                        </button>
+                                    </div>
+                                </div>
+                                <div class="text-xs text-zinc-500">
+                                    Scans physical files on server disk and flags photos whose filename is <strong>NOT found in <code>product_images_new</code> table</strong>.
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Unreferenced KPIs -->
+                        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
+                            <div class="shadcn-stat-card">
+                                <div>
+                                    <span class="text-[11px] font-medium text-zinc-500 uppercase tracking-wider block">Files Scanned</span>
+                                    <div class="flex items-baseline gap-2 mt-1">
+                                        <span id="unrefKpiScanned" class="text-xl font-semibold text-zinc-900 font-mono">--</span>
+                                        <span class="text-xs text-zinc-400">files on disk</span>
+                                    </div>
+                                </div>
+                                <div class="w-8 h-8 rounded-md bg-zinc-100 border border-zinc-200 flex items-center justify-center text-zinc-600 text-xs">
+                                    <i class="fas fa-folder-open"></i>
+                                </div>
+                            </div>
+
+                            <div class="shadcn-stat-card">
+                                <div>
+                                    <span class="text-[11px] font-medium text-zinc-500 uppercase tracking-wider block">Unreferenced Photos</span>
+                                    <div class="flex items-baseline gap-2 mt-1">
+                                        <span id="unrefKpiCount" class="text-xl font-semibold text-rose-600 font-mono">--</span>
+                                        <span class="text-xs text-zinc-400">no DB reference</span>
+                                    </div>
+                                </div>
+                                <div class="w-8 h-8 rounded-md bg-rose-50 border border-rose-200 flex items-center justify-center text-rose-600 text-xs">
+                                    <i class="fas fa-file-circle-xmark"></i>
+                                </div>
+                            </div>
+
+                            <div class="shadcn-stat-card">
+                                <div>
+                                    <span class="text-[11px] font-medium text-zinc-500 uppercase tracking-wider block">Wasted Storage</span>
+                                    <div class="flex items-baseline gap-2 mt-1">
+                                        <span id="unrefKpiSize" class="text-xl font-semibold text-amber-600 font-mono">--</span>
+                                        <span class="text-xs text-zinc-400">MB on server</span>
+                                    </div>
+                                </div>
+                                <div class="w-8 h-8 rounded-md bg-amber-50 border border-amber-200 flex items-center justify-center text-amber-600 text-xs">
+                                    <i class="fas fa-hard-drive"></i>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Unreferenced Photos List -->
+                        <div class="shadcn-card">
+                            <div class="shadcn-card-header">
+                                <div class="flex items-center gap-2">
+                                    <h2 class="text-xs font-semibold text-zinc-900 uppercase tracking-wider flex items-center gap-2">
+                                        <i class="fas fa-file-circle-question text-zinc-400 text-xs"></i>
+                                        <span>Orphan Server Photos (Reference Not Found in DB)</span>
+                                    </h2>
+                                    <span id="unrefResultsCountBadge" class="shadcn-badge font-mono text-[10px]">Ready to scan</span>
+                                </div>
+                            </div>
+
+                            <div id="unrefListContainer" class="p-5 space-y-4 min-h-[220px]">
+                                <div class="py-12 text-center text-zinc-400">
+                                    <i class="fas fa-folder-magnifying-glass text-2xl text-zinc-300 mb-2"></i>
+                                    <p class="text-xs">Click "Scan Folder" above to inspect server photos unreferenced in <code>product_images_new</code>.</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
 
                 </div>
             </main>
@@ -1422,6 +1533,18 @@
                     return;
                 }
 
+                // Check corrupted text records banner
+                const corruptBanner = document.getElementById('corruptRecordsBanner');
+                if (corruptBanner) {
+                    if (data.corrupt_text_records_count > 0) {
+                        corruptBanner.style.display = 'flex';
+                        const countEl = document.getElementById('corruptCountText');
+                        if (countEl) countEl.textContent = data.corrupt_text_records_count;
+                    } else {
+                        corruptBanner.style.display = 'none';
+                    }
+                }
+
                 // Update KPIs
                 document.getElementById('dupeKpiGroups').textContent = data.summary.total_duplicate_groups.toLocaleString();
                 document.getElementById('dupeKpiRedundant').textContent = data.summary.total_redundant_photos.toLocaleString();
@@ -1459,7 +1582,7 @@
                     html += `
                         <div class="duplicate-card flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between" id="dupeCard_${idx}">
                             <div class="flex items-center gap-3.5 min-w-0 flex-1">
-                                <img src="${g.clean_url}" alt="Photo" class="img-thumb-preview" onerror="this.src='https://placehold.co/72x72/f1f5f9/64748b?text=No+Img'" onclick="openImageLightbox('${g.clean_url}', '${g.file_name}')">
+                                <img src="${g.clean_url}" alt="Photo" class="img-thumb-preview cursor-pointer" onerror="handleThumbError(this, '${g.clean_url}')" onclick="openImageLightbox('${g.clean_url}', '${g.file_name}')">
                                 
                                 <div class="min-w-0 flex-1">
                                     <div class="flex items-center gap-2 flex-wrap">
@@ -1486,13 +1609,16 @@
                                 </div>
                             </div>
 
-                            <div class="flex items-center gap-2 flex-shrink-0 self-end sm:self-center">
+                            <div class="flex items-center gap-2 flex-shrink-0 self-end sm:self-center flex-wrap">
                                 <button type="button" onclick="toggleDupeDetails(${idx})" class="shadcn-btn shadcn-btn-sm text-xs">
                                     <span>Details (${g.records.length})</span>
                                     <i class="fas fa-chevron-down text-[10px] ml-1"></i>
                                 </button>
-                                <button type="button" onclick="deduplicateSingleGroup('${escImg}', ${g.keep_id}, ${idx})" class="shadcn-btn shadcn-btn-sm shadcn-btn-danger text-xs">
-                                    <i class="fas fa-trash-can mr-1"></i> Deduplicate (Keep #1)
+                                <button type="button" onclick="deduplicateSingleGroup('${escImg}', ${g.keep_id}, ${idx})" class="shadcn-btn shadcn-btn-sm text-xs bg-slate-900 text-white hover:bg-slate-800" title="Keeps record #${g.keep_id} and removes duplicate copies from product_images_new">
+                                    <i class="fas fa-check-double mr-1"></i> Deduplicate (Keep #1)
+                                </button>
+                                <button type="button" onclick="deleteAllReferencesForGroup('${escImg}', ${idx})" class="shadcn-btn shadcn-btn-sm shadcn-btn-danger text-xs" title="Removes ALL references of this photo from product_images_new table so its reference is not found in database">
+                                    <i class="fas fa-trash-can mr-1"></i> Delete All References
                                 </button>
                             </div>
                         </div>
@@ -1504,15 +1630,18 @@
                             </div>
                             <div class="divide-y divide-zinc-200">
                                 ${g.records.map((r, rIdx) => `
-                                    <div class="py-1.5 flex items-center justify-between text-zinc-600">
-                                        <div class="flex items-center gap-2">
+                                    <div class="py-1.5 flex items-center justify-between text-zinc-600" id="recRow_${r.id}">
+                                        <div class="flex items-center gap-2 flex-wrap">
                                             <span class="font-mono text-zinc-900 font-medium">#${r.id}</span>
                                             <span class="shadcn-badge font-mono text-[10px]">SKU: ${r.pro_code}</span>
                                             <span class="text-zinc-400 text-[11px]">Rank: ${r.rank}</span>
                                             <span class="text-zinc-400 text-[11px]">Date: ${r.date_added}</span>
                                         </div>
-                                        <div>
+                                        <div class="flex items-center gap-2">
                                             ${rIdx === 0 ? '<span class="text-emerald-700 font-semibold text-[11px] bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">Keep (Primary)</span>' : '<span class="text-rose-600 font-semibold text-[11px] bg-rose-50 px-2 py-0.5 rounded border border-rose-200">Redundant Copy</span>'}
+                                            <button type="button" onclick="deleteSpecificRecord(${r.id}, ${idx})" class="text-zinc-400 hover:text-rose-600 text-[11px] px-1.5 py-0.5 rounded border border-zinc-200 hover:border-rose-200 transition-colors" title="Delete record #${r.id} from product_images_new">
+                                                <i class="fas fa-trash-can"></i>
+                                            </button>
                                         </div>
                                     </div>
                                 `).join('')}
@@ -1525,6 +1654,79 @@
 
             } catch (err) {
                 container.innerHTML = `<div class="p-4 text-center text-rose-600 text-xs">Scan failed: ${err.message}</div>`;
+            }
+        }
+
+        // Sub-View Switching between Catalog Duplicates and Unreferenced Server Photos
+        function switchDupeView(viewName) {
+            const btnCatalog = document.getElementById('subTabDupes');
+            const btnUnref = document.getElementById('subTabUnreferenced');
+            const viewCatalog = document.getElementById('subViewCatalogDupes');
+            const viewUnref = document.getElementById('subViewUnreferenced');
+
+            if (viewName === 'unreferenced') {
+                if (btnUnref) btnUnref.className = 'shadcn-btn shadcn-btn-sm shadcn-btn-primary text-xs';
+                if (btnCatalog) btnCatalog.className = 'shadcn-btn shadcn-btn-sm text-xs';
+                if (viewUnref) viewUnref.style.display = 'block';
+                if (viewCatalog) viewCatalog.style.display = 'none';
+                fetchUnreferencedPhotos();
+            } else {
+                if (btnCatalog) btnCatalog.className = 'shadcn-btn shadcn-btn-sm shadcn-btn-primary text-xs';
+                if (btnUnref) btnUnref.className = 'shadcn-btn shadcn-btn-sm text-xs';
+                if (viewCatalog) viewCatalog.style.display = 'block';
+                if (viewUnref) viewUnref.style.display = 'none';
+                fetchDuplicates(currentDupePage);
+            }
+        }
+
+        // Purge Corrupted Text Records
+        async function purgeCorruptedRecords() {
+            if (!confirm('Are you sure you want to purge all corrupted non-image text entries from product_images_new table?\n\nThis permanently removes descriptions (such as /4.Featuring attractive designs) and leaves only real photos in your database.')) {
+                return;
+            }
+
+            const btn = document.getElementById('btnPurgeCorrupt');
+            if (btn) {
+                btn.disabled = true;
+                btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-1"></i> Purging...';
+            }
+
+            try {
+                const res = await fetch('index.php?controller=photodownloader&action=purgeCorruptedTextRecords', {
+                    method: 'POST'
+                });
+                const data = await res.json();
+
+                if (data.success) {
+                    showToast(data.message || 'Corrupted records purged successfully!');
+                    const banner = document.getElementById('corruptRecordsBanner');
+                    if (banner) banner.style.display = 'none';
+                    fetchDuplicates(1);
+                } else {
+                    showToast(data.message || 'Failed to purge records.', 'error');
+                }
+            } catch (err) {
+                showToast('Network error: ' + err.message, 'error');
+            } finally {
+                if (btn) {
+                    btn.disabled = false;
+                    btn.innerHTML = '<i class="fas fa-broom mr-1"></i> Purge From Database';
+                }
+            }
+        }
+
+        // Thumbnail Error Fallback Handler
+        function handleThumbError(imgEl, rawUrl) {
+            const step = parseInt(imgEl.getAttribute('data-err-step') || '0', 10);
+            if (step === 0 && rawUrl && rawUrl.includes('/yn/uploads/')) {
+                imgEl.setAttribute('data-err-step', '1');
+                imgEl.src = rawUrl.replace('/yn/uploads/', '/uploads/');
+            } else if (step <= 1 && rawUrl && rawUrl.includes('/uploads/')) {
+                imgEl.setAttribute('data-err-step', '2');
+                imgEl.src = rawUrl.replace(/.*\/uploads\//, 'https://srishringarr.com/');
+            } else {
+                imgEl.onerror = null;
+                imgEl.src = 'https://placehold.co/72x72/f1f5f9/64748b?text=No+Img';
             }
         }
 
@@ -1554,7 +1756,7 @@
         }
 
         async function deduplicateSingleGroup(imgName, keepId, cardIdx) {
-            if (!confirm(`Are you sure you want to remove duplicate entries for this photo?\n\nThis will keep primary record #${keepId} and safely delete all redundant duplicate records in the database.`)) {
+            if (!confirm(`Are you sure you want to remove duplicate entries for this photo?\n\nThis will keep primary record #${keepId} and safely delete all redundant duplicate records from product_images_new table.`)) {
                 return;
             }
 
@@ -1575,10 +1777,188 @@
                     const details = document.getElementById(`dupeDetails_${cardIdx}`);
                     if (card) card.remove();
                     if (details) details.remove();
-                    // Refresh count KPI
                     fetchDuplicates(currentDupePage);
                 } else {
                     showToast(data.message || 'Failed to remove duplicates.', 'error');
+                }
+            } catch (err) {
+                showToast('Network error: ' + err.message, 'error');
+            }
+        }
+
+        // Delete ALL references of an image from product_images_new table
+        async function deleteAllReferencesForGroup(imgName, cardIdx) {
+            if (!confirm(`⚠️ DELETE ALL REFERENCES\n\nAre you sure you want to delete ALL database references for this photo?\n\nImage: ${imgName}\n\nThis will ensure this photo's reference is completely NOT found in product_images_new table.`)) {
+                return;
+            }
+
+            try {
+                const fd = new FormData();
+                fd.append('img_name', imgName);
+
+                const res = await fetch('index.php?controller=photodownloader&action=deleteAllReferences', {
+                    method: 'POST',
+                    body: fd
+                });
+                const data = await res.json();
+
+                if (data.success) {
+                    showToast(data.message || 'All references removed from product_images_new table!');
+                    const card = document.getElementById(`dupeCard_${cardIdx}`);
+                    const details = document.getElementById(`dupeDetails_${cardIdx}`);
+                    if (card) card.remove();
+                    if (details) details.remove();
+                    fetchDuplicates(currentDupePage);
+                } else {
+                    showToast(data.message || 'Failed to delete references.', 'error');
+                }
+            } catch (err) {
+                showToast('Network error: ' + err.message, 'error');
+            }
+        }
+
+        // Delete a specific database row by ID from product_images_new
+        async function deleteSpecificRecord(recordId, cardIdx) {
+            if (!confirm(`Delete database record #${recordId} from product_images_new table?`)) {
+                return;
+            }
+
+            try {
+                const fd = new FormData();
+                fd.append('id', recordId);
+
+                const res = await fetch('index.php?controller=photodownloader&action=deleteRecordById', {
+                    method: 'POST',
+                    body: fd
+                });
+                const data = await res.json();
+
+                if (data.success) {
+                    showToast(`Record #${recordId} removed from database.`);
+                    const row = document.getElementById(`recRow_${recordId}`);
+                    if (row) row.remove();
+                } else {
+                    showToast(data.message || 'Failed to delete record.', 'error');
+                }
+            } catch (err) {
+                showToast('Network error: ' + err.message, 'error');
+            }
+        }
+
+        // ==================== UNREFERENCED SERVER PHOTOS LOGIC ====================
+        async function fetchUnreferencedPhotos() {
+            const container = document.getElementById('unrefListContainer');
+            const folderInput = document.getElementById('unreferencedFolderInput');
+            const folder = folderInput ? folderInput.value.trim() : '2026/08';
+
+            container.innerHTML = `
+                <div class="py-12 text-center text-zinc-400">
+                    <i class="fas fa-spinner fa-spin text-2xl text-zinc-900 mb-2"></i>
+                    <p class="text-xs">Scanning server disk in folder <code>${folder}</code> for photos unreferenced in <code>product_images_new</code>...</p>
+                </div>
+            `;
+
+            try {
+                const res = await fetch(`index.php?controller=photodownloader&action=getUnreferencedPhotos&folder=${encodeURIComponent(folder)}`);
+                const data = await res.json();
+
+                if (!data.success) {
+                    container.innerHTML = `<div class="p-4 text-center text-rose-600 text-xs">Error: ${data.message || 'Failed to scan server folder.'}</div>`;
+                    return;
+                }
+
+                // Update KPIs
+                const scannedEl = document.getElementById('unrefKpiScanned');
+                const countEl = document.getElementById('unrefKpiCount');
+                const sizeEl = document.getElementById('unrefKpiSize');
+                const badgeEl = document.getElementById('unrefResultsCountBadge');
+
+                if (scannedEl) scannedEl.textContent = (data.total_files_scanned || 0).toLocaleString();
+                if (countEl) countEl.textContent = (data.unreferenced_count || 0).toLocaleString();
+                if (sizeEl) sizeEl.textContent = (data.unreferenced_size_mb || 0) + ' MB';
+                if (badgeEl) badgeEl.textContent = `${data.unreferenced_count || 0} unreferenced photos`;
+
+                if (!data.items || data.items.length === 0) {
+                    container.innerHTML = `
+                        <div class="py-12 text-center text-zinc-400">
+                            <div class="w-12 h-12 rounded-full bg-emerald-50 text-emerald-600 flex items-center justify-center mx-auto mb-3 text-lg border border-emerald-200">
+                                <i class="fas fa-check"></i>
+                            </div>
+                            <h3 class="text-sm font-semibold text-zinc-900">All Photos in This Folder Are Referenced!</h3>
+                            <p class="text-xs text-zinc-500 mt-1">Every photo found in folder <code>${folder}</code> is actively referenced by products in <code>product_images_new</code>.</p>
+                        </div>
+                    `;
+                    return;
+                }
+
+                let html = '';
+                data.items.forEach((item, idx) => {
+                    const escFile = item.file_name.replace(/'/g, "\\'");
+                    const escFolder = (item.folder || folder).replace(/'/g, "\\'");
+
+                    html += `
+                        <div class="duplicate-card flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between" id="unrefCard_${idx}">
+                            <div class="flex items-center gap-3.5 min-w-0 flex-1">
+                                <img src="${item.full_url}" alt="Unreferenced Photo" class="img-thumb-preview cursor-pointer" onerror="handleThumbError(this, '${item.full_url}')" onclick="openImageLightbox('${item.full_url}', '${escFile}')">
+                                <div class="min-w-0 flex-1">
+                                    <div class="flex items-center gap-2 flex-wrap">
+                                        <span class="text-xs font-semibold text-zinc-900 font-mono truncate max-w-sm">${item.file_name}</span>
+                                        <button type="button" onclick="copyToClipboard('${item.full_url}', 'Image URL copied!')" title="Copy URL" class="text-zinc-400 hover:text-zinc-800 text-[11px]">
+                                            <i class="far fa-copy"></i>
+                                        </button>
+                                        <span class="shadcn-badge font-mono text-[10px] bg-amber-50 text-amber-800 border-amber-200">
+                                            <i class="fas fa-hard-drive mr-1"></i> ${item.file_size_mb} MB
+                                        </span>
+                                        <span class="shadcn-badge font-mono text-[10px] bg-rose-50 text-rose-700 border-rose-200">
+                                            <i class="fas fa-ban mr-1"></i> Reference Not in DB
+                                        </span>
+                                    </div>
+                                    <div class="text-[11px] text-zinc-400 font-mono truncate mt-0.5">
+                                        Location: /yn/uploads/${item.folder}/${item.file_name}
+                                    </div>
+                                    <div class="text-[11px] text-zinc-500 mt-1">
+                                        Modified: ${item.modified_at} &bull; <span class="text-rose-600 font-medium">Reference NOT found in product_images_new table</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="flex items-center gap-2 flex-shrink-0 self-end sm:self-center">
+                                <button type="button" onclick="deleteUnreferencedFile('${escFile}', '${escFolder}', ${idx})" class="shadcn-btn shadcn-btn-sm shadcn-btn-danger text-xs">
+                                    <i class="fas fa-trash-can mr-1"></i> Delete From Server Disk
+                                </button>
+                            </div>
+                        </div>
+                    `;
+                });
+
+                container.innerHTML = html;
+
+            } catch (err) {
+                container.innerHTML = `<div class="p-4 text-center text-rose-600 text-xs">Disk scan failed: ${err.message}</div>`;
+            }
+        }
+
+        async function deleteUnreferencedFile(fileName, folder, cardIdx) {
+            if (!confirm(`Are you sure you want to permanently delete this unreferenced photo from server disk?\n\nFile: ${fileName}\nFolder: ${folder}\n\nThis file is confirmed NOT referenced by any product in product_images_new table.`)) {
+                return;
+            }
+
+            try {
+                const fd = new FormData();
+                fd.append('file_name', fileName);
+                fd.append('folder', folder);
+
+                const res = await fetch('index.php?controller=photodownloader&action=deleteUnreferencedFile', {
+                    method: 'POST',
+                    body: fd
+                });
+                const data = await res.json();
+
+                if (data.success) {
+                    showToast(data.message || 'File removed from server disk!');
+                    const card = document.getElementById(`unrefCard_${cardIdx}`);
+                    if (card) card.remove();
+                } else {
+                    showToast(data.message || 'Failed to delete file.', 'error');
                 }
             } catch (err) {
                 showToast('Network error: ' + err.message, 'error');
@@ -1590,7 +1970,7 @@
             const catName = catSelect.options[catSelect.selectedIndex].text;
             const catVal = catSelect.value;
 
-            if (!confirm(`⚠️ DEDUPLICATION CONFIRMATION\n\nAre you sure you want to deduplicate ALL photos in:\n"${catName}"?\n\nFor every duplicate photo in this category, the primary copy will be preserved and all redundant duplicate records will be removed from the database.\n\nProceed?`)) {
+            if (!confirm(`⚠️ DEDUPLICATION CONFIRMATION\n\nAre you sure you want to deduplicate ALL photos in:\n"${catName}"?\n\nFor every duplicate photo in this category, the primary copy will be preserved and all redundant duplicate records will be removed from product_images_new table.\n\nProceed?`)) {
                 return;
             }
 

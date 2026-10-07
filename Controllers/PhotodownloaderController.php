@@ -884,7 +884,7 @@ class PhotodownloaderController extends Controller {
     // =========================================================================
 
     /**
-     * AJAX endpoint: Find duplicate photos category wise
+     * AJAX endpoint: Find duplicate photos category wise (with only valid image files)
      */
     public function getDuplicates() {
         $catKey = trim($_REQUEST['category'] ?? 'all');
@@ -894,7 +894,14 @@ class PhotodownloaderController extends Controller {
         $limit = max(10, min(100, (int)($_REQUEST['limit'] ?? 25)));
         $offset = ($page - 1) * $limit;
 
-        $where = ["pin.img_name != ''", "pin.img_name IS NOT NULL"];
+        $where = [
+            "pin.img_name != ''",
+            "pin.img_name IS NOT NULL",
+            // Strictly require valid image extensions to avoid text descriptions like '/4.Featuring...'
+            "(pin.img_name LIKE '%.jpg' OR pin.img_name LIKE '%.jpeg' OR pin.img_name LIKE '%.png' OR pin.img_name LIKE '%.webp' OR pin.img_name LIKE '%.gif' OR pin.img_name LIKE '%.JPG' OR pin.img_name LIKE '%.JPEG' OR pin.img_name LIKE '%.PNG')",
+            "pin.img_name NOT LIKE '%Featuring%'",
+            "pin.img_name NOT LIKE '%Hathphool%'"
+        ];
         $joins = "";
         $catLabel = "All Categories";
 
@@ -957,7 +964,6 @@ class PhotodownloaderController extends Controller {
 
         $totalGroups = 0;
         $totalRedundantPhotos = 0;
-        $affectedSkusMap = [];
 
         if ($countRes) {
             while ($cRow = mysqli_fetch_assoc($countRes)) {
@@ -965,6 +971,15 @@ class PhotodownloaderController extends Controller {
                 $occ = (int)$cRow['occurrences'];
                 $totalRedundantPhotos += max(0, $occ - 1);
             }
+        }
+
+        // Count of corrupted text records in DB (e.g. /4.Featuring...)
+        $corruptCount = 0;
+        $corruptRes = mysqli_query($this->db, "SELECT COUNT(*) as c FROM product_images_new 
+            WHERE (img_name NOT LIKE '%.jpg' AND img_name NOT LIKE '%.jpeg' AND img_name NOT LIKE '%.png' AND img_name NOT LIKE '%.webp' AND img_name NOT LIKE '%.gif' AND img_name != '')
+               OR img_name LIKE '%Featuring%'");
+        if ($corruptRes && $corruptRow = mysqli_fetch_assoc($corruptRes)) {
+            $corruptCount = (int)$corruptRow['c'];
         }
 
         // 2. Query paginated duplicate groups
@@ -988,10 +1003,19 @@ class PhotodownloaderController extends Controller {
         if ($res) {
             while ($row = mysqli_fetch_assoc($res)) {
                 $rawImg = trim($row['img_name']);
-                $cleanRel = ltrim(str_replace(['../../yn/uploads', '../yn/uploads', '/yn/uploads', 'yn/uploads/', 'uploads/'], '', $rawImg), '/');
+                $cleanRel = ltrim(preg_replace('#^(\.\./|\./)*(yn/uploads/|uploads/)?#i', '', $rawImg), '/');
                 $imgUrl = "https://srishringarr.com/yn/uploads/" . str_replace(' ', '%20', $cleanRel);
 
-                // Fetch individual image records
+                // Check local disk for file existence and file size
+                $localPath = $this->resolveLocalImagePath($rawImg);
+                $fileSizeMb = null;
+                $existsOnDisk = false;
+                if ($localPath && file_exists($localPath)) {
+                    $existsOnDisk = true;
+                    $fileSizeMb = round(filesize($localPath) / (1024 * 1024), 2);
+                }
+
+                // Fetch individual image records from product_images_new
                 $idList = trim($row['image_ids'] ?? '');
                 $records = [];
                 if (!empty($idList)) {
@@ -1018,6 +1042,8 @@ class PhotodownloaderController extends Controller {
                     'skus' => $row['skus'],
                     'skus_list' => array_values($skusArr),
                     'keep_id' => (int)$row['keep_id'],
+                    'exists_on_disk' => $existsOnDisk,
+                    'file_size_mb' => $fileSizeMb,
                     'records' => $records
                 ];
             }
@@ -1028,6 +1054,7 @@ class PhotodownloaderController extends Controller {
         $this->json([
             'success' => true,
             'category_label' => $catLabel,
+            'corrupt_text_records_count' => $corruptCount,
             'summary' => [
                 'total_duplicate_groups' => $totalGroups,
                 'total_redundant_photos' => $totalRedundantPhotos,
@@ -1041,6 +1068,7 @@ class PhotodownloaderController extends Controller {
 
     /**
      * AJAX endpoint: Clean up duplicate image records for a single image group
+     * Ensures all redundant duplicate references are permanently removed from product_images_new table
      */
     public function deduplicateGroup() {
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
@@ -1071,17 +1099,26 @@ class PhotodownloaderController extends Controller {
             return;
         }
 
-        // Delete all duplicate copies except the keep_id
+        // Delete all duplicate copies except the keep_id from product_images_new table
         $delSql = "DELETE FROM product_images_new WHERE img_name = '$escImgName' AND id != $keepId";
         $deleted = mysqli_query($this->db, $delSql);
 
         if ($deleted) {
             $deletedCount = mysqli_affected_rows($this->db);
+
+            // Verify that only exactly 1 record remains in product_images_new table
+            $chk = mysqli_query($this->db, "SELECT COUNT(*) as c FROM product_images_new WHERE img_name = '$escImgName'");
+            $remaining = 1;
+            if ($chk && $r = mysqli_fetch_assoc($chk)) {
+                $remaining = (int)$r['c'];
+            }
+
             $this->json([
                 'success' => true,
                 'deleted_count' => $deletedCount,
                 'keep_id' => $keepId,
-                'message' => "Removed {$deletedCount} duplicate photo record(s). Kept primary ID #{$keepId}."
+                'remaining_in_db' => $remaining,
+                'message' => "Removed {$deletedCount} duplicate reference(s). Exactly 1 primary record (#{$keepId}) remains in product_images_new table."
             ]);
         } else {
             $this->json(['success' => false, 'message' => 'Database error while removing duplicate photo records.'], 500);
@@ -1089,7 +1126,77 @@ class PhotodownloaderController extends Controller {
     }
 
     /**
+     * AJAX endpoint: Delete ALL references of an image from product_images_new table
+     * Ensures its reference is completely NOT found in product_images_new table.
+     */
+    public function deleteAllReferences() {
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            $this->json(['success' => false, 'message' => 'Invalid request method.'], 405);
+            return;
+        }
+
+        $imgName = trim($_POST['img_name'] ?? '');
+        if (empty($imgName)) {
+            $this->json(['success' => false, 'message' => 'Missing image name parameter.'], 400);
+            return;
+        }
+
+        $escImgName = mysqli_real_escape_string($this->db, $imgName);
+        $delSql = "DELETE FROM product_images_new WHERE img_name = '$escImgName'";
+        $deleted = mysqli_query($this->db, $delSql);
+
+        if ($deleted) {
+            $deletedCount = mysqli_affected_rows($this->db);
+            // Verify 0 records remain
+            $chk = mysqli_query($this->db, "SELECT COUNT(*) as c FROM product_images_new WHERE img_name = '$escImgName'");
+            $remaining = 0;
+            if ($chk && $r = mysqli_fetch_assoc($chk)) {
+                $remaining = (int)$r['c'];
+            }
+
+            $this->json([
+                'success' => true,
+                'deleted_count' => $deletedCount,
+                'remaining_in_db' => $remaining,
+                'message' => "Removed all {$deletedCount} reference(s). Confirmed: reference is NOT found in product_images_new table."
+            ]);
+        } else {
+            $this->json(['success' => false, 'message' => 'Database error while removing records.'], 500);
+        }
+    }
+
+    /**
+     * AJAX endpoint: Delete a single specific record by ID from product_images_new table
+     */
+    public function deleteRecordById() {
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            $this->json(['success' => false, 'message' => 'Invalid request method.'], 405);
+            return;
+        }
+
+        $recordId = (int)($_POST['id'] ?? 0);
+        if ($recordId <= 0) {
+            $this->json(['success' => false, 'message' => 'Invalid record ID.'], 400);
+            return;
+        }
+
+        $delSql = "DELETE FROM product_images_new WHERE id = $recordId";
+        $deleted = mysqli_query($this->db, $delSql);
+
+        if ($deleted) {
+            $this->json([
+                'success' => true,
+                'deleted_id' => $recordId,
+                'message' => "Record #{$recordId} removed from product_images_new table."
+            ]);
+        } else {
+            $this->json(['success' => false, 'message' => 'Database error while deleting record.'], 500);
+        }
+    }
+
+    /**
      * AJAX endpoint: Batch deduplicate an entire category (keeps primary record for each duplicate photo)
+     * Permanently deletes redundant records from product_images_new table
      */
     public function deduplicateCategory() {
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
@@ -1098,7 +1205,11 @@ class PhotodownloaderController extends Controller {
         }
 
         $catKey = trim($_POST['category'] ?? 'all');
-        $where = ["pin.img_name != ''", "pin.img_name IS NOT NULL"];
+        $where = [
+            "pin.img_name != ''",
+            "pin.img_name IS NOT NULL",
+            "(pin.img_name LIKE '%.jpg' OR pin.img_name LIKE '%.jpeg' OR pin.img_name LIKE '%.png' OR pin.img_name LIKE '%.webp' OR pin.img_name LIKE '%.gif' OR pin.img_name LIKE '%.JPG' OR pin.img_name LIKE '%.JPEG' OR pin.img_name LIKE '%.PNG')"
+        ];
         $joins = "";
 
         if ($catKey !== 'all' && strpos($catKey, ':') !== false) {
@@ -1153,7 +1264,7 @@ class PhotodownloaderController extends Controller {
             return;
         }
 
-        // Delete in batches of 500
+        // Delete in batches of 500 from product_images_new table
         $totalDeleted = 0;
         $chunks = array_chunk($idsToDelete, 500);
         foreach ($chunks as $chunk) {
@@ -1167,8 +1278,162 @@ class PhotodownloaderController extends Controller {
         $this->json([
             'success' => true,
             'deleted_count' => $totalDeleted,
-            'message' => "Successfully cleaned up {$totalDeleted} duplicate photo records!"
+            'message' => "Successfully removed {$totalDeleted} duplicate references from product_images_new table!"
         ]);
+    }
+
+    /**
+     * AJAX endpoint: Purge corrupted text records (like '/4.Featuring attractive designs') from product_images_new
+     */
+    public function purgeCorruptedTextRecords() {
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            $this->json(['success' => false, 'message' => 'Invalid request method.'], 405);
+            return;
+        }
+
+        $sql = "DELETE FROM product_images_new 
+                WHERE (img_name NOT LIKE '%.jpg' AND img_name NOT LIKE '%.jpeg' AND img_name NOT LIKE '%.png' AND img_name NOT LIKE '%.webp' AND img_name NOT LIKE '%.gif' AND img_name != '')
+                   OR img_name LIKE '%Featuring%'";
+        $res = mysqli_query($this->db, $sql);
+        $count = mysqli_affected_rows($this->db);
+
+        $this->json([
+            'success' => true,
+            'purged_count' => $count,
+            'message' => "Purged {$count} corrupted text records from product_images_new table successfully!"
+        ]);
+    }
+
+    /**
+     * AJAX endpoint: Find photos on the server whose reference is NOT found in product_images_new table
+     */
+    public function getUnreferencedPhotos() {
+        $folder = trim($_REQUEST['folder'] ?? '2026/08');
+        $folder = preg_replace('/[^a-zA-Z0-9_\-\/]/', '', $folder);
+        $folder = trim($folder, '/');
+
+        $baseDir = $this->localUploadsDir;
+        if (!$baseDir) {
+            $candidates = [
+                dirname(__DIR__, 2) . '/yn/uploads',
+                dirname(__DIR__, 2) . '/uploads',
+                (!empty($_SERVER['DOCUMENT_ROOT']) ? $_SERVER['DOCUMENT_ROOT'] . '/yn/uploads' : null),
+                realpath(__DIR__ . '/../../yn/uploads')
+            ];
+            foreach ($candidates as $cand) {
+                if ($cand && is_dir($cand)) { $baseDir = $cand; break; }
+            }
+        }
+
+        if (!$baseDir || !is_dir($baseDir)) {
+            $this->json([
+                'success' => false,
+                'message' => 'Server uploads folder not accessible locally on disk.'
+            ]);
+            return;
+        }
+
+        $scanTarget = $baseDir . DIRECTORY_SEPARATOR . str_replace('/', DIRECTORY_SEPARATOR, $folder);
+        if (!is_dir($scanTarget)) {
+            $scanTarget = $baseDir;
+        }
+
+        $files = @scandir($scanTarget);
+        if (!$files) {
+            $this->json([
+                'success' => true,
+                'folder' => $folder,
+                'total_files_scanned' => 0,
+                'unreferenced_count' => 0,
+                'unreferenced_size_mb' => 0,
+                'items' => []
+            ]);
+            return;
+        }
+
+        $unreferencedItems = [];
+        $totalSize = 0;
+        $totalScanned = 0;
+
+        foreach ($files as $file) {
+            if ($file === '.' || $file === '..') continue;
+            $fullPath = $scanTarget . DIRECTORY_SEPARATOR . $file;
+            if (!is_file($fullPath)) continue;
+
+            $ext = strtolower(pathinfo($file, PATHINFO_EXTENSION));
+            if (!in_array($ext, ['jpg', 'jpeg', 'png', 'webp'])) continue;
+
+            $totalScanned++;
+            $fileSize = filesize($fullPath);
+            $escFile = mysqli_real_escape_string($this->db, $file);
+
+            // Check if this file is referenced in product_images_new table
+            $chk = mysqli_query($this->db, "SELECT id FROM product_images_new WHERE img_name LIKE '%$escFile%' LIMIT 1");
+            if (!$chk || mysqli_num_rows($chk) === 0) {
+                // NOT referenced in product_images_new table!
+                $totalSize += $fileSize;
+                $unreferencedItems[] = [
+                    'file_name' => $file,
+                    'folder' => $folder,
+                    'full_url' => 'https://srishringarr.com/yn/uploads/' . ltrim($folder . '/' . $file, '/'),
+                    'file_size_mb' => round($fileSize / (1024 * 1024), 2),
+                    'modified_at' => date('Y-m-d H:i:s', filemtime($fullPath)),
+                    'status' => 'Reference NOT found in product_images_new table'
+                ];
+            }
+        }
+
+        $this->json([
+            'success' => true,
+            'folder' => $folder,
+            'total_files_scanned' => $totalScanned,
+            'unreferenced_count' => count($unreferencedItems),
+            'unreferenced_size_mb' => round($totalSize / (1024 * 1024), 2),
+            'items' => array_slice($unreferencedItems, 0, 100)
+        ]);
+    }
+
+    /**
+     * AJAX endpoint: Delete unreferenced file from server disk after re-verifying no DB reference exists
+     */
+    public function deleteUnreferencedFile() {
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            $this->json(['success' => false, 'message' => 'Invalid request method.'], 405);
+            return;
+        }
+
+        $fileName = trim($_POST['file_name'] ?? '');
+        $folder = trim($_POST['folder'] ?? '2026/08');
+        $fileName = basename($fileName);
+
+        if (empty($fileName)) {
+            $this->json(['success' => false, 'message' => 'Missing file name.'], 400);
+            return;
+        }
+
+        // Verify that NO reference exists in product_images_new
+        $escFile = mysqli_real_escape_string($this->db, $fileName);
+        $chk = mysqli_query($this->db, "SELECT id FROM product_images_new WHERE img_name LIKE '%$escFile%' LIMIT 1");
+        if ($chk && mysqli_num_rows($chk) > 0) {
+            $this->json(['success' => false, 'message' => 'Safety check aborted: This file IS referenced by an active product in product_images_new table.'], 400);
+            return;
+        }
+
+        $baseDir = $this->localUploadsDir ?: (dirname(__DIR__, 2) . '/yn/uploads');
+        $targetFile = $baseDir . DIRECTORY_SEPARATOR . str_replace('/', DIRECTORY_SEPARATOR, $folder) . DIRECTORY_SEPARATOR . $fileName;
+
+        if (file_exists($targetFile) && is_file($targetFile)) {
+            $bytes = filesize($targetFile);
+            @unlink($targetFile);
+            $this->json([
+                'success' => true,
+                'file_name' => $fileName,
+                'freed_mb' => round($bytes / (1024 * 1024), 2),
+                'message' => "Deleted unreferenced file '{$fileName}' from server disk."
+            ]);
+        } else {
+            $this->json(['success' => false, 'message' => 'File not found on server disk.'], 404);
+        }
     }
 
     /**
