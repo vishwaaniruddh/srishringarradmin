@@ -1065,8 +1065,8 @@
                                                 <div style="display: flex; align-items: center; gap: 0.5rem;">
                                                     <span style="font-size: 0.75rem; font-weight: 700; color: #0f172a;">AI Engine:</span>
                                                     <select id="aiEngineSelect" class="ai-input" style="padding: 0.25rem 0.65rem; font-size: 0.75rem; font-weight: 600; cursor: pointer;">
-                                                        <option value="openai" selected>OpenAI (ChatGPT-4o Mini)</option>
-                                                        <option value="gemini">Google Gemini (Gemini Flash)</option>
+                                                        <option value="gemini" selected>Google Gemini (Gemini Flash)</option>
+                                                        <option value="openai">OpenAI (ChatGPT-4o Mini)</option>
                                                     </select>
                                                 </div>
                                                 <span class="text-[11px] text-slate-500">Select model engine for names & descriptions</span>
@@ -1853,7 +1853,7 @@
 
         async function aiGenerateNames() {
             const btn = document.getElementById('aiNamesBtn');
-            const provider = document.getElementById('aiEngineSelect')?.value || 'openai';
+            const provider = document.getElementById('aiEngineSelect')?.value || 'gemini';
             btn.disabled = true;
             showEl('aiLoading');
             hideEl('aiNamesResult');
@@ -1877,7 +1877,7 @@
         async function aiGenerateDescription() {
             const btn = document.getElementById('aiDescBtn');
             const maxWords = document.getElementById('aiDescMaxWords')?.value || 100;
-            const provider = document.getElementById('aiEngineSelect')?.value || 'openai';
+            const provider = document.getElementById('aiEngineSelect')?.value || 'gemini';
             btn.disabled = true;
             showEl('aiLoading');
             hideEl('aiDescResult');

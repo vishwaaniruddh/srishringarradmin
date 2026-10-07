@@ -104,7 +104,7 @@ class ProductController extends Controller {
                   "\"Traditional gold plated necklace set with green beads and matching earrings for party wear\". " .
                   "Return ONLY a raw JSON array of strings containing the 5 suggested names. Do not include markdown code block formatting (no ```json, no ```).";
 
-        $provider = strtolower($_GET['ai_provider'] ?? 'openai');
+        $provider = strtolower($_GET['ai_provider'] ?? 'gemini');
         $openAiKey = $secrets['OPENAI_API_KEY'] ?? '';
         $geminiKey = $secrets['GEMINI_API_KEY'] ?? '';
 
@@ -330,7 +330,7 @@ class ProductController extends Controller {
                   "- Simply write headings as plain text (e.g., 'Key Features:').\n" .
                   "Do not include any placeholders, conversational text, or greetings. Return ONLY the clean plain text of description and key features.";
 
-        $provider = strtolower($_GET['ai_provider'] ?? 'openai');
+        $provider = strtolower($_GET['ai_provider'] ?? 'gemini');
         $openAiKey = $secrets['OPENAI_API_KEY'] ?? '';
         $geminiKey = $secrets['GEMINI_API_KEY'] ?? '';
 
@@ -464,7 +464,7 @@ class ProductController extends Controller {
         $input = json_decode(file_get_contents('php://input'), true);
         $dataUri = $input['image'] ?? '';
         $target = $input['target'] ?? 'name'; // 'name' or 'desc'
-        $provider = strtolower($input['provider'] ?? 'openai');
+        $provider = strtolower($input['provider'] ?? 'gemini');
         $type = $input['type'] ?? 'jewellery';
 
         if (empty($dataUri)) {
@@ -3034,7 +3034,7 @@ class ProductController extends Controller {
         $openAiApiKey = $secrets['OPENAI_API_KEY'] ?? '';
 
         if (empty($provider)) {
-            $provider = !empty($openAiApiKey) ? 'openai' : 'gemini';
+            $provider = !empty($geminiApiKey) ? 'gemini' : 'openai';
         }
 
         if ($provider === 'openai' && empty($openAiApiKey)) {

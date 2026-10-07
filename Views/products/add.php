@@ -658,8 +658,8 @@
                                             <div class="flex items-center gap-2">
                                                 <span class="text-xs font-semibold text-slate-700">AI Engine:</span>
                                                 <select id="aiEngineSelectAdd" class="field-input" style="height: 32px !important; width: auto; font-size: 0.75rem !important;">
-                                                    <option value="openai" selected>OpenAI (ChatGPT-4o Mini)</option>
-                                                    <option value="gemini">Google Gemini (Gemini Flash)</option>
+                                                    <option value="gemini" selected>Google Gemini (Gemini Flash)</option>
+                                                    <option value="openai">OpenAI (ChatGPT-4o Mini)</option>
                                                 </select>
                                             </div>
                                             <span class="text-[11px] text-slate-400">Uses first uploaded image as visual reference</span>
@@ -1458,7 +1458,7 @@
             }
 
             const loader = document.getElementById('aiAddLoading');
-            const provider = document.getElementById('aiEngineSelectAdd')?.value || 'openai';
+            const provider = document.getElementById('aiEngineSelectAdd')?.value || 'gemini';
             const productType = document.getElementById('product_type')?.value || 'jewellery';
             const file = uploadedFiles[0];
 

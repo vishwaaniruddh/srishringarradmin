@@ -24,8 +24,8 @@
                 <span id="chatbot-status-text">Online • Srishringarr Assistant</span>
             </div>
             <select id="chatbot-model-select" class="chatbot-model-select" title="Switch AI Model">
+                <option value="gemini" selected>Google Gemini</option>
                 <option value="groq">Groq (Llama 3.3)</option>
-                <option value="gemini">Google Gemini</option>
                 <option value="openrouter">OpenRouter (DeepSeek)</option>
             </select>
         </div>

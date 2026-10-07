@@ -268,14 +268,14 @@
                             <div class="flex items-center gap-2 bg-white border border-zinc-200 p-1.5 rounded-lg shadow-xs">
                                 <span class="text-[11px] font-semibold text-zinc-500 uppercase px-2 tracking-wider">AI Model:</span>
                                 <select id="ai_provider_select" class="field-select" style="height: 28px; font-size: 12px; padding: 0 8px; border: 1px solid #e4e4e7;">
-                                    <?php if (!empty($hasOpenAi)): ?>
-                                        <option value="openai" selected>OpenAI (GPT-4o mini Vision)</option>
-                                    <?php endif; ?>
                                     <?php if (!empty($hasGemini)): ?>
-                                        <option value="gemini" <?php echo empty($hasOpenAi) ? 'selected' : ''; ?>>Google Gemini (Gemini Flash)</option>
+                                        <option value="gemini" selected>Google Gemini (Gemini Flash)</option>
+                                    <?php endif; ?>
+                                    <?php if (!empty($hasOpenAi)): ?>
+                                        <option value="openai" <?php echo empty($hasGemini) ? 'selected' : ''; ?>>OpenAI (GPT-4o mini Vision)</option>
                                     <?php endif; ?>
                                     <?php if (empty($hasOpenAi) && empty($hasGemini)): ?>
-                                        <option value="openai">OpenAI (Needs Key in secrets.php)</option>
+                                        <option value="gemini">Google Gemini (Needs Key in secrets.php)</option>
                                     <?php endif; ?>
                                 </select>
                             </div>
@@ -678,7 +678,7 @@
         const nameInput = document.getElementById(`name-${type}-${productId}`);
         const shortDescInput = document.getElementById(`short-desc-${type}-${productId}`);
         const descInput = document.getElementById(`desc-${type}-${productId}`);
-        const selectedProvider = aiProviderSelect ? aiProviderSelect.value : 'openai';
+        const selectedProvider = aiProviderSelect ? aiProviderSelect.value : 'gemini';
 
         if (statusCell) {
             statusCell.innerHTML = `<span class="shadcn-badge font-mono text-[10px]"><i class="fas fa-spinner fa-spin text-zinc-500"></i> AI Vision...</span>`;
