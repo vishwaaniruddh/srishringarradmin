@@ -41,6 +41,7 @@ class PhotodownloaderController extends Controller {
             'selected_categories' => ['garment:22'],
             'stock_status' => 'all',   // 'all', 'available', 'outofstock'
             'image_scope' => 'all',    // 'main', 'all'
+            'limit_products' => 'all', // 'all', '10', '25'
             'updated_at' => null
         ];
 
@@ -108,10 +109,16 @@ class PhotodownloaderController extends Controller {
             $imageScope = 'all';
         }
 
+        $limitProducts = strtolower(trim($_POST['limit_products'] ?? 'all'));
+        if (!in_array($limitProducts, ['all', '10', '25'])) {
+            $limitProducts = 'all';
+        }
+
         $saved = $this->saveSettingsData([
             'selected_categories' => array_values(array_unique($categories)),
             'stock_status' => $stockStatus,
-            'image_scope' => $imageScope
+            'image_scope' => $imageScope,
+            'limit_products' => $limitProducts
         ]);
 
         if ($saved) {
@@ -151,7 +158,13 @@ class PhotodownloaderController extends Controller {
             $imageScope = $savedSettings['image_scope'] ?? 'all';
         }
 
-        $previewData = $this->calculatePreview($categories, $stockStatus, $imageScope);
+        $limitProducts = strtolower(trim($_REQUEST['limit_products'] ?? ''));
+        if (!in_array($limitProducts, ['all', '10', '25'])) {
+            $savedSettings = $this->getSettings();
+            $limitProducts = $savedSettings['limit_products'] ?? 'all';
+        }
+
+        $previewData = $this->calculatePreview($categories, $stockStatus, $imageScope, $limitProducts);
         $this->json([
             'success' => true,
             'data' => $previewData
@@ -161,7 +174,7 @@ class PhotodownloaderController extends Controller {
     /**
      * Calculate summary metrics for preview using fast indexed queries
      */
-    private function calculatePreview($categoryKeys, $stockStatus, $imageScope) {
+    private function calculatePreview($categoryKeys, $stockStatus, $imageScope, $limitProducts = 'all') {
         $totalProducts = 0;
         $categoryBreakdown = [];
         $garmentIds = [];
@@ -173,16 +186,21 @@ class PhotodownloaderController extends Controller {
             $info = $this->getCategoryMetaAndProducts($catKey, $stockStatus);
             if (!$info) continue;
 
-            $productCount = count($info['products']);
+            $prods = $info['products'];
+            if ($limitProducts !== 'all' && is_numeric($limitProducts) && (int)$limitProducts > 0) {
+                $prods = array_slice($prods, 0, (int)$limitProducts);
+            }
+
+            $productCount = count($prods);
             $totalProducts += $productCount;
 
             if ($productCount > 0) {
                 if ($info['type'] === 'garment') {
-                    foreach ($info['products'] as $p) {
+                    foreach ($prods as $p) {
                         $garmentIds[] = (int)$p['id'];
                     }
                 } else {
-                    foreach ($info['products'] as $p) {
+                    foreach ($prods as $p) {
                         $jewelIds[] = (int)$p['id'];
                     }
                 }
@@ -266,11 +284,18 @@ class PhotodownloaderController extends Controller {
             $imageScope = 'all';
         }
 
+        $limitProducts = strtolower(trim($_POST['limit_products'] ?? 'all'));
+        if (!in_array($limitProducts, ['all', '10', '25'])) {
+            $savedSettings = $this->getSettings();
+            $limitProducts = $savedSettings['limit_products'] ?? 'all';
+        }
+
         // Persist settings
         $this->saveSettingsData([
             'selected_categories' => array_values(array_unique($categories)),
             'stock_status' => $stockStatus,
-            'image_scope' => $imageScope
+            'image_scope' => $imageScope,
+            'limit_products' => $limitProducts
         ]);
 
         if (!class_exists('\ZipArchive')) {
@@ -289,7 +314,12 @@ class PhotodownloaderController extends Controller {
             $deptName = $this->sanitizeFolderName($catInfo['department']);
             $catFolderName = $this->sanitizeFolderName($catInfo['name']);
 
-            foreach ($catInfo['products'] as $p) {
+            $catProds = $catInfo['products'];
+            if ($limitProducts !== 'all' && is_numeric($limitProducts) && (int)$limitProducts > 0) {
+                $catProds = array_slice($catProds, 0, (int)$limitProducts);
+            }
+
+            foreach ($catProds as $p) {
                 $sku = trim($p['sku'] ?? '');
                 if (empty($sku)) continue;
                 $allProducts[] = [
@@ -622,11 +652,18 @@ class PhotodownloaderController extends Controller {
             $imageScope = $savedSettings['image_scope'] ?? 'all';
         }
 
+        $limitProducts = strtolower(trim($_REQUEST['limit_products'] ?? ''));
+        if (!in_array($limitProducts, ['all', '10', '25'])) {
+            $savedSettings = $this->getSettings();
+            $limitProducts = $savedSettings['limit_products'] ?? 'all';
+        }
+
         // Persist current download choices
         $this->saveSettingsData([
             'selected_categories' => array_values(array_unique($categories)),
             'stock_status' => $stockStatus,
-            'image_scope' => $imageScope
+            'image_scope' => $imageScope,
+            'limit_products' => $limitProducts
         ]);
 
         // If accessed directly via browser GET, redirect to index with autostart=1
@@ -662,7 +699,12 @@ class PhotodownloaderController extends Controller {
             $categoryFolderName = $this->sanitizeFolderName($catInfo['name']);
             $imagesList = [];
 
-            foreach ($catInfo['products'] as $product) {
+            $catProds = $catInfo['products'];
+            if ($limitProducts !== 'all' && is_numeric($limitProducts) && (int)$limitProducts > 0) {
+                $catProds = array_slice($catProds, 0, (int)$limitProducts);
+            }
+
+            foreach ($catProds as $product) {
                 $sku = trim($product['sku']);
                 if (empty($sku)) continue;
 
@@ -859,24 +901,63 @@ class PhotodownloaderController extends Controller {
                 $catName = ucwords(strtolower(trim($cRow['name'])));
             }
 
-            // Gather garment subcategories if any
-            $subIds = [$id];
-            $subQ = mysqli_query($this->db, "SELECT sub_id FROM garment_subcat WHERE gmain_id = $id");
-            if ($subQ) {
-                while ($subR = mysqli_fetch_assoc($subQ)) {
-                    $subIds[] = (int)$subR['sub_id'];
+            if ($id == 29) { // Trail Gowns / Infinity Gowns
+                $sql = "SELECT DISTINCT gp.gproduct_id as id, gp.gproduct_code as sku, gp.gproduct_name as name, 'garment' as type
+                        FROM garment_product gp
+                        WHERE gp.garment_id = 29 OR gp.product_for = 29 
+                           OR EXISTS (SELECT 1 FROM product_categories pc WHERE pc.product_id = gp.gproduct_id AND pc.product_type = 'garments' AND (pc.category_id = 18 OR pc.legacy_category_id = 29))
+                        ORDER BY gp.gproduct_id DESC";
+            } elseif ($id == 28) { // Indo Western Outfits
+                $sql = "SELECT DISTINCT gp.gproduct_id as id, gp.gproduct_code as sku, gp.gproduct_name as name, 'garment' as type
+                        FROM garment_product gp
+                        WHERE (gp.garment_id = 28 OR gp.product_for = 28 OR gp.gproduct_code LIKE 'YNW%' OR gp.gproduct_code LIKE 'asu%' 
+                               OR EXISTS (SELECT 1 FROM product_categories pc WHERE pc.product_id = gp.gproduct_id AND pc.product_type = 'garments' AND (pc.category_id = 16 OR pc.legacy_category_id = 28)))
+                          AND gp.garment_id != 29 AND gp.product_for != 29
+                          AND NOT EXISTS (SELECT 1 FROM product_categories pc WHERE pc.product_id = gp.gproduct_id AND pc.product_type = 'garments' AND (pc.category_id = 18 OR pc.legacy_category_id = 29))
+                        ORDER BY gp.gproduct_id DESC";
+            } elseif ($id == 10) { // Lehenga Choli
+                $sql = "SELECT DISTINCT gp.gproduct_id as id, gp.gproduct_code as sku, gp.gproduct_name as name, 'garment' as type
+                        FROM garment_product gp
+                        WHERE (gp.garment_id = 10 OR gp.product_for = 10 
+                               OR (gp.garment_id = 0 AND gp.product_for = 0 AND (gp.gproduct_code LIKE 'ynl%' OR gp.gproduct_code LIKE 'aynl%' OR gp.gproduct_name LIKE '%lehenga%'))
+                               OR EXISTS (SELECT 1 FROM product_categories pc WHERE pc.product_id = gp.gproduct_id AND pc.product_type = 'garments' AND (pc.category_id = 17 OR pc.legacy_category_id = 10)))
+                          AND gp.garment_id != 28 AND gp.product_for != 28 AND gp.gproduct_code NOT LIKE 'YNW%' AND gp.gproduct_code NOT LIKE 'asu%'
+                          AND NOT EXISTS (SELECT 1 FROM product_categories pc WHERE pc.product_id = gp.gproduct_id AND pc.product_type = 'garments' AND (pc.category_id = 16 OR pc.legacy_category_id = 28))
+                          AND gp.garment_id != 29 AND gp.product_for != 29
+                          AND NOT EXISTS (SELECT 1 FROM product_categories pc WHERE pc.product_id = gp.gproduct_id AND pc.product_type = 'garments' AND (pc.category_id = 18 OR pc.legacy_category_id = 29))
+                        ORDER BY gp.gproduct_id DESC";
+            } elseif ($id == 22) { // Evening Gowns
+                $sql = "SELECT DISTINCT gp.gproduct_id as id, gp.gproduct_code as sku, gp.gproduct_name as name, 'garment' as type
+                        FROM garment_product gp
+                        WHERE (gp.garment_id = 22 OR gp.product_for = 22 
+                               OR (gp.garment_id = 0 AND gp.product_for = 0 AND (gp.gproduct_code LIKE 'yng%' OR gp.gproduct_code LIKE 'ayng%' OR gp.gproduct_name LIKE '%gown%'))
+                               OR EXISTS (SELECT 1 FROM product_categories pc WHERE pc.product_id = gp.gproduct_id AND pc.product_type = 'garments' AND (pc.category_id = 15 OR (pc.category_id = 4 AND pc.legacy_category_id = 22))))
+                          AND gp.garment_id != 29 AND gp.product_for != 29
+                          AND NOT EXISTS (SELECT 1 FROM product_categories pc WHERE pc.product_id = gp.gproduct_id AND pc.product_type = 'garments' AND (pc.category_id = 18 OR pc.legacy_category_id = 29))
+                          AND gp.garment_id != 28 AND gp.product_for != 28 AND gp.gproduct_code NOT LIKE 'YNW%' AND gp.gproduct_code NOT LIKE 'asu%'
+                          AND NOT EXISTS (SELECT 1 FROM product_categories pc WHERE pc.product_id = gp.gproduct_id AND pc.product_type = 'garments' AND (pc.category_id = 16 OR pc.legacy_category_id = 28))
+                          AND gp.garment_id != 10 AND gp.product_for != 10
+                          AND NOT EXISTS (SELECT 1 FROM product_categories pc WHERE pc.product_id = gp.gproduct_id AND pc.product_type = 'garments' AND (pc.category_id = 17 OR pc.legacy_category_id = 10))
+                        ORDER BY gp.gproduct_id DESC";
+            } else {
+                $subIds = [$id];
+                $subQ = mysqli_query($this->db, "SELECT sub_id FROM garment_subcat WHERE gmain_id = $id");
+                if ($subQ) {
+                    while ($subR = mysqli_fetch_assoc($subQ)) {
+                        $subIds[] = (int)$subR['sub_id'];
+                    }
                 }
-            }
-            $subListStr = implode(',', array_unique($subIds));
+                $subListStr = implode(',', array_unique($subIds));
 
-            $sql = "SELECT DISTINCT gp.gproduct_id as id, gp.gproduct_code as sku, gp.gproduct_name as name, 'garment' as type
-                    FROM garment_product gp
-                    LEFT JOIN product_categories pc ON (gp.gproduct_id = pc.product_id AND pc.product_type = 'garments')
-                    WHERE gp.garment_id IN ($subListStr) 
-                       OR gp.product_for IN ($subListStr)
-                       OR pc.legacy_category_id IN ($subListStr)
-                       OR pc.legacy_subcategory_id IN ($subListStr)
-                    ORDER BY gp.gproduct_id DESC";
+                $sql = "SELECT DISTINCT gp.gproduct_id as id, gp.gproduct_code as sku, gp.gproduct_name as name, 'garment' as type
+                        FROM garment_product gp
+                        LEFT JOIN product_categories pc ON (gp.gproduct_id = pc.product_id AND pc.product_type = 'garments')
+                        WHERE gp.garment_id IN ($subListStr) 
+                           OR gp.product_for IN ($subListStr)
+                           OR pc.legacy_category_id IN ($subListStr)
+                           OR pc.legacy_subcategory_id IN ($subListStr)
+                        ORDER BY gp.gproduct_id DESC";
+            }
             $res = mysqli_query($this->db, $sql);
             if ($res) {
                 while ($r = mysqli_fetch_assoc($res)) {
@@ -972,9 +1053,10 @@ class PhotodownloaderController extends Controller {
      * Clean folder names for cross-platform ZIP compatibility
      */
     private function sanitizeFolderName($name) {
-        $clean = preg_replace('/[\\/\\\\:*?"<>|]/', '_', (string)$name);
+        $clean = str_replace([' / ', '/', '\\'], ' - ', (string)$name);
+        $clean = preg_replace('/[:*?"<>|]/', '_', $clean);
         $clean = preg_replace('/\s+/', ' ', $clean);
-        $clean = trim($clean, " .\t\n\r\0\x0B");
+        $clean = trim($clean, " ._-\t\n\r\0\x0B");
         return !empty($clean) ? $clean : 'General';
     }
 

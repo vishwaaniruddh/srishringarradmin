@@ -295,6 +295,7 @@
                         $selectedCats = $settings['selected_categories'] ?? [];
                         $stockStatus = $settings['stock_status'] ?? 'all';
                         $imageScope = $settings['image_scope'] ?? 'all';
+                        $limitProducts = $settings['limit_products'] ?? 'all';
 
                         $totalApparelCats = count($categories['Apparel']['children'] ?? []);
                         $totalJewelCats = count($categories['Jewellery']['children'] ?? []);
@@ -560,6 +561,44 @@
                                                     <div>
                                                         <div class="text-xs font-semibold text-zinc-900">Main Image Only</div>
                                                         <div class="text-[11px] text-zinc-500">Downloads only the primary featured cover photo for each SKU (faster download).</div>
+                                                    </div>
+                                                </label>
+                                            </div>
+                                        </div>
+
+                                        <!-- Download Limit Option (Quick Testing) -->
+                                        <div class="pt-3 border-t border-zinc-100">
+                                            <div class="flex items-center justify-between mb-2">
+                                                <label class="text-xs font-semibold text-zinc-900 block">
+                                                    Download Limit / Sample Size:
+                                                </label>
+                                                <span class="shadcn-badge font-mono text-[10px]">Testing Option</span>
+                                            </div>
+                                            <div class="space-y-2">
+                                                <label class="radio-option-card <?php echo $limitProducts === 'all' ? 'selected' : ''; ?>" onclick="selectRadio(this, 'limit_products', 'all')">
+                                                    <input type="radio" name="limit_products" value="all" <?php echo $limitProducts === 'all' ? 'checked' : ''; ?> class="accent-zinc-900 mt-0.5" onchange="handleSelectionChange()">
+                                                    <div>
+                                                        <div class="text-xs font-semibold text-zinc-900">All Products (Full Export)</div>
+                                                        <div class="text-[11px] text-zinc-500">Download every product in each selected category.</div>
+                                                    </div>
+                                                </label>
+
+                                                <label class="radio-option-card <?php echo $limitProducts === '10' ? 'selected' : ''; ?>" onclick="selectRadio(this, 'limit_products', '10')">
+                                                    <input type="radio" name="limit_products" value="10" <?php echo $limitProducts === '10' ? 'checked' : ''; ?> class="accent-zinc-900 mt-0.5" onchange="handleSelectionChange()">
+                                                    <div>
+                                                        <div class="text-xs font-semibold text-zinc-900 flex items-center gap-1.5">
+                                                            <span>Max 10 Products (Quick Test)</span>
+                                                            <span class="shadcn-badge text-[10px] bg-emerald-50 text-emerald-700 border-emerald-200">Recommended for Testing</span>
+                                                        </div>
+                                                        <div class="text-[11px] text-zinc-500">Downloads max 10 products per category for lightning-fast testing (approx 3-5s).</div>
+                                                    </div>
+                                                </label>
+
+                                                <label class="radio-option-card <?php echo $limitProducts === '25' ? 'selected' : ''; ?>" onclick="selectRadio(this, 'limit_products', '25')">
+                                                    <input type="radio" name="limit_products" value="25" <?php echo $limitProducts === '25' ? 'checked' : ''; ?> class="accent-zinc-900 mt-0.5" onchange="handleSelectionChange()">
+                                                    <div>
+                                                        <div class="text-xs font-semibold text-zinc-900">Max 25 Products per Category</div>
+                                                        <div class="text-[11px] text-zinc-500">Moderate sample size for testing larger batch packages.</div>
                                                     </div>
                                                 </label>
                                             </div>

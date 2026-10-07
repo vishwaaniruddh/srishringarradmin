@@ -291,21 +291,56 @@ class ProductModel extends Model
             $id = (int)$row['garment_id'];
             $name = ucwords(strtolower($row['name']));
 
-            // Get subcategories in garment_subcat if any
-            $subIds = [$id];
-            $subQ = $this->query($this->db, "SELECT sub_id FROM garment_subcat WHERE gmain_id = $id");
-            while ($subR = $this->fetchOne($subQ)) {
-                $subIds[] = (int)$subR['sub_id'];
-            }
-            $subListStr = implode(',', array_unique($subIds));
+            if ($id == 29) { // Trail Gowns / Infinity Gowns
+                $count_qry = "SELECT COUNT(DISTINCT gp.gproduct_id) as cnt 
+                              FROM garment_product gp
+                              WHERE gp.garment_id = 29 OR gp.product_for = 29 
+                                 OR EXISTS (SELECT 1 FROM product_categories pc WHERE pc.product_id = gp.gproduct_id AND pc.product_type = 'garments' AND (pc.category_id = 18 OR pc.legacy_category_id = 29))";
+            } elseif ($id == 28) { // Indo Western Outfits
+                $count_qry = "SELECT COUNT(DISTINCT gp.gproduct_id) as cnt 
+                              FROM garment_product gp
+                              WHERE (gp.garment_id = 28 OR gp.product_for = 28 OR gp.gproduct_code LIKE 'YNW%' OR gp.gproduct_code LIKE 'asu%' 
+                                     OR EXISTS (SELECT 1 FROM product_categories pc WHERE pc.product_id = gp.gproduct_id AND pc.product_type = 'garments' AND (pc.category_id = 16 OR pc.legacy_category_id = 28)))
+                                AND gp.garment_id != 29 AND gp.product_for != 29
+                                AND NOT EXISTS (SELECT 1 FROM product_categories pc WHERE pc.product_id = gp.gproduct_id AND pc.product_type = 'garments' AND (pc.category_id = 18 OR pc.legacy_category_id = 29))";
+            } elseif ($id == 10) { // Lehenga Choli
+                $count_qry = "SELECT COUNT(DISTINCT gp.gproduct_id) as cnt 
+                              FROM garment_product gp
+                              WHERE (gp.garment_id = 10 OR gp.product_for = 10 
+                                     OR (gp.garment_id = 0 AND gp.product_for = 0 AND (gp.gproduct_code LIKE 'ynl%' OR gp.gproduct_code LIKE 'aynl%' OR gp.gproduct_name LIKE '%lehenga%'))
+                                     OR EXISTS (SELECT 1 FROM product_categories pc WHERE pc.product_id = gp.gproduct_id AND pc.product_type = 'garments' AND (pc.category_id = 17 OR pc.legacy_category_id = 10)))
+                                AND gp.garment_id != 28 AND gp.product_for != 28 AND gp.gproduct_code NOT LIKE 'YNW%' AND gp.gproduct_code NOT LIKE 'asu%'
+                                AND NOT EXISTS (SELECT 1 FROM product_categories pc WHERE pc.product_id = gp.gproduct_id AND pc.product_type = 'garments' AND (pc.category_id = 16 OR pc.legacy_category_id = 28))
+                                AND gp.garment_id != 29 AND gp.product_for != 29
+                                AND NOT EXISTS (SELECT 1 FROM product_categories pc WHERE pc.product_id = gp.gproduct_id AND pc.product_type = 'garments' AND (pc.category_id = 18 OR pc.legacy_category_id = 29))";
+            } elseif ($id == 22) { // Evening Gowns
+                $count_qry = "SELECT COUNT(DISTINCT gp.gproduct_id) as cnt 
+                              FROM garment_product gp
+                              WHERE (gp.garment_id = 22 OR gp.product_for = 22 
+                                     OR (gp.garment_id = 0 AND gp.product_for = 0 AND (gp.gproduct_code LIKE 'yng%' OR gp.gproduct_code LIKE 'ayng%' OR gp.gproduct_name LIKE '%gown%'))
+                                     OR EXISTS (SELECT 1 FROM product_categories pc WHERE pc.product_id = gp.gproduct_id AND pc.product_type = 'garments' AND (pc.category_id = 15 OR (pc.category_id = 4 AND pc.legacy_category_id = 22))))
+                                AND gp.garment_id != 29 AND gp.product_for != 29
+                                AND NOT EXISTS (SELECT 1 FROM product_categories pc WHERE pc.product_id = gp.gproduct_id AND pc.product_type = 'garments' AND (pc.category_id = 18 OR pc.legacy_category_id = 29))
+                                AND gp.garment_id != 28 AND gp.product_for != 28 AND gp.gproduct_code NOT LIKE 'YNW%' AND gp.gproduct_code NOT LIKE 'asu%'
+                                AND NOT EXISTS (SELECT 1 FROM product_categories pc WHERE pc.product_id = gp.gproduct_id AND pc.product_type = 'garments' AND (pc.category_id = 16 OR pc.legacy_category_id = 28))
+                                AND gp.garment_id != 10 AND gp.product_for != 10
+                                AND NOT EXISTS (SELECT 1 FROM product_categories pc WHERE pc.product_id = gp.gproduct_id AND pc.product_type = 'garments' AND (pc.category_id = 17 OR pc.legacy_category_id = 10))";
+            } else {
+                $subIds = [$id];
+                $subQ = $this->query($this->db, "SELECT sub_id FROM garment_subcat WHERE gmain_id = $id");
+                while ($subR = $this->fetchOne($subQ)) {
+                    $subIds[] = (int)$subR['sub_id'];
+                }
+                $subListStr = implode(',', array_unique($subIds));
 
-            $count_qry = "SELECT COUNT(DISTINCT gp.gproduct_id) as cnt 
-                          FROM garment_product gp
-                          LEFT JOIN product_categories pc ON (gp.gproduct_id = pc.product_id AND pc.product_type = 'garments')
-                          WHERE gp.garment_id IN ($subListStr) 
-                             OR gp.product_for IN ($subListStr)
-                             OR pc.legacy_category_id IN ($subListStr)
-                             OR pc.legacy_subcategory_id IN ($subListStr)";
+                $count_qry = "SELECT COUNT(DISTINCT gp.gproduct_id) as cnt 
+                              FROM garment_product gp
+                              LEFT JOIN product_categories pc ON (gp.gproduct_id = pc.product_id AND pc.product_type = 'garments')
+                              WHERE gp.garment_id IN ($subListStr) 
+                                 OR gp.product_for IN ($subListStr)
+                                 OR pc.legacy_category_id IN ($subListStr)
+                                 OR pc.legacy_subcategory_id IN ($subListStr)";
+            }
             $count_res = $this->query($this->db, $count_qry);
             $count_row = $this->fetchOne($count_res);
             $count = (int) ($count_row['cnt'] ?? 0);
