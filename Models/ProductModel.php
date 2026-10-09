@@ -565,7 +565,7 @@ class ProductModel extends Model
             // Image
             $img_field = ($type == 'jewellery') ? "product_id" : "gproduct_id";
             $pid = $product['id'];
-            $img_query = "SELECT img_name FROM product_images_new WHERE pro_code = '$sku' AND $img_field = '$pid' ORDER BY rank LIMIT 1";
+            $img_query = "SELECT img_name FROM product_images_new WHERE (pro_code = '$sku' OR $img_field = '$pid') AND img_name != '' AND img_name REGEXP '\\.(jpe?g|png|webp|gif)$' ORDER BY rank ASC, id ASC LIMIT 1";
             $img_result = $this->query($this->db, $img_query);
             $img_row = $this->fetchOne($img_result);
 
@@ -693,7 +693,7 @@ class ProductModel extends Model
         // Image
         $img_field = ($type == 'jewellery') ? "product_id" : "gproduct_id";
         $pid = $product['id'];
-        $img_query = "SELECT img_name FROM product_images_new WHERE pro_code = '$sku' AND $img_field = '$pid' ORDER BY rank LIMIT 1";
+        $img_query = "SELECT img_name FROM product_images_new WHERE (pro_code = '$sku' OR $img_field = '$pid') AND img_name != '' AND img_name REGEXP '\\.(jpe?g|png|webp|gif)$' ORDER BY rank ASC, id ASC LIMIT 1";
         $img_result = $this->query($this->db, $img_query);
         $img_row = $this->fetchOne($img_result);
 
@@ -1545,8 +1545,9 @@ class ProductModel extends Model
         $table = ($type === 'jewellery') ? 'product' : 'garment_product';
         $id_field = ($type === 'jewellery') ? 'product_id' : 'gproduct_id';
         $code_field = ($type === 'jewellery') ? 'product_code' : 'gproduct_code';
+        $main_img_field = ($type === 'jewellery') ? 'product_image' : 'gproduct_image';
 
-        $code_query = "SELECT $code_field as code FROM $table WHERE $id_field = $id LIMIT 1";
+        $code_query = "SELECT $code_field as code, $main_img_field as main_img FROM $table WHERE $id_field = $id LIMIT 1";
         $code_result = $this->query($this->db, $code_query);
         $product = $this->fetchOne($code_result);
 
@@ -1554,13 +1555,47 @@ class ProductModel extends Model
 
         if ($product && !empty($product['code'])) {
             $sku = mysqli_real_escape_string($this->db, $product['code']);
-            $sql = "SELECT id, img_name, rank FROM product_images_new WHERE pro_code = '$sku' AND $img_field = $id ORDER BY rank ASC";
+            $mainImg = !empty($product['main_img']) ? mysqli_real_escape_string($this->db, $product['main_img']) : '';
+
+            // Auto-heal any orphaned or mismatched image records for this SKU to point to this active product ID
+            $healSql = "UPDATE product_images_new SET $img_field = $id WHERE pro_code = '$sku' AND ($img_field != $id OR $img_field IS NULL OR $img_field = 0)";
+            $this->query($this->db, $healSql);
+
+            // Fetch all images for this SKU or product ID, filtering out corrupted/non-image strings
+            $orderClause = "ORDER BY ";
+            if ($mainImg !== '') {
+                $orderClause .= "CASE WHEN img_name = '$mainImg' THEN 0 WHEN $img_field = $id AND rank > 0 THEN rank ELSE 1000 + id END ASC, ";
+            }
+            $orderClause .= "rank ASC, id ASC";
+
+            $sql = "SELECT id, img_name, rank FROM product_images_new 
+                    WHERE (pro_code = '$sku' OR $img_field = $id) 
+                      AND img_name != '' 
+                      AND img_name REGEXP '\\.(jpe?g|png|webp|gif)$' 
+                    $orderClause";
         } else {
-            $sql = "SELECT id, img_name, rank FROM product_images_new WHERE $img_field = $id ORDER BY rank ASC";
+            $sql = "SELECT id, img_name, rank FROM product_images_new 
+                    WHERE $img_field = $id 
+                      AND img_name != '' 
+                      AND img_name REGEXP '\\.(jpe?g|png|webp|gif)$' 
+                    ORDER BY rank ASC, id ASC";
         }
 
         $result = $this->query($this->db, $sql);
-        return $this->fetchAll($result);
+        $rows = $this->fetchAll($result);
+
+        // Deduplicate rows with the exact same image name if any exist
+        $seen = [];
+        $uniqueImages = [];
+        foreach ($rows as $r) {
+            $cleaned = trim($r['img_name']);
+            if ($cleaned !== '' && !isset($seen[$cleaned])) {
+                $seen[$cleaned] = true;
+                $uniqueImages[] = $r;
+            }
+        }
+
+        return $uniqueImages;
     }
 
     public function updateProduct($type, $id, $data, $images = [])

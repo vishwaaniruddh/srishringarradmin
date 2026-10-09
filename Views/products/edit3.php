@@ -796,7 +796,7 @@
                                                 <label class="img-select-wrapper" style="display:none; position:absolute; top:8px; left:8px; z-index:10; cursor:pointer;">
                                                     <input type="checkbox" class="img-select-checkbox" value="<?php echo $img['id']; ?>" onchange="updateSelectedCount()" style="width:18px; height:18px; accent-color:#ef4444; cursor:pointer;">
                                                 </label>
-                                                <img src="/ss/yn/uploads<?php echo $img['img_name']; ?>" onerror="this.onerror=null; this.src='http://srishringarr.com/yn/uploads<?php echo $img['img_name']; ?>';" alt="">
+                                                <img src="/ss/yn/uploads<?php echo $img['img_name']; ?>" onerror="this.onerror=null; this.src='https://srishringarr.com/yn/uploads<?php echo $img['img_name']; ?>';" alt="">
                                                 <div class="img-overlay">
                                                     <span style="color:#fff; font-size:0.62rem; font-weight:600;">
                                                         <?php echo ($index === 0) ? 'Main' : 'Image'; ?>
@@ -1326,7 +1326,7 @@
                     const imgGrid = document.getElementById('existing_img_grid');
                     if (imgGrid && data.path) {
                         const localSrc = '/ss/yn/uploads' + data.path;
-                        const cloudSrc = 'http://srishringarr.com/yn/uploads' + data.path;
+                        const cloudSrc = 'https://srishringarr.com/yn/uploads' + data.path;
                         
                         const newThumb = document.createElement('div');
                         newThumb.className = 'img-card-item';
