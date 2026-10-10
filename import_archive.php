@@ -286,6 +286,96 @@ function fetchBulkPosPrices($skuList, $dbPos, $productType = 'jewellery')
     return $results;
 }
 
+// Helper to automatically match category and subcategory from folder name
+function detectCategoryFromFolderName($folderName, $jewelCategories = [], $jewelSubcategories = [], $garmentCategories = [], $garmentSubcategories = [])
+{
+    if (empty($folderName)) return null;
+
+    $cleanName = strtolower(trim(preg_replace('/[^a-zA-Z0-9]/', ' ', $folderName)));
+
+    // Common synonyms & direct mappings
+    $knownMap = [
+        'mala' => ['type' => 'jewellery', 'category_id' => 1, 'subcat_id' => 72], // Necklace Sets -> MALA
+        'necklace' => ['type' => 'jewellery', 'category_id' => 1, 'subcat_id' => 0],
+        'necklaces' => ['type' => 'jewellery', 'category_id' => 1, 'subcat_id' => 0],
+        'earring' => ['type' => 'jewellery', 'category_id' => 17, 'subcat_id' => 0],
+        'earrings' => ['type' => 'jewellery', 'category_id' => 17, 'subcat_id' => 0],
+        'earrng' => ['type' => 'jewellery', 'category_id' => 17, 'subcat_id' => 0],
+        'bangle' => ['type' => 'jewellery', 'category_id' => 21, 'subcat_id' => 66],
+        'bangles' => ['type' => 'jewellery', 'category_id' => 21, 'subcat_id' => 66],
+        'bracelet' => ['type' => 'jewellery', 'category_id' => 22, 'subcat_id' => 67],
+        'bracelets' => ['type' => 'jewellery', 'category_id' => 22, 'subcat_id' => 67],
+        'hath_phool' => ['type' => 'jewellery', 'category_id' => 23, 'subcat_id' => 69],
+        'hathphool' => ['type' => 'jewellery', 'category_id' => 23, 'subcat_id' => 69],
+        'hathpanja' => ['type' => 'jewellery', 'category_id' => 23, 'subcat_id' => 69],
+        'hath_panja' => ['type' => 'jewellery', 'category_id' => 23, 'subcat_id' => 69],
+        'hath' => ['type' => 'jewellery', 'category_id' => 23, 'subcat_id' => 69],
+        'payal' => ['type' => 'jewellery', 'category_id' => 20, 'subcat_id' => 65],
+        'borla' => ['type' => 'jewellery', 'category_id' => 11, 'subcat_id' => 53],
+        'borlas' => ['type' => 'jewellery', 'category_id' => 11, 'subcat_id' => 53],
+        'tikka' => ['type' => 'jewellery', 'category_id' => 19, 'subcat_id' => 63],
+        'tikkas' => ['type' => 'jewellery', 'category_id' => 19, 'subcat_id' => 63],
+        'damini' => ['type' => 'jewellery', 'category_id' => 14, 'subcat_id' => 57],
+        'mathapatti' => ['type' => 'jewellery', 'category_id' => 14, 'subcat_id' => 57],
+        'kamar' => ['type' => 'jewellery', 'category_id' => 15, 'subcat_id' => 56],
+        'kamarpatta' => ['type' => 'jewellery', 'category_id' => 15, 'subcat_id' => 56],
+        'pendant' => ['type' => 'jewellery', 'category_id' => 24, 'subcat_id' => 70],
+        'bridal' => ['type' => 'jewellery', 'category_id' => 29, 'subcat_id' => 82],
+        'baju' => ['type' => 'jewellery', 'category_id' => 25, 'subcat_id' => 71],
+        'bajubandh' => ['type' => 'jewellery', 'category_id' => 25, 'subcat_id' => 71],
+    ];
+
+    foreach ($knownMap as $key => $target) {
+        if (strpos($cleanName, $key) !== false) {
+            return $target;
+        }
+    }
+
+    // Dynamic search across subcategories
+    if (!empty($jewelSubcategories)) {
+        foreach ($jewelSubcategories as $sub) {
+            $subClean = strtolower(trim(preg_replace('/[^a-zA-Z0-9]/', ' ', $sub['name'])));
+            if (strlen($subClean) >= 3 && strpos($cleanName, $subClean) !== false) {
+                return [
+                    'type' => 'jewellery',
+                    'category_id' => (int)($sub['maincat_id'] ?: 1),
+                    'subcat_id' => (int)$sub['id']
+                ];
+            }
+        }
+    }
+
+    // Dynamic search across main categories
+    if (!empty($jewelCategories)) {
+        foreach ($jewelCategories as $cat) {
+            $catClean = strtolower(trim(preg_replace('/[^a-zA-Z0-9]/', ' ', $cat['name'])));
+            if (strlen($catClean) >= 3 && strpos($cleanName, $catClean) !== false) {
+                return [
+                    'type' => 'jewellery',
+                    'category_id' => (int)$cat['id'],
+                    'subcat_id' => 0
+                ];
+            }
+        }
+    }
+
+    // Dynamic search across garment categories
+    if (!empty($garmentCategories)) {
+        foreach ($garmentCategories as $cat) {
+            $catClean = strtolower(trim(preg_replace('/[^a-zA-Z0-9]/', ' ', $cat['name'])));
+            if (strlen($catClean) >= 3 && strpos($cleanName, $catClean) !== false) {
+                return [
+                    'type' => 'garments',
+                    'category_id' => (int)$cat['id'],
+                    'subcat_id' => 0
+                ];
+            }
+        }
+    }
+
+    return null;
+}
+
 // Auto-discover candidate folders on server
 function getCandidateServerFolders()
 {
@@ -341,9 +431,11 @@ function getCandidateServerFolders()
                         }
                     }
                 }
-                $candidates[$full] = [
+                $normPath = str_replace('\\', '/', realpath($full) ?: $full);
+                $candidates[$normPath] = [
                     'name' => $item,
-                    'path' => $full,
+                    'path' => $normPath,
+                    'raw_path' => $full,
                     'sub_folder_count' => $subCount,
                     'has_sku_folders' => $hasSubfolders
                 ];
@@ -747,45 +839,69 @@ $detectedFolders = getCandidateServerFolders();
 
 // Resolve Active Directory
 $selectedCustomPath = trim($_POST['custom_path'] ?? $_GET['custom_path'] ?? '');
-if (!empty($_POST['custom_path_manual']))
-    $selectedCustomPath = trim($_POST['custom_path_manual']);
-if (!empty($_GET['custom_path_manual']))
-    $selectedCustomPath = trim($_GET['custom_path_manual']);
+// Only allow manual custom path if 'custom' was explicitly selected or custom_path was empty
+if ($selectedCustomPath === 'custom' || empty($selectedCustomPath)) {
+    if (!empty($_POST['custom_path_manual'])) {
+        $selectedCustomPath = trim($_POST['custom_path_manual']);
+    } elseif (!empty($_GET['custom_path_manual'])) {
+        $selectedCustomPath = trim($_GET['custom_path_manual']);
+    }
+}
 
 $archiveDir = null;
 
-if (!empty($selectedCustomPath)) {
+if (!empty($selectedCustomPath) && $selectedCustomPath !== 'custom') {
+    $normSelected = str_replace('\\', '/', $selectedCustomPath);
+    // 1. Direct path check
     if (is_dir($selectedCustomPath)) {
-        $archiveDir = realpath($selectedCustomPath);
-    } elseif (is_dir(dirname(__DIR__) . '/' . $selectedCustomPath)) {
-        $archiveDir = realpath(dirname(__DIR__) . '/' . $selectedCustomPath);
-    } elseif (is_dir(__DIR__ . '/' . $selectedCustomPath)) {
-        $archiveDir = realpath(__DIR__ . '/' . $selectedCustomPath);
+        $archiveDir = str_replace('\\', '/', realpath($selectedCustomPath) ?: $selectedCustomPath);
+    } elseif (is_dir(dirname(__DIR__) . '/' . ltrim($selectedCustomPath, '/\\'))) {
+        $archiveDir = str_replace('\\', '/', realpath(dirname(__DIR__) . '/' . ltrim($selectedCustomPath, '/\\')));
+    } elseif (is_dir(__DIR__ . '/' . ltrim($selectedCustomPath, '/\\'))) {
+        $archiveDir = str_replace('\\', '/', realpath(__DIR__ . '/' . ltrim($selectedCustomPath, '/\\')));
+    }
+
+    // 2. Match against detectedFolders by key, name, or basename
+    if (!$archiveDir && !empty($detectedFolders)) {
+        foreach ($detectedFolders as $cPath => $c) {
+            if ($cPath === $normSelected || 
+                $c['name'] === $selectedCustomPath || 
+                basename($cPath) === basename($normSelected)) {
+                $archiveDir = $cPath;
+                break;
+            }
+        }
     }
 }
 
 // Default Fallbacks
 if (!$archiveDir) {
-    $fallbackPaths = [
-        dirname(__DIR__) . '/hath_phool',
-        dirname(__DIR__) . '/hathphool',
-        dirname(__DIR__) . '/Hath_Phool',
-        __DIR__ . '/hath_phool',
-        dirname(__DIR__) . '/new_earrng',
-        __DIR__ . '/new_earrng',
-        dirname(__DIR__) . '/archive',
-        __DIR__ . '/archive'
-    ];
-    foreach ($fallbackPaths as $fp) {
-        if (is_dir($fp)) {
-            $archiveDir = realpath($fp);
-            break;
+    if (!empty($detectedFolders)) {
+        // Pick first detected folder that actually has subfolders
+        foreach ($detectedFolders as $cPath => $c) {
+            if ($c['sub_folder_count'] > 0) {
+                $archiveDir = $cPath;
+                break;
+            }
         }
-    }
-    // If still null, pick the first candidate folder if available
-    if (!$archiveDir && !empty($detectedFolders)) {
-        $first = reset($detectedFolders);
-        $archiveDir = $first['path'];
+        if (!$archiveDir) {
+            $first = reset($detectedFolders);
+            $archiveDir = $first['path'];
+        }
+    } else {
+        $fallbackPaths = [
+            dirname(__DIR__) . '/hath_phool',
+            dirname(__DIR__) . '/hathphool',
+            dirname(__DIR__) . '/new_earrng',
+            dirname(__DIR__) . '/archive',
+            __DIR__ . '/archive'
+        ];
+        foreach ($fallbackPaths as $fp) {
+            if (is_dir($fp)) {
+                $archiveDir = str_replace('\\', '/', realpath($fp));
+                break;
+            }
+        }
     }
 }
 
@@ -795,26 +911,28 @@ $jewelSubcategories = $categoryModel->getJewelSubcategories();
 $garmentCategories = $categoryModel->getGarmentCategories();
 $garmentSubcategories = $categoryModel->getGarmentSubcategories();
 
-// Selected Category from Request
+// Selected Category & Product Type
 $selectedType = strtolower(trim($_POST['product_type'] ?? $_GET['product_type'] ?? 'jewellery'));
 if (!in_array($selectedType, ['jewellery', 'garments']))
     $selectedType = 'jewellery';
 
 $selectedCatId = (int) ($_POST['category_id'] ?? $_GET['category_id'] ?? 0);
-// Auto-select "HATH PHOOL" (ID 23) if no category is picked yet and jewellery is active
-if ($selectedCatId === 0 && $selectedType === 'jewellery') {
-    foreach ($jewelCategories as $jc) {
-        if (stripos($jc['name'], 'hath') !== false) {
-            $selectedCatId = (int) $jc['id'];
-            break;
-        }
-    }
-    if ($selectedCatId === 0 && !empty($jewelCategories)) {
+$selectedSubcatId = (int) ($_POST['subcat_id'] ?? $_GET['subcat_id'] ?? 0);
+$isFolderChange = !empty($_GET['folder_changed']) || !empty($_POST['folder_changed']);
+
+// Smart auto-detection: if folder was switched, or no category was explicitly picked yet
+if ($isFolderChange || $selectedCatId === 0) {
+    $folderBase = basename($archiveDir ?? $selectedCustomPath ?? '');
+    $matched = detectCategoryFromFolderName($folderBase, $jewelCategories, $jewelSubcategories, $garmentCategories, $garmentSubcategories);
+    if ($matched) {
+        $selectedType = $matched['type'];
+        $selectedCatId = $matched['category_id'];
+        $selectedSubcatId = $matched['subcat_id'];
+    } elseif ($selectedCatId === 0 && !empty($jewelCategories)) {
+        // Default to first jewellery category, never hardcoding a single fixed category
         $selectedCatId = (int) $jewelCategories[0]['id'];
     }
 }
-
-$selectedSubcatId = (int) ($_POST['subcat_id'] ?? $_GET['subcat_id'] ?? 0);
 
 // Find Selected Category Name
 $selectedCatName = '';
@@ -949,6 +1067,7 @@ $pageTitle = 'Server Folder Product Importer';
                         </div>
 
                         <form method="GET" action="import_archive.php" id="folderForm" class="space-y-4">
+                            <input type="hidden" name="folder_changed" id="folderChangedInput" value="0">
                             <div class="grid grid-cols-1 md:grid-cols-12 gap-4">
                                 <!-- Folder Selection -->
                                 <div class="md:col-span-5 space-y-1.5">
@@ -956,21 +1075,30 @@ $pageTitle = 'Server Folder Product Importer';
                                         <i class="fas fa-folder-open text-slate-500 mr-1"></i> Choose Server Folder
                                     </label>
                                     <div class="flex gap-2">
-                                        <select name="custom_path" id="folderSelect" class="flex-1 bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs font-mono text-slate-800 focus:outline-none focus:border-slate-900 shadow-sm" onchange="if(this.value !== 'custom') document.getElementById('folderForm').submit(); else document.getElementById('customInputWrapper').classList.remove('hidden');">
+                                        <select name="custom_path" id="folderSelect" class="flex-1 bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs font-mono text-slate-800 focus:outline-none focus:border-slate-900 shadow-sm" onchange="handleFolderChange(this);">
                                             <?php if (empty($detectedFolders)): ?>
                                                     <option value="<?php echo htmlspecialchars($archiveDir ?? ''); ?>"><?php echo htmlspecialchars($archiveDir ?? 'No folders auto-detected'); ?></option>
                                             <?php else: ?>
-                                                    <?php foreach ($detectedFolders as $cPath => $c): ?>
-                                                            <option value="<?php echo htmlspecialchars($cPath); ?>" <?php echo ($archiveDir === $cPath) ? 'selected' : ''; ?>>
+                                                    <?php 
+                                                    $normArchive = str_replace('\\', '/', $archiveDir ?? '');
+                                                    $isCustomActive = (!empty($selectedCustomPath) && $selectedCustomPath !== 'custom' && !isset($detectedFolders[$normArchive]));
+                                                    foreach ($detectedFolders as $cPath => $c): 
+                                                        $normCPath = str_replace('\\', '/', $cPath);
+                                                        $isSelected = ($normArchive === $normCPath || basename($normArchive) === basename($normCPath));
+                                                    ?>
+                                                            <option value="<?php echo htmlspecialchars($cPath); ?>" <?php echo $isSelected ? 'selected' : ''; ?>>
                                                                 📂 <?php echo htmlspecialchars($c['name']); ?> (<?php echo $c['sub_folder_count']; ?> subfolders)
                                                             </option>
                                                     <?php endforeach; ?>
-                                                    <option value="custom" <?php echo (!empty($selectedCustomPath) && !isset($detectedFolders[$archiveDir])) ? 'selected' : ''; ?>>✏️ Enter Custom Path / Folder Name...</option>
+                                                    <option value="custom" <?php echo $isCustomActive ? 'selected' : ''; ?>>✏️ Enter Custom Path / Folder Name...</option>
                                             <?php endif; ?>
                                         </select>
                                     </div>
-                                    <div id="customInputWrapper" class="<?php echo (!empty($selectedCustomPath) && !isset($detectedFolders[$archiveDir])) ? '' : 'hidden'; ?> pt-2">
-                                        <input type="text" name="custom_path_manual" id="customPathManual" value="<?php echo htmlspecialchars($archiveDir ?? ''); ?>" placeholder="e.g. hath_phool or /path/to/folder" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-mono text-slate-800 focus:outline-none focus:border-slate-900">
+                                    <div id="customInputWrapper" class="<?php echo (!empty($isCustomActive)) ? '' : 'hidden'; ?> pt-2 flex gap-2">
+                                        <input type="text" name="custom_path_manual" id="customPathManual" value="<?php echo htmlspecialchars((!empty($isCustomActive)) ? $selectedCustomPath : ''); ?>" placeholder="e.g. mala or /path/to/folder" class="flex-1 bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-mono text-slate-800 focus:outline-none focus:border-slate-900" onkeydown="if(event.key==='Enter'){ event.preventDefault(); if(document.getElementById('folderChangedInput')) document.getElementById('folderChangedInput').value='1'; document.getElementById('folderForm').submit(); }">
+                                        <button type="button" onclick="if(document.getElementById('folderChangedInput')) document.getElementById('folderChangedInput').value='1'; document.getElementById('folderForm').submit();" class="px-3 py-2 bg-slate-900 text-white rounded-xl text-xs font-semibold hover:bg-slate-800 shadow-sm">
+                                            Load
+                                        </button>
                                     </div>
                                 </div>
 
@@ -1422,20 +1550,31 @@ $pageTitle = 'Server Folder Product Importer';
     <?php include __DIR__ . '/Views/partials/scripts.php'; ?>
 
     <script>
-        // Custom folder input sync
-        const folderSelect = document.getElementById('folderSelect');
-        const customInputWrapper = document.getElementById('customInputWrapper');
-        const customPathManual = document.getElementById('customPathManual');
+        function handleFolderChange(selectElem) {
+            const customWrapper = document.getElementById('customInputWrapper');
+            const customInput = document.getElementById('customPathManual');
+            const folderChanged = document.getElementById('folderChangedInput');
+            const catSelect = document.getElementById('categorySelect');
+            const subcatSelect = document.getElementById('subcatSelect');
 
-        if (folderSelect && customInputWrapper) {
-            folderSelect.addEventListener('change', function() {
-                if (this.value === 'custom') {
-                    customInputWrapper.classList.remove('hidden');
-                    if (customPathManual) customPathManual.focus();
-                } else {
-                    customInputWrapper.classList.add('hidden');
+            if (selectElem.value === 'custom') {
+                if (customWrapper) customWrapper.classList.remove('hidden');
+                if (customInput) {
+                    customInput.disabled = false;
+                    customInput.focus();
                 }
-            });
+            } else {
+                if (customWrapper) customWrapper.classList.add('hidden');
+                if (customInput) {
+                    customInput.value = '';
+                    customInput.disabled = true; // Prevents being sent in GET query string!
+                }
+                if (folderChanged) folderChanged.value = '1';
+                // Reset category so the new folder auto-selects its matching category
+                if (catSelect) catSelect.value = '0';
+                if (subcatSelect) subcatSelect.value = '0';
+                document.getElementById('folderForm').submit();
+            }
         }
     </script>
 </body>
