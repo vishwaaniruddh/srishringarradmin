@@ -1308,7 +1308,14 @@
             const saveBtn = document.getElementById(btnId);
 
             if (mediaBox) {
-                mediaBox.innerHTML = `<img src="${url}" alt="${mode}" onclick="openLightbox('${url}', '${mode}')">`;
+                const item = (typeof index !== 'undefined' && loadedProducts[index]) ? loadedProducts[index] : null;
+                const isMain = item && item.main_image_choice === mode;
+                const mainBadgeHtml = isMain ? `
+                    <span class="absolute top-1.5 left-1.5 bg-amber-500 text-slate-950 text-[9px] font-extrabold px-1.5 py-0.5 rounded shadow z-10 flex items-center gap-1 tracking-wider">
+                        <i class="fa-solid fa-star text-[8px]"></i> MAIN
+                    </span>
+                ` : '';
+                mediaBox.innerHTML = `${mainBadgeHtml}<img src="${url}" alt="${mode}" title="Click to view full preview (Hover to zoom)" onclick="openLightbox('${url}', '${mode}')">`;
             }
             if (badge) {
                 badge.innerText = 'Generated (Ready to Save)';
@@ -1316,6 +1323,67 @@
             }
             if (saveBtn) {
                 saveBtn.disabled = false;
+            }
+        }
+
+        // ==================== MAIN IMAGE SELECTION ====================
+        function onGlobalMainImageChange(choice) {
+            const configSel = document.getElementById('config_main_image_choice');
+            const queueSel = document.getElementById('queue_main_image_choice');
+            if (configSel && configSel.value !== choice) configSel.value = choice;
+            if (queueSel && queueSel.value !== choice) queueSel.value = choice;
+
+            loadedProducts.forEach(p => {
+                p.main_image_choice = choice;
+            });
+
+            renderProducts();
+
+            const label = choice === 'with_model' 
+                ? 'Photo With Model' 
+                : (choice === 'without_model' ? 'Photo Without Model (Still Life)' : 'Keep Existing Image');
+            showToast(`Main image set to "${label}" across all products!`);
+        }
+
+        async function setProductMainImage(index, mode) {
+            const item = loadedProducts[index];
+            if (!item) return;
+
+            item.main_image_choice = mode;
+            renderProducts();
+
+            const photo = mode === 'with_model' ? item.photo_with_model : item.photo_without_model;
+            if (photo) {
+                try {
+                    const payload = {
+                        id: item.id,
+                        type: item.type,
+                        mode: mode
+                    };
+                    if (photo.file_path || photo.url) {
+                        payload.image_path = photo.file_path || photo.url;
+                    }
+                    if (photo.base64) {
+                        payload.base64 = photo.base64;
+                    }
+
+                    const res = await fetch('index.php?controller=allinonewriter&action=setMainImage', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+                    const data = await res.json();
+                    if (data.success) {
+                        showToast(`Set as main image and saved to database for ${item.code}!`);
+                    } else {
+                        showToast(`Main image selected for ${item.code} (will update when saving)`);
+                    }
+                } catch (e) {
+                    showToast(`Main image selected for ${item.code}`);
+                }
+            } else {
+                const modeLabel = mode === 'with_model' ? 'Photo With Model' : 'Photo Without Model';
+                showToast(`Selected ${modeLabel} as Main Image for ${item.code}. Will save to DB upon generation.`);
             }
         }
 
@@ -1362,6 +1430,7 @@
 
             const withModelB64 = item.photo_with_model ? item.photo_with_model.base64 : '';
             const withoutModelB64 = item.photo_without_model ? item.photo_without_model.base64 : '';
+            const mainChoice = item.main_image_choice || document.getElementById('config_main_image_choice')?.value || 'without_model';
 
             const btn = document.getElementById(`btn_save_single_${item.id}`);
             btn.disabled = true;
@@ -1378,7 +1447,8 @@
                         short_description: shortDesc,
                         description: desc,
                         with_model_base64: withModelB64,
-                        without_model_base64: withoutModelB64
+                        without_model_base64: withoutModelB64,
+                        main_image_choice: mainChoice
                     })
                 });
                 const data = await res.json();
@@ -1390,11 +1460,11 @@
 
                     if (item.photo_with_model) {
                         const b1 = document.getElementById(`badge_model_${item.id}`);
-                        if (b1) b1.innerText = 'Saved to Gallery';
+                        if (b1) b1.innerText = (mainChoice === 'with_model') ? 'Saved (Main Image)' : 'Saved to Gallery';
                     }
                     if (item.photo_without_model) {
                         const b2 = document.getElementById(`badge_studio_${item.id}`);
-                        if (b2) b2.innerText = 'Saved to Gallery';
+                        if (b2) b2.innerText = (mainChoice === 'without_model') ? 'Saved (Main Image)' : 'Saved to Gallery';
                     }
 
                     showToast(`Product ${item.code} saved to database successfully!`);
@@ -1423,6 +1493,8 @@
             const btn = document.getElementById(btnId);
             btn.disabled = true;
 
+            const isMain = (item.main_image_choice === mode);
+
             try {
                 const res = await fetch('index.php?controller=allinonewriter&action=saveImage', {
                     method: 'POST',
@@ -1432,14 +1504,14 @@
                         type: item.type,
                         base64: photo.base64,
                         mode: mode,
-                        set_as_main: false
+                        set_as_main: isMain
                     })
                 });
                 const data = await res.json();
                 if (data.success) {
                     const badgeId = mode === 'with_model' ? `badge_model_${item.id}` : `badge_studio_${item.id}`;
-                    document.getElementById(badgeId).innerText = 'Saved to Gallery';
-                    showToast('Image saved to product gallery!');
+                    document.getElementById(badgeId).innerText = isMain ? 'Saved (Main Catalog Image)' : 'Saved to Gallery';
+                    showToast(isMain ? 'Image saved and set as Main Product Image!' : 'Image saved to product gallery!');
                 } else {
                     showToast(data.error || 'Failed to save image', 'error');
                 }
