@@ -740,9 +740,13 @@
                                             <i class="fa-solid fa-file-import text-[11px] text-slate-600"></i>
                                             <span>Bulk Import</span>
                                         </a>
+                                        <a href="index.php?controller=allinonewriter" class="shadcn-btn justify-start text-xs h-9">
+                                            <i class="fa-solid fa-pen-nib text-[11px] text-slate-600"></i>
+                                            <span>All in One Writer</span>
+                                        </a>
                                         <a href="index.php?controller=product&action=bulkaiwriter" class="shadcn-btn justify-start text-xs h-9">
                                             <i class="fa-solid fa-wand-magic-sparkles text-[11px] text-slate-600"></i>
-                                            <span>AI Writer</span>
+                                            <span>Bulk AI Writer</span>
                                         </a>
                                     </div>
                                 </div>

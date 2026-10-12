@@ -17,7 +17,7 @@ $isPhotoDownloaderActive = ($currentController === 'photodownloader');
 $isOrdersActive = ($currentController === 'orders');
 $isDiscountsActive = in_array($currentController, ['discount', 'coupon']);
 
-$isAiActive = in_array($currentController, ['aianalytics', 'aimodels']) || 
+$isAiActive = in_array($currentController, ['aianalytics', 'aimodels', 'allinonewriter']) || 
               ($currentController === 'product' && in_array($currentAction, ['bulkaiwriter', 'desccorrector']));
 
 $isMarketingActive = ($currentController === 'newsletter');
@@ -577,6 +577,11 @@ $admin_initials = strtoupper(substr($admin_name, 0, 2));
                     <i class="fa-solid fa-chevron-right submenu-arrow"></i>
                 </a>
                 <ul class="submenu">
+                    <li class="<?php echo ($currentController === 'allinonewriter') ? 'active' : ''; ?>">
+                        <a href="index.php?controller=allinonewriter">
+                            <i class="fa-solid fa-pen-nib"></i> All in One Writer
+                        </a>
+                    </li>
                     <li class="<?php echo ($currentController === 'product' && $currentAction === 'bulkaiwriter') ? 'active' : ''; ?>">
                         <a href="index.php?controller=product&action=bulkAiWriter">
                             <i class="fa-solid fa-bolt-lightning"></i> Bulk AI Writer
