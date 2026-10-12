@@ -481,6 +481,27 @@
                                                 <option value="keep_existing">Keep Existing Image</option>
                                             </select>
                                         </div>
+
+                                        <!-- Parallel Concurrency Selector -->
+                                        <div class="flex items-center gap-1.5 bg-slate-50 border border-slate-200 px-2.5 py-1 rounded-md" title="Number of products generated concurrently in parallel">
+                                            <span class="text-[11px] font-semibold text-slate-500 uppercase tracking-wider flex items-center gap-1">
+                                                <i class="fa-solid fa-gauge-high text-slate-400"></i> Speed:
+                                            </span>
+                                            <select id="config_concurrency" onchange="syncConcurrency(this.value)" class="bg-transparent text-xs font-semibold text-slate-900 outline-none cursor-pointer">
+                                                <option value="2">2 Parallel</option>
+                                                <option value="3" selected>3 Parallel (Fast)</option>
+                                                <option value="4">4 Parallel (Turbo)</option>
+                                                <option value="1">1 (Sequential)</option>
+                                            </select>
+                                        </div>
+
+                                        <!-- Auto-Save to DB Toggle -->
+                                        <label class="flex items-center gap-1.5 cursor-pointer bg-emerald-50/80 border border-emerald-200 px-2.5 py-1 rounded-md text-xs font-semibold text-emerald-950" title="Automatically save generated title, descriptions, and photos directly to database upon generation">
+                                            <input type="checkbox" id="config_auto_save" checked onchange="syncAutoSave(this.checked)" class="rounded border-emerald-400 text-emerald-700 focus:ring-0">
+                                            <span class="flex items-center gap-1">
+                                                <i class="fa-solid fa-bolt text-emerald-600 text-[11px]"></i> Auto-Save to DB
+                                            </span>
+                                        </label>
                                     </div>
 
                                     <!-- Search / Load Buttons -->
@@ -509,11 +530,11 @@
                                     </span>
                                 </div>
                             </div>
-                            <div class="flex items-center gap-2.5 flex-wrap">
+                            <div class="flex items-center gap-2 flex-wrap">
                                 <!-- Synchronized Main Image Switcher on Queue Bar -->
                                 <div class="flex items-center gap-1.5 bg-amber-50/80 border border-amber-200 px-2 py-1 rounded text-xs">
                                     <span class="text-[10.5px] font-bold text-amber-950 uppercase tracking-wider flex items-center gap-1">
-                                        <i class="fa-solid fa-star text-amber-500 text-[10px]"></i> Main Image:
+                                        <i class="fa-solid fa-star text-amber-500 text-[10px]"></i> Main:
                                     </span>
                                     <select id="queue_main_image_choice" onchange="onGlobalMainImageChange(this.value)" class="bg-transparent text-xs font-semibold text-slate-900 outline-none cursor-pointer">
                                         <option value="without_model" selected>Photo Without Model</option>
@@ -521,19 +542,63 @@
                                         <option value="keep_existing">Keep Existing</option>
                                     </select>
                                 </div>
-                                <button type="button" id="btn_generate_all" onclick="generateAllBatch()" class="shadcn-btn shadcn-btn-primary">
-                                    <i class="fa-solid fa-bolt-lightning"></i>
-                                    <span>Generate All in One (Batch)</span>
+
+                                <!-- Parallel Concurrency Quick Switcher -->
+                                <div class="flex items-center gap-1.5 bg-slate-100 border border-slate-200 px-2 py-1 rounded text-xs">
+                                    <span class="text-[10.5px] font-bold text-slate-600 uppercase tracking-wider flex items-center gap-1">
+                                        <i class="fa-solid fa-gauge-high text-slate-500 text-[10px]"></i> Speed:
+                                    </span>
+                                    <select id="queue_concurrency" onchange="syncConcurrency(this.value)" class="bg-transparent text-xs font-semibold text-slate-900 outline-none cursor-pointer">
+                                        <option value="2">2 Parallel</option>
+                                        <option value="3" selected>3 Parallel</option>
+                                        <option value="4">4 Parallel</option>
+                                        <option value="1">1 (Sequential)</option>
+                                    </select>
+                                </div>
+
+                                <!-- Auto-Save Toggle on Queue Bar -->
+                                <label class="flex items-center gap-1.5 cursor-pointer bg-emerald-50 border border-emerald-200 px-2 py-1 rounded text-xs font-semibold text-emerald-950" title="Auto-save to database upon generation">
+                                    <input type="checkbox" id="queue_auto_save" checked onchange="syncAutoSave(this.checked)" class="rounded border-emerald-400 text-emerald-700 focus:ring-0">
+                                    <span><i class="fa-solid fa-bolt text-emerald-600 text-[10px]"></i> Auto-Save</span>
+                                </label>
+
+                                <!-- Primary Action: Auto Generate & Save to DB (Batch) -->
+                                <button type="button" id="btn_generate_auto_all" onclick="runBatchQueue(true)" class="shadcn-btn shadcn-btn-primary shadow-2xs" title="Generate Copy & Photos in parallel and immediately save directly to Database">
+                                    <i class="fa-solid fa-bolt text-amber-300"></i>
+                                    <span>Auto Generate &amp; Save (<span id="queue_btn_count">0</span>)</span>
                                 </button>
-                                <button type="button" id="btn_save_all_global" onclick="saveAllGlobal()" class="shadcn-btn">
+
+                                <!-- Secondary Action: Generate Only (Batch) -->
+                                <button type="button" id="btn_generate_all" onclick="runBatchQueue(false)" class="shadcn-btn" title="Generate Content for review without saving immediately">
+                                    <i class="fa-solid fa-wand-magic-sparkles"></i>
+                                    <span>Generate Only</span>
+                                </button>
+
+                                <!-- Stop Button (hidden until running) -->
+                                <button type="button" id="btn_stop_batch" onclick="stopBatchQueue()" class="hidden shadcn-btn text-rose-700 border-rose-300 hover:bg-rose-50">
+                                    <i class="fa-solid fa-circle-stop"></i>
+                                    <span>Stop</span>
+                                </button>
+
+                                <!-- Manual Save All Button (fallback) -->
+                                <button type="button" id="btn_save_all_global" onclick="saveAllGlobal()" class="shadcn-btn" title="Save all generated products to Database">
                                     <i class="fa-solid fa-floppy-disk"></i>
-                                    <span>Save All to Database</span>
+                                    <span>Save All</span>
                                 </button>
                             </div>
                         </div>
-                        <!-- Progress bar -->
-                        <div id="batch_progress_bar_container" class="hidden w-full bg-slate-100 h-1.5">
-                            <div id="batch_progress_bar" class="bg-slate-900 h-1.5 transition-all duration-300" style="width: 0%;"></div>
+                        <!-- Progress bar & Live Status -->
+                        <div id="batch_progress_bar_container" class="hidden w-full border-t border-slate-100 bg-slate-50 px-4 py-2.5">
+                            <div class="flex items-center justify-between text-xs mb-1.5">
+                                <span id="batch_progress_label" class="font-medium text-slate-700 flex items-center gap-1.5">
+                                    <i class="fa-solid fa-spinner fa-spin text-slate-500"></i>
+                                    <span>Processing batch queue in parallel...</span>
+                                </span>
+                                <span id="batch_progress_pct" class="font-mono text-slate-600 font-semibold">0%</span>
+                            </div>
+                            <div class="w-full bg-slate-200 h-2 rounded-full overflow-hidden">
+                                <div id="batch_progress_bar" class="bg-slate-900 h-2 rounded-full transition-all duration-300" style="width: 0%;"></div>
+                            </div>
                         </div>
                     </div>
 
@@ -779,6 +844,8 @@
 
             toolbar.classList.remove('hidden');
             document.getElementById('queue_total_count').innerText = loadedProducts.length;
+            const qBtnCount = document.getElementById('queue_btn_count');
+            if (qBtnCount) qBtnCount.innerText = loadedProducts.length;
 
             let html = '';
             loadedProducts.forEach((item, index) => {
@@ -836,10 +903,10 @@
 
                         <!-- Card Action Buttons -->
                         <div class="flex items-center gap-2">
-                            <button type="button" id="btn_run_single_${item.id}" onclick="generateSingleAllInOne(${index})" class="shadcn-btn shadcn-btn-sm shadcn-btn-primary">
-                                <i class="fa-solid fa-wand-magic-sparkles"></i> Generate for This Item
+                            <button type="button" id="btn_run_single_${item.id}" onclick="generateSingleAllInOne(${index})" class="shadcn-btn shadcn-btn-sm shadcn-btn-primary" title="Generate copy & photos in parallel and auto-save directly to Database">
+                                <i class="fa-solid fa-bolt text-amber-300"></i> Generate &amp; Save
                             </button>
-                            <button type="button" id="btn_save_single_${item.id}" onclick="saveSingleProduct(${index})" class="shadcn-btn shadcn-btn-sm">
+                            <button type="button" id="btn_save_single_${item.id}" onclick="saveSingleProduct(${index})" class="shadcn-btn shadcn-btn-sm" title="Manual Save or Update">
                                 <i class="fa-solid fa-floppy-disk"></i> Save to DB
                             </button>
                         </div>
@@ -1061,18 +1128,36 @@
             }
         }
 
-        // ==================== GENERATE SINGLE ITEM (ALL-IN-ONE) ====================
-        async function generateSingleAllInOne(index) {
+        // Synchronize Concurrency & Auto-Save
+        function syncConcurrency(val) {
+            const c1 = document.getElementById('config_concurrency');
+            const c2 = document.getElementById('queue_concurrency');
+            if (c1 && c1.value !== val) c1.value = val;
+            if (c2 && c2.value !== val) c2.value = val;
+        }
+
+        function syncAutoSave(checked) {
+            const a1 = document.getElementById('config_auto_save');
+            const a2 = document.getElementById('queue_auto_save');
+            if (a1 && a1.checked !== checked) a1.checked = checked;
+            if (a2 && a2.checked !== checked) a2.checked = checked;
+        }
+
+        // ==================== GENERATE SINGLE ITEM (PARALLEL ALL-IN-ONE) ====================
+        async function generateSingleAllInOne(index, autoSave = null) {
             const item = loadedProducts[index];
-            if (!item) return;
+            if (!item) return false;
 
             const card = document.getElementById(`card_prod_${item.id}`);
             const pill = document.getElementById(`status_pill_${item.id}`);
             const btn = document.getElementById(`btn_run_single_${item.id}`);
 
-            card.classList.add('is-processing');
-            btn.disabled = true;
-            pill.innerHTML = '<span class="status-dot active"></span> Processing AI...';
+            if (card) card.classList.add('is-processing');
+            if (btn) {
+                btn.disabled = true;
+                btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Processing...';
+            }
+            if (pill) pill.innerHTML = '<span class="status-dot active"></span> Generating in Parallel...';
 
             const provider = document.getElementById('config_provider').value;
             const faceModel = document.getElementById('config_face_model').value;
@@ -1083,81 +1168,142 @@
             const currentCatKey = item.category_key;
 
             try {
-                // 1. Generate Copy (Title, Short Desc, Long Desc)
+                const parallelTasks = [];
+
+                // 1. Parallel Task: AI E-commerce Copywriting
                 if (doCopy) {
-                    pill.innerHTML = '<span class="status-dot active"></span> Writing Copy...';
-                    const cRes = await fetch('index.php?controller=allinonewriter&action=generateContent', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                            id: item.id,
-                            type: item.type,
-                            provider: provider,
-                            category_key: currentCatKey
-                        })
-                    });
-                    const cData = await cRes.json();
-                    if (cData.success) {
-                        item.gen_name = cData.name;
-                        item.gen_short = cData.short_description;
-                        item.gen_desc = cData.description;
+                    parallelTasks.push((async () => {
+                        try {
+                            const cRes = await fetch('index.php?controller=allinonewriter&action=generateContent', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({
+                                    id: item.id,
+                                    type: item.type,
+                                    provider: provider,
+                                    category_key: currentCatKey
+                                })
+                            });
+                            const cData = await cRes.json();
+                            if (cData.success) {
+                                item.gen_name = cData.name;
+                                item.gen_short = cData.short_description;
+                                item.gen_desc = cData.description;
 
-                        document.getElementById(`input_name_${item.id}`).value = cData.name;
-                        document.getElementById(`input_short_${item.id}`).value = cData.short_description;
-                        document.getElementById(`input_desc_${item.id}`).value = cData.description;
+                                const inName = document.getElementById(`input_name_${item.id}`);
+                                const inShort = document.getElementById(`input_short_${item.id}`);
+                                const inDesc = document.getElementById(`input_desc_${item.id}`);
+                                if (inName) inName.value = cData.name;
+                                if (inShort) inShort.value = cData.short_description;
+                                if (inDesc) inDesc.value = cData.description;
 
-                        updateCharCount(item.id, 'name', 95);
-                        updateCharCount(item.id, 'short', 245);
+                                updateCharCount(item.id, 'name', 95);
+                                updateCharCount(item.id, 'short', 245);
+                                return { success: true, task: 'copy' };
+                            } else {
+                                return { success: false, task: 'copy', error: cData.error };
+                            }
+                        } catch (err) {
+                            return { success: false, task: 'copy', error: err.message };
+                        }
+                    })());
+                }
+
+                // 2. Parallel Task: Photo With Model
+                if (doModel) {
+                    parallelTasks.push((async () => {
+                        try {
+                            const pRes = await fetch('index.php?controller=allinonewriter&action=generateImage', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({
+                                    id: item.id,
+                                    type: item.type,
+                                    mode: 'with_model',
+                                    face_reference: faceModel,
+                                    studio_theme: studioTheme,
+                                    category_key: currentCatKey
+                                })
+                            });
+                            const pData = await pRes.json();
+                            if (pData.success && pData.images && pData.images.with_model) {
+                                item.photo_with_model = pData.images.with_model;
+                                updatePhotoCard(item.id, 'with_model', pData.images.with_model.url, index);
+                                return { success: true, task: 'with_model' };
+                            } else {
+                                return { success: false, task: 'with_model', error: pData.error || 'Failed' };
+                            }
+                        } catch (err) {
+                            return { success: false, task: 'with_model', error: err.message };
+                        }
+                    })());
+                }
+
+                // 3. Parallel Task: Photo Without Model (Still Life)
+                if (doStudio) {
+                    parallelTasks.push((async () => {
+                        try {
+                            const pRes = await fetch('index.php?controller=allinonewriter&action=generateImage', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({
+                                    id: item.id,
+                                    type: item.type,
+                                    mode: 'without_model',
+                                    face_reference: faceModel,
+                                    studio_theme: studioTheme,
+                                    category_key: currentCatKey
+                                })
+                            });
+                            const pData = await pRes.json();
+                            if (pData.success && pData.images && pData.images.without_model) {
+                                item.photo_without_model = pData.images.without_model;
+                                updatePhotoCard(item.id, 'without_model', pData.images.without_model.url, index);
+                                return { success: true, task: 'without_model' };
+                            } else {
+                                return { success: false, task: 'without_model', error: pData.error || 'Failed' };
+                            }
+                        } catch (err) {
+                            return { success: false, task: 'without_model', error: err.message };
+                        }
+                    })());
+                }
+
+                // Await all parallel tasks simultaneously
+                await Promise.all(parallelTasks);
+
+                // Auto-save check
+                const shouldAutoSave = (autoSave !== null) 
+                    ? autoSave 
+                    : (document.getElementById('config_auto_save')?.checked || document.getElementById('queue_auto_save')?.checked);
+
+                if (shouldAutoSave) {
+                    if (pill) pill.innerHTML = '<span class="status-dot active"></span> Auto-Saving to DB...';
+                    const saveOk = await saveSingleProduct(index, true);
+                    if (saveOk) {
+                        if (pill) pill.innerHTML = '<span class="status-dot active"></span> Generated &amp; Saved';
+                        showToast(`Generated &amp; Saved ${item.code} to catalog!`);
                     } else {
-                        showToast(`Copy generation warning: ${cData.error}`, 'error');
+                        if (pill) pill.innerHTML = '<span class="status-dot"></span> Generated (Save Issue)';
                     }
+                } else {
+                    if (pill) pill.innerHTML = '<span class="status-dot active"></span> Generated (Ready to Save)';
+                    showToast(`Generated All in One for ${item.code}!`);
                 }
 
-                // 2. Generate Photos (With Model & Without Model)
-                let photoMode = null;
-                if (doModel && doStudio) photoMode = 'both';
-                else if (doModel) photoMode = 'with_model';
-                else if (doStudio) photoMode = 'without_model';
-
-                if (photoMode) {
-                    pill.innerHTML = '<span class="status-dot active"></span> Generating Photos...';
-                    const pRes = await fetch('index.php?controller=allinonewriter&action=generateImage', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                            id: item.id,
-                            type: item.type,
-                            mode: photoMode,
-                            face_reference: faceModel,
-                            studio_theme: studioTheme,
-                            category_key: currentCatKey
-                        })
-                    });
-                    const pData = await pRes.json();
-                    if (pData.success && pData.images) {
-                        if (pData.images.with_model) {
-                            item.photo_with_model = pData.images.with_model;
-                            updatePhotoCard(item.id, 'with_model', pData.images.with_model.url, index);
-                        }
-                        if (pData.images.without_model) {
-                            item.photo_without_model = pData.images.without_model;
-                            updatePhotoCard(item.id, 'without_model', pData.images.without_model.url, index);
-                        }
-                    } else if (pData.error) {
-                        showToast(`Photo generation warning: ${pData.error}`, 'error');
-                    }
-                }
-
-                pill.innerHTML = '<span class="status-dot active"></span> Generated Successfully';
-                showToast(`Generated All in One for ${item.code}!`);
+                return true;
 
             } catch (err) {
                 console.error(err);
-                pill.innerHTML = '<span class="status-dot"></span> Generation Error';
+                if (pill) pill.innerHTML = '<span class="status-dot"></span> Generation Error';
                 showToast(`Error processing ${item.code}`, 'error');
+                return false;
             } finally {
-                card.classList.remove('is-processing');
-                btn.disabled = false;
+                if (card) card.classList.remove('is-processing');
+                if (btn) {
+                    btn.disabled = false;
+                    btn.innerHTML = '<i class="fa-solid fa-bolt text-amber-300"></i> Generate &amp; Save';
+                }
             }
         }
 
@@ -1203,7 +1349,7 @@
             }
         }
 
-        // Generate only Photos
+        // Generate only Photos (in parallel)
         async function generateOnlyPhotos(index) {
             const item = loadedProducts[index];
             if (!item) return;
@@ -1211,36 +1357,48 @@
             const faceModel = document.getElementById('config_face_model').value;
             const studioTheme = document.getElementById('config_studio_theme').value;
             const pill = document.getElementById(`status_pill_${item.id}`);
-            pill.innerHTML = '<span class="status-dot active"></span> Generating Photos...';
+            if (pill) pill.innerHTML = '<span class="status-dot active"></span> Generating Photos in Parallel...';
 
             try {
-                const res = await fetch('index.php?controller=allinonewriter&action=generateImage', {
+                const reqModel = fetch('index.php?controller=allinonewriter&action=generateImage', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
                         id: item.id,
                         type: item.type,
-                        mode: 'both',
+                        mode: 'with_model',
                         face_reference: faceModel,
                         studio_theme: studioTheme,
                         category_key: item.category_key
                     })
-                });
-                const data = await res.json();
-                if (data.success && data.images) {
-                    if (data.images.with_model) {
-                        item.photo_with_model = data.images.with_model;
-                        updatePhotoCard(item.id, 'with_model', data.images.with_model.url, index);
-                    }
-                    if (data.images.without_model) {
-                        item.photo_without_model = data.images.without_model;
-                        updatePhotoCard(item.id, 'without_model', data.images.without_model.url, index);
-                    }
-                    pill.innerHTML = '<span class="status-dot active"></span> Photos Updated';
-                    showToast(`Photos generated for ${item.code}!`);
-                } else {
-                    showToast(data.error || 'Photo generation failed', 'error');
+                }).then(r => r.json());
+
+                const reqStudio = fetch('index.php?controller=allinonewriter&action=generateImage', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        id: item.id,
+                        type: item.type,
+                        mode: 'without_model',
+                        face_reference: faceModel,
+                        studio_theme: studioTheme,
+                        category_key: item.category_key
+                    })
+                }).then(r => r.json());
+
+                const [resModel, resStudio] = await Promise.all([reqModel, reqStudio]);
+
+                if (resModel && resModel.success && resModel.images && resModel.images.with_model) {
+                    item.photo_with_model = resModel.images.with_model;
+                    updatePhotoCard(item.id, 'with_model', resModel.images.with_model.url, index);
                 }
+                if (resStudio && resStudio.success && resStudio.images && resStudio.images.without_model) {
+                    item.photo_without_model = resStudio.images.without_model;
+                    updatePhotoCard(item.id, 'without_model', resStudio.images.without_model.url, index);
+                }
+
+                if (pill) pill.innerHTML = '<span class="status-dot active"></span> Photos Updated';
+                showToast(`Photos generated in parallel for ${item.code}!`);
             } catch (err) {
                 showToast('Error generating photos', 'error');
             }
@@ -1387,8 +1545,11 @@
             }
         }
 
-        // ==================== BATCH GENERATION ====================
-        async function generateAllBatch() {
+        // ==================== PARALLEL BATCH QUEUE ====================
+        let isBatchRunning = false;
+        let stopBatchRequested = false;
+
+        async function runBatchQueue(autoSave = true) {
             if (isBatchRunning) return;
             if (loadedProducts.length === 0) {
                 showToast('No products loaded in queue.', 'error');
@@ -1396,45 +1557,129 @@
             }
 
             isBatchRunning = true;
-            const btn = document.getElementById('btn_generate_all');
-            const originalText = btn.innerHTML;
-            btn.disabled = true;
+            stopBatchRequested = false;
 
+            const btnAuto = document.getElementById('btn_generate_auto_all');
+            const btnGen = document.getElementById('btn_generate_all');
+            const btnStop = document.getElementById('btn_stop_batch');
             const progressContainer = document.getElementById('batch_progress_bar_container');
             const progressBar = document.getElementById('batch_progress_bar');
-            progressContainer.classList.remove('hidden');
-            progressBar.style.width = '0%';
+            const progressLabel = document.getElementById('batch_progress_label');
+            const progressPct = document.getElementById('batch_progress_pct');
 
-            for (let i = 0; i < loadedProducts.length; i++) {
-                btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> Processing ${i + 1}/${loadedProducts.length}...`;
-                await generateSingleAllInOne(i);
-
-                const pct = Math.round(((i + 1) / loadedProducts.length) * 100);
-                progressBar.style.width = `${pct}%`;
+            if (btnAuto) btnAuto.disabled = true;
+            if (btnGen) btnGen.disabled = true;
+            if (btnStop) {
+                btnStop.classList.remove('hidden');
+                btnStop.innerHTML = '<i class="fa-solid fa-circle-stop"></i> <span>Stop</span>';
             }
 
-            btn.disabled = false;
-            btn.innerHTML = originalText;
+            if (progressContainer) progressContainer.classList.remove('hidden');
+            if (progressBar) progressBar.style.width = '0%';
+            if (progressPct) progressPct.innerText = '0%';
+
+            const concurrencyVal = parseInt(document.getElementById('config_concurrency')?.value || '3');
+            const total = loadedProducts.length;
+            let nextIndex = 0;
+            let completedCount = 0;
+            let successCount = 0;
+
+            const activeWorkers = Math.min(concurrencyVal, total);
+            if (progressLabel) {
+                progressLabel.innerHTML = `<i class="fa-solid fa-spinner fa-spin text-slate-500"></i> <span>Running ${activeWorkers} parallel workers (0/${total} completed)...</span>`;
+            }
+
+            async function worker(workerId) {
+                while (nextIndex < total && !stopBatchRequested) {
+                    const i = nextIndex++;
+                    const item = loadedProducts[i];
+                    if (progressLabel) {
+                        progressLabel.innerHTML = `<i class="fa-solid fa-bolt text-amber-500"></i> <span>Worker ${workerId + 1} processing ${item.code} (${completedCount + 1}/${total})...</span>`;
+                    }
+
+                    try {
+                        const ok = await generateSingleAllInOne(i, autoSave);
+                        if (ok !== false) successCount++;
+                    } catch (e) {
+                        console.error('Batch item error:', e);
+                    }
+
+                    completedCount++;
+                    const pct = Math.round((completedCount / total) * 100);
+                    if (progressBar) progressBar.style.width = `${pct}%`;
+                    if (progressPct) progressPct.innerText = `${pct}%`;
+
+                    if (progressLabel) {
+                        progressLabel.innerHTML = `<i class="fa-solid fa-spinner fa-spin text-slate-500"></i> <span>${completedCount}/${total} products processed (${successCount} successful)...</span>`;
+                    }
+                }
+            }
+
+            const workerPromises = [];
+            for (let w = 0; w < activeWorkers; w++) {
+                workerPromises.push(worker(w));
+            }
+
+            await Promise.all(workerPromises);
+
             isBatchRunning = false;
-            showToast('Batch generation completed for all products!');
+            if (btnAuto) btnAuto.disabled = false;
+            if (btnGen) btnGen.disabled = false;
+            if (btnStop) btnStop.classList.add('hidden');
+
+            if (stopBatchRequested) {
+                showToast(`Batch stopped by user. (${completedCount} of ${total} processed)`);
+                if (progressLabel) {
+                    progressLabel.innerHTML = `<i class="fa-solid fa-circle-exclamation text-amber-500"></i> <span>Queue stopped: ${completedCount}/${total} processed.</span>`;
+                }
+            } else {
+                const msg = autoSave 
+                    ? `Batch complete! Generated & saved ${completedCount} products directly to database.`
+                    : `Batch complete! Generated ${completedCount} products.`;
+                showToast(msg);
+                if (progressLabel) {
+                    progressLabel.innerHTML = `<i class="fa-solid fa-circle-check text-emerald-500"></i> <span>All ${completedCount} products finished successfully!</span>`;
+                }
+            }
+        }
+
+        function stopBatchQueue() {
+            if (!isBatchRunning) return;
+            stopBatchRequested = true;
+            const btnStop = document.getElementById('btn_stop_batch');
+            if (btnStop) {
+                btnStop.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Stopping...';
+            }
+            showToast('Stopping queue after current workers finish...');
+        }
+
+        // Alias for backwards compatibility
+        async function generateAllBatch() {
+            await runBatchQueue(true);
         }
 
         // ==================== SAVE ACTIONS ====================
-        async function saveSingleProduct(index) {
+        async function saveSingleProduct(index, isAuto = false) {
             const item = loadedProducts[index];
-            if (!item) return;
+            if (!item) return false;
 
-            const name = document.getElementById(`input_name_${item.id}`).value.trim();
-            const shortDesc = document.getElementById(`input_short_${item.id}`).value.trim();
-            const desc = document.getElementById(`input_desc_${item.id}`).value.trim();
+            const inName = document.getElementById(`input_name_${item.id}`);
+            const inShort = document.getElementById(`input_short_${item.id}`);
+            const inDesc = document.getElementById(`input_desc_${item.id}`);
+
+            const name = inName ? inName.value.trim() : (item.gen_name || '');
+            const shortDesc = inShort ? inShort.value.trim() : (item.gen_short || '');
+            const desc = inDesc ? inDesc.value.trim() : (item.gen_desc || '');
 
             const withModelB64 = item.photo_with_model ? item.photo_with_model.base64 : '';
             const withoutModelB64 = item.photo_without_model ? item.photo_without_model.base64 : '';
             const mainChoice = item.main_image_choice || document.getElementById('config_main_image_choice')?.value || 'without_model';
 
             const btn = document.getElementById(`btn_save_single_${item.id}`);
-            btn.disabled = true;
-            btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Saving...';
+            if (btn) {
+                btn.disabled = true;
+                btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Saving...';
+            }
 
             try {
                 const res = await fetch('index.php?controller=allinonewriter&action=saveAll', {
@@ -1467,15 +1712,22 @@
                         if (b2) b2.innerText = (mainChoice === 'without_model') ? 'Saved (Main Image)' : 'Saved to Gallery';
                     }
 
-                    showToast(`Product ${item.code} saved to database successfully!`);
+                    if (!isAuto) {
+                        showToast(`Product ${item.code} saved to database successfully!`);
+                    }
+                    return true;
                 } else {
-                    showToast(data.error || 'Failed to save product', 'error');
+                    if (!isAuto) showToast(data.error || 'Failed to save product', 'error');
+                    return false;
                 }
             } catch (err) {
-                showToast('Error saving product', 'error');
+                if (!isAuto) showToast('Error saving product', 'error');
+                return false;
             } finally {
-                btn.disabled = false;
-                btn.innerHTML = '<i class="fa-solid fa-floppy-disk"></i> Save to DB';
+                if (btn) {
+                    btn.disabled = false;
+                    btn.innerHTML = '<i class="fa-solid fa-floppy-disk"></i> Save to DB';
+                }
             }
         }
 
