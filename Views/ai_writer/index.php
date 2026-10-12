@@ -728,7 +728,6 @@
         const categoryOptions = <?php echo json_encode(array_map(function($c) { return ['name' => $c['name'], 'type' => $c['type']]; }, $categories)); ?>;
 
         let loadedProducts = [];
-        let isBatchRunning = false;
 
         // Auto-detect SKU count on input
         document.getElementById('sku_input').addEventListener('input', function(e) {
