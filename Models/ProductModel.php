@@ -71,6 +71,16 @@ class ProductModel extends Model
             }
         }
 
+        $upload_date = $params['upload_date'] ?? '';
+        if (!empty($upload_date)) {
+            if ($upload_date === 'saturday') {
+                $upload_date = '2026-10-10';
+            }
+            $escDate = mysqli_real_escape_string($this->db, $upload_date);
+            $jewellery_search .= " AND DATE(date_added) = '$escDate'";
+            $garments_search .= " AND DATE(date_added) = '$escDate'";
+        }
+
         if (!empty($category_param)) {
             if (strpos($category_param, ':') !== false) {
                 list($type, $id) = explode(':', $category_param);
@@ -247,6 +257,16 @@ class ProductModel extends Model
                 $jewellery_search .= " AND product_code NOT IN ($sku_list)";
                 $garments_search .= " AND gproduct_code NOT IN ($sku_list)";
             }
+        }
+
+        $upload_date = $params['upload_date'] ?? '';
+        if (!empty($upload_date)) {
+            if ($upload_date === 'saturday') {
+                $upload_date = '2026-10-10';
+            }
+            $escDate = mysqli_real_escape_string($this->db, $upload_date);
+            $jewellery_search .= " AND DATE(date_added) = '$escDate'";
+            $garments_search .= " AND DATE(date_added) = '$escDate'";
         }
 
         if (!empty($category_param)) {

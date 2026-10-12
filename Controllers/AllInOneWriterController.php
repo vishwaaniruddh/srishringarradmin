@@ -272,9 +272,14 @@ class AllInOneWriterController extends Controller
         $rawInput = json_decode(file_get_contents('php://input'), true) ?: $_POST;
         $skuInput = trim($rawInput['skus'] ?? ($_GET['skus'] ?? ''));
         $catFilter = trim($rawInput['category_filter'] ?? ($_GET['category_filter'] ?? ''));
+        $uploadDate = trim($rawInput['upload_date'] ?? ($_GET['upload_date'] ?? ''));
 
-        if (empty($skuInput) && empty($catFilter)) {
-            $this->json(['success' => false, 'error' => 'Please enter SKUs or select a category to load.'], 400);
+        if ($uploadDate === 'saturday') {
+            $uploadDate = '2026-10-10';
+        }
+
+        if (empty($skuInput) && empty($catFilter) && empty($uploadDate)) {
+            $this->json(['success' => false, 'error' => 'Please enter SKUs, select a category, or choose an upload date.'], 400);
             return;
         }
 
@@ -286,6 +291,13 @@ class AllInOneWriterController extends Controller
         $jewelWhere = ["1=1"];
         $garmentWhere = ["1=1"];
         $skus = [];
+
+        // Filter by Upload Date if provided
+        if (!empty($uploadDate)) {
+            $escDate = mysqli_real_escape_string($this->db, $uploadDate);
+            $jewelWhere[] = "DATE(date_added) = '$escDate'";
+            $garmentWhere[] = "DATE(date_added) = '$escDate'";
+        }
 
         // Parse SKUs if provided
         if (!empty($skuInput)) {
@@ -314,7 +326,13 @@ class AllInOneWriterController extends Controller
 
         $jewelWhereSql = implode(" AND ", $jewelWhere);
         $garmentWhereSql = implode(" AND ", $garmentWhere);
-        $limitClause = empty($skus) ? "LIMIT 25" : "LIMIT 100";
+
+        $customLimit = (int)($rawInput['limit'] ?? ($_GET['limit'] ?? 0));
+        if ($customLimit > 0) {
+            $limitClause = "LIMIT " . min(300, $customLimit);
+        } else {
+            $limitClause = (empty($skus) && empty($uploadDate)) ? "LIMIT 25" : "LIMIT 100";
+        }
 
         $jewelQuery = "
             SELECT 
@@ -1061,19 +1079,24 @@ class AllInOneWriterController extends Controller
             }
         }
 
+        $mainChoice = $rawInput['main_image_choice'] ?? 'without_model'; // 'without_model', 'with_model', or 'keep_existing'
+
         // 2. Save Images if present
         $savedImages = [];
         if (!empty($withModelB64)) {
-            $savedImages['with_model'] = $this->saveImageRecord($id, $type, $withModelB64, 'with_model', false);
+            $isMain = ($mainChoice === 'with_model');
+            $savedImages['with_model'] = $this->saveImageRecord($id, $type, $withModelB64, 'with_model', $isMain);
         }
         if (!empty($withoutModelB64)) {
-            $savedImages['without_model'] = $this->saveImageRecord($id, $type, $withoutModelB64, 'without_model', false);
+            $isMain = ($mainChoice === 'without_model');
+            $savedImages['without_model'] = $this->saveImageRecord($id, $type, $withoutModelB64, 'without_model', $isMain);
         }
 
         $this->json([
             'success' => true,
             'id' => $id,
             'type' => $type,
+            'main_image_choice' => $mainChoice,
             'saved_images' => $savedImages,
             'message' => 'Product content and photoshoot photos updated successfully!'
         ]);
@@ -1125,11 +1148,79 @@ class AllInOneWriterController extends Controller
         $insertId = mysqli_insert_id($this->db);
         mysqli_stmt_close($stmt);
 
+        // Update main catalog image if designated
+        if ($setAsMain) {
+            $escRel = mysqli_real_escape_string($this->db, $relativePath);
+            if ($type === 'jewellery') {
+                mysqli_query($this->db, "UPDATE product SET product_image = '$escRel' WHERE product_id = $id");
+            } else {
+                mysqli_query($this->db, "UPDATE garment_product SET gproduct_image = '$escRel' WHERE gproduct_id = $id");
+            }
+        }
+
         return [
             'id' => $insertId,
             'url' => '../yn/uploads' . $relativePath,
-            'path' => $relativePath
+            'path' => $relativePath,
+            'is_main' => $setAsMain
         ];
+    }
+
+    /**
+     * Set either generated photo or existing photo as the main catalog image
+     */
+    public function setMainImage()
+    {
+        $rawInput = json_decode(file_get_contents('php://input'), true) ?: $_POST;
+        $id = (int)($rawInput['id'] ?? 0);
+        $type = ($rawInput['type'] ?? 'jewellery') === 'garment' ? 'garment' : 'jewellery';
+        $imagePath = trim($rawInput['image_path'] ?? '');
+        $mode = $rawInput['mode'] ?? '';
+        $base64 = $rawInput['base64'] ?? '';
+
+        if (!$id) {
+            $this->json(['error' => 'Product ID is required.'], 400);
+            return;
+        }
+
+        if (!$this->db) {
+            $this->json(['error' => 'Database connection failed.'], 500);
+            return;
+        }
+
+        // If base64 provided and not yet written to disk
+        if (!empty($base64)) {
+            $saved = $this->saveImageRecord($id, $type, $base64, $mode ?: 'ai', true);
+            if ($saved) {
+                $this->json([
+                    'success' => true,
+                    'message' => 'Image saved and set as primary main product image!',
+                    'image' => $saved
+                ]);
+                return;
+            }
+        }
+
+        if (!empty($imagePath)) {
+            $clean = preg_replace('#^https?://[^/]+(/yn/uploads)?#', '', $imagePath);
+            $clean = preg_replace('#^\.\./yn/uploads#', '', $clean);
+            $clean = '/' . ltrim($clean, '/');
+
+            $escRel = mysqli_real_escape_string($this->db, $clean);
+            if ($type === 'jewellery') {
+                mysqli_query($this->db, "UPDATE product SET product_image = '$escRel' WHERE product_id = $id");
+            } else {
+                mysqli_query($this->db, "UPDATE garment_product SET gproduct_image = '$escRel' WHERE gproduct_id = $id");
+            }
+
+            $this->json([
+                'success' => true,
+                'message' => 'Main product image updated successfully in database!'
+            ]);
+            return;
+        }
+
+        $this->json(['error' => 'Either image_path or base64 image data is required.'], 400);
     }
 
     /**
@@ -1425,5 +1516,133 @@ class AllInOneWriterController extends Controller
             default:
                 return null;
         }
+    }
+
+    /**
+     * Retrieve products uploaded on Saturday (or specified date) with category grouping
+     */
+    public function getSaturdayProducts()
+    {
+        if (!$this->db) {
+            $this->json(['error' => 'Database connection failed.'], 500);
+            return;
+        }
+
+        $date = trim($_GET['date'] ?? '2026-10-10');
+        $escDate = mysqli_real_escape_string($this->db, $date);
+
+        // Fetch Jewellery
+        $jSql = "
+            SELECT 
+                p.product_id as id,
+                p.product_code as code,
+                p.product_name as name,
+                'jewellery' as type,
+                p.categories_id,
+                p.subcat_id,
+                p.sales_price,
+                p.rent_price,
+                p.product_image as main_image,
+                p.date_added,
+                COALESCE(s.name, j.categories_name, 'Jewellery') as category_name
+            FROM product p
+            LEFT JOIN subcat1 s ON p.subcat_id = s.subcat_id
+            LEFT JOIN jewel_subcat j ON p.categories_id = j.subcat_id
+            WHERE DATE(p.date_added) = '$escDate'
+            ORDER BY p.product_id ASC
+        ";
+
+        // Fetch Garments
+        $gSql = "
+            SELECT 
+                g.gproduct_id as id,
+                g.gproduct_code as code,
+                g.gproduct_name as name,
+                'garment' as type,
+                g.garment_id as categories_id,
+                g.product_for as subcat_id,
+                g.sales_price,
+                g.rent_price,
+                g.gproduct_image as main_image,
+                g.date_added,
+                COALESCE(gm.name, 'Apparel') as category_name
+            FROM garment_product g
+            LEFT JOIN garments gm ON g.garment_id = gm.garment_id
+            WHERE DATE(g.date_added) = '$escDate'
+            ORDER BY g.gproduct_id ASC
+        ";
+
+        $products = [];
+        $groupCounts = [
+            'all' => 0,
+            'tikka' => 0,
+            'damini' => 0,
+            'mala' => 0,
+            'kamar_patta' => 0,
+            'tikka_damini' => 0,
+            'apparel' => 0,
+            'other' => 0
+        ];
+
+        $jRes = mysqli_query($this->db, $jSql);
+        if ($jRes) {
+            while ($r = mysqli_fetch_assoc($jRes)) {
+                $code = strtoupper(trim($r['code']));
+                if (str_starts_with($code, 'TD')) {
+                    $grp = 'tikka_damini';
+                    $grpName = 'Tikka Damini';
+                } elseif (str_starts_with($code, 'T')) {
+                    $grp = 'tikka';
+                    $grpName = 'Maang Tikka';
+                } elseif (str_starts_with($code, 'DP') || str_starts_with($code, 'D')) {
+                    $grp = 'damini';
+                    $grpName = 'Damini / Mathapatti';
+                } elseif (str_starts_with($code, 'MALA')) {
+                    $grp = 'mala';
+                    $grpName = 'Mala / Necklace';
+                } elseif (str_starts_with($code, 'KP') || str_starts_with($code, 'IKP')) {
+                    $grp = 'kamar_patta';
+                    $grpName = 'Kamar Patta';
+                } else {
+                    $grp = 'other';
+                    $grpName = 'Other Jewellery';
+                }
+
+                $r['group_key'] = $grp;
+                $r['group_name'] = $grpName;
+                $imgName = $r['main_image'];
+                $r['image_url'] = !empty($imgName) ? 'https://srishringarr.com/yn/uploads' . (str_starts_with($imgName, '/') ? $imgName : '/' . $imgName) : '';
+
+                $products[] = $r;
+                $groupCounts['all']++;
+                if (isset($groupCounts[$grp])) {
+                    $groupCounts[$grp]++;
+                } else {
+                    $groupCounts['other']++;
+                }
+            }
+        }
+
+        $gRes = mysqli_query($this->db, $gSql);
+        if ($gRes) {
+            while ($r = mysqli_fetch_assoc($gRes)) {
+                $r['group_key'] = 'apparel';
+                $r['group_name'] = 'Apparel / Garments';
+                $imgName = $r['main_image'];
+                $r['image_url'] = !empty($imgName) ? 'https://srishringarr.com/yn/uploads' . (str_starts_with($imgName, '/') ? $imgName : '/' . $imgName) : '';
+
+                $products[] = $r;
+                $groupCounts['all']++;
+                $groupCounts['apparel']++;
+            }
+        }
+
+        $this->json([
+            'success' => true,
+            'date' => $date,
+            'total_count' => count($products),
+            'group_counts' => $groupCounts,
+            'products' => $products
+        ]);
     }
 }

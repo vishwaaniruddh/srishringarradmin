@@ -48,6 +48,7 @@ class ApiController extends Controller {
         $sortOrder = isset($_GET['sort_order']) ? $_GET['sort_order'] : 'desc';
         $availableOnly = isset($_GET['available_only']) && ($_GET['available_only'] == 1 || $_GET['available_only'] == 'true');
         $storePresence = isset($_GET['store_presence']) ? trim($_GET['store_presence']) : '';
+        $uploadDate = isset($_GET['upload_date']) ? trim($_GET['upload_date']) : '';
         
         $params = [
             'page' => $page,
@@ -58,7 +59,8 @@ class ApiController extends Controller {
             'sort_by' => $sortBy,
             'sort_order' => $sortOrder,
             'available_only' => $availableOnly,
-            'store_presence' => $storePresence
+            'store_presence' => $storePresence,
+            'upload_date' => $uploadDate
         ];
         
         $products = $productModel->getProducts($params);

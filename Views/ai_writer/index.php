@@ -349,6 +349,9 @@
                                 <span class="font-semibold text-xs text-slate-900 uppercase tracking-wider">SKU Queue &amp; Category Filters</span>
                             </div>
                             <div class="flex items-center gap-2">
+                                <button type="button" onclick="openSaturdayModal()" class="shadcn-btn shadcn-btn-sm text-slate-800 bg-slate-100 hover:bg-slate-200 border-slate-300 font-medium" title="Browse and load products uploaded on Saturday (Oct 10, 2026)">
+                                    <i class="fa-solid fa-calendar-day text-slate-600"></i> Saturday's Uploads (Oct 10) <span class="bg-slate-900 text-white text-[10px] px-1.5 py-0.5 rounded-full ml-1 font-semibold">664</span>
+                                </button>
                                 <button type="button" onclick="insertSampleSkus()" class="shadcn-btn shadcn-btn-sm text-slate-600">
                                     <i class="fa-solid fa-lightbulb"></i> Load Sample SKUs
                                 </button>
@@ -466,6 +469,18 @@
                                                 <span>Photo Without Model</span>
                                             </label>
                                         </div>
+
+                                        <!-- Main Product Image Selector (Applies to all products) -->
+                                        <div class="flex items-center gap-2 bg-amber-50/70 border border-amber-200/90 px-2.5 py-1 rounded-md" title="Select which photo will be set as the Main Product Image across all items">
+                                            <span class="text-[11px] font-bold text-amber-950 uppercase tracking-wider flex items-center gap-1.5">
+                                                <i class="fa-solid fa-star text-amber-500 text-xs"></i> Set as Main Image:
+                                            </span>
+                                            <select id="config_main_image_choice" onchange="onGlobalMainImageChange(this.value)" class="bg-transparent text-xs font-semibold text-slate-900 outline-none cursor-pointer">
+                                                <option value="without_model" selected>Photo Without Model (Still Life)</option>
+                                                <option value="with_model">Photo With Model</option>
+                                                <option value="keep_existing">Keep Existing Image</option>
+                                            </select>
+                                        </div>
                                     </div>
 
                                     <!-- Search / Load Buttons -->
@@ -494,7 +509,18 @@
                                     </span>
                                 </div>
                             </div>
-                            <div class="flex items-center gap-2.5">
+                            <div class="flex items-center gap-2.5 flex-wrap">
+                                <!-- Synchronized Main Image Switcher on Queue Bar -->
+                                <div class="flex items-center gap-1.5 bg-amber-50/80 border border-amber-200 px-2 py-1 rounded text-xs">
+                                    <span class="text-[10.5px] font-bold text-amber-950 uppercase tracking-wider flex items-center gap-1">
+                                        <i class="fa-solid fa-star text-amber-500 text-[10px]"></i> Main Image:
+                                    </span>
+                                    <select id="queue_main_image_choice" onchange="onGlobalMainImageChange(this.value)" class="bg-transparent text-xs font-semibold text-slate-900 outline-none cursor-pointer">
+                                        <option value="without_model" selected>Photo Without Model</option>
+                                        <option value="with_model">Photo With Model</option>
+                                        <option value="keep_existing">Keep Existing</option>
+                                    </select>
+                                </div>
                                 <button type="button" id="btn_generate_all" onclick="generateAllBatch()" class="shadcn-btn shadcn-btn-primary">
                                     <i class="fa-solid fa-bolt-lightning"></i>
                                     <span>Generate All in One (Batch)</span>
@@ -545,6 +571,83 @@
                     </a>
                     <button type="button" onclick="closeLightbox()" class="shadcn-btn shadcn-btn-sm">
                         Close
+                    </button>
+                </div>
+            </div>
+        </div>
+    <!-- Saturday Uploads Browser Modal -->
+    <div id="saturday-modal" class="hidden fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[100000] flex items-center justify-center p-4" onclick="closeSaturdayModal()">
+        <div class="bg-white border border-slate-200 rounded-xl shadow-2xl max-w-4xl w-full max-h-[90vh] flex flex-col overflow-hidden" onclick="event.stopPropagation()">
+            <!-- Modal Header -->
+            <div class="px-5 py-4 border-b border-slate-200 flex items-center justify-between bg-slate-50/50">
+                <div class="flex items-center gap-2.5">
+                    <div class="w-8 h-8 rounded-lg bg-slate-900 text-white flex items-center justify-center text-sm">
+                        <i class="fa-solid fa-calendar-day"></i>
+                    </div>
+                    <div>
+                        <div class="flex items-center gap-2">
+                            <h2 class="text-sm font-bold text-slate-900">Saturday's Uploaded Products</h2>
+                            <span class="text-[11px] font-semibold text-slate-600 bg-slate-200/80 px-2 py-0.5 rounded-full">October 10, 2026</span>
+                            <span id="sat-modal-total-badge" class="text-[11px] font-semibold text-white bg-slate-900 px-2 py-0.5 rounded-full">664 Items</span>
+                        </div>
+                        <p class="text-[11px] text-slate-500 mt-0.5">Filter by category, search SKUs, and load items directly into the AI Content Studio queue.</p>
+                    </div>
+                </div>
+                <button type="button" onclick="closeSaturdayModal()" class="w-8 h-8 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 flex items-center justify-center text-sm transition-colors">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+
+            <!-- Category Filter Tabs & Search Bar -->
+            <div class="p-4 border-b border-slate-200 bg-white flex flex-col sm:flex-row gap-3 items-stretch sm:items-center justify-between">
+                <!-- Group Tabs -->
+                <div class="flex items-center gap-1.5 flex-wrap" id="sat-group-tabs">
+                    <button type="button" onclick="filterSatGroup('all', this)" class="sat-tab active px-2.5 py-1 text-xs font-semibold rounded-md bg-slate-900 text-white">All (<span id="sat-count-all">664</span>)</button>
+                    <button type="button" onclick="filterSatGroup('tikka', this)" class="sat-tab px-2.5 py-1 text-xs font-medium rounded-md text-slate-600 hover:bg-slate-100 border border-slate-200">Maang Tikka (<span id="sat-count-tikka">407</span>)</button>
+                    <button type="button" onclick="filterSatGroup('damini', this)" class="sat-tab px-2.5 py-1 text-xs font-medium rounded-md text-slate-600 hover:bg-slate-100 border border-slate-200">Damini (<span id="sat-count-damini">136</span>)</button>
+                    <button type="button" onclick="filterSatGroup('mala', this)" class="sat-tab px-2.5 py-1 text-xs font-medium rounded-md text-slate-600 hover:bg-slate-100 border border-slate-200">Mala (<span id="sat-count-mala">49</span>)</button>
+                    <button type="button" onclick="filterSatGroup('kamar_patta', this)" class="sat-tab px-2.5 py-1 text-xs font-medium rounded-md text-slate-600 hover:bg-slate-100 border border-slate-200">Kamar Patta (<span id="sat-count-kamar_patta">47</span>)</button>
+                    <button type="button" onclick="filterSatGroup('tikka_damini', this)" class="sat-tab px-2.5 py-1 text-xs font-medium rounded-md text-slate-600 hover:bg-slate-100 border border-slate-200">TD (<span id="sat-count-tikka_damini">15</span>)</button>
+                    <button type="button" onclick="filterSatGroup('apparel', this)" class="sat-tab px-2.5 py-1 text-xs font-medium rounded-md text-slate-600 hover:bg-slate-100 border border-slate-200">Garments (<span id="sat-count-apparel">7</span>)</button>
+                </div>
+
+                <!-- Instant Search -->
+                <div class="relative min-w-[200px]">
+                    <i class="fa-solid fa-magnifying-glass absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400 text-xs"></i>
+                    <input type="text" id="sat-search-input" oninput="renderSatTable()" placeholder="Search SKU or name..." class="w-full text-xs pl-8 pr-3 py-1.5 border border-slate-200 rounded-md focus:outline-none focus:border-slate-400">
+                </div>
+            </div>
+
+            <!-- Products Table Container -->
+            <div class="flex-1 overflow-y-auto p-4 bg-slate-50/30" id="sat-products-table-container" style="min-height: 360px; max-height: 480px;">
+                <div class="flex items-center justify-center p-8 text-slate-400 text-xs">
+                    <i class="fa-solid fa-spinner fa-spin mr-2"></i> Loading Saturday's uploaded products...
+                </div>
+            </div>
+
+            <!-- Modal Footer Actions -->
+            <div class="px-5 py-3 border-t border-slate-200 bg-white flex items-center justify-between flex-wrap gap-2">
+                <div class="flex items-center gap-3 text-xs text-slate-500">
+                    <label class="flex items-center gap-1.5 cursor-pointer font-medium text-slate-700">
+                        <input type="checkbox" id="sat-select-all" onchange="toggleSelectAllSat(this.checked)" class="rounded text-slate-900">
+                        Select All Filtered (<span id="sat-filtered-count">0</span>)
+                    </label>
+                    <span>|</span>
+                    <span id="sat-selected-badge" class="text-slate-700 font-semibold">0 Selected</span>
+                </div>
+
+                <div class="flex items-center gap-2">
+                    <button type="button" onclick="copySatSkus()" class="shadcn-btn shadcn-btn-sm text-slate-700">
+                        <i class="fa-solid fa-copy"></i> Copy SKUs
+                    </button>
+                    <a href="index.php?controller=product&filter=saturday" target="_blank" class="shadcn-btn shadcn-btn-sm text-slate-700">
+                        <i class="fa-solid fa-arrow-up-right-from-square"></i> Open in Catalog
+                    </a>
+                    <button type="button" onclick="loadSatSelectedIntoQueue()" class="shadcn-btn shadcn-btn-sm shadcn-btn-primary">
+                        <i class="fa-solid fa-wand-magic-sparkles"></i> Load Selected into AI Queue
+                    </button>
+                    <button type="button" onclick="loadSatAllFilteredIntoQueue()" class="shadcn-btn shadcn-btn-sm bg-slate-800 text-white hover:bg-slate-900">
+                        <i class="fa-solid fa-bolt"></i> Load All Filtered (<span id="sat-btn-filtered-count">0</span>)
                     </button>
                 </div>
             </div>
@@ -617,6 +720,7 @@
                     return;
                 }
 
+                const globalMainChoice = document.getElementById('config_main_image_choice')?.value || 'without_model';
                 loadedProducts = data.products.map(p => ({
                     ...p,
                     category_key: p.category_key || 'necklace_set',
@@ -627,6 +731,7 @@
                     photo_without_model: null,
                     saved_with_model: false,
                     saved_without_model: false,
+                    main_image_choice: globalMainChoice,
                     status_text: 'Ready'
                 }));
 
@@ -758,8 +863,13 @@
                                 <div class="grid grid-cols-2 gap-2.5">
                                     
                                     <!-- Photo 1: With Model -->
-                                    <div class="photo-card" id="photo_card_model_${item.id}">
-                                        <div class="photo-card-media" id="media_model_${item.id}">
+                                    <div class="photo-card ${item.main_image_choice === 'with_model' ? 'ring-2 ring-amber-400' : ''}" id="photo_card_model_${item.id}">
+                                        <div class="photo-card-media relative" id="media_model_${item.id}">
+                                            ${item.main_image_choice === 'with_model' ? `
+                                                <span class="absolute top-1.5 left-1.5 bg-amber-500 text-slate-950 text-[9px] font-extrabold px-1.5 py-0.5 rounded shadow z-10 flex items-center gap-1 tracking-wider">
+                                                    <i class="fa-solid fa-star text-[8px]"></i> MAIN
+                                                </span>
+                                            ` : ''}
                                             ${item.photo_with_model ? `
                                                 <img src="${item.photo_with_model.url}" alt="With Model" title="Click to view full preview (Hover to zoom)" onclick="openLightbox('${item.photo_with_model.url}', 'With Model - ${escapeHtml(item.code)}')">
                                             ` : `
@@ -787,12 +897,28 @@
                                                     <i class="fa-solid fa-image text-[10px]"></i>
                                                 </button>
                                             </div>
+                                            <div class="pt-1.5 border-t border-slate-100">
+                                                ${item.main_image_choice === 'with_model' ? `
+                                                    <button type="button" class="w-full py-1 px-1.5 text-[10px] font-bold rounded bg-amber-500 text-slate-950 flex items-center justify-center gap-1 shadow-2xs cursor-default">
+                                                        <i class="fa-solid fa-star text-[9px]"></i> Main Image
+                                                    </button>
+                                                ` : `
+                                                    <button type="button" onclick="setProductMainImage(${index}, 'with_model')" class="w-full py-1 px-1.5 text-[10px] font-medium rounded bg-slate-100 hover:bg-slate-200 text-slate-700 flex items-center justify-center gap-1 transition-colors" title="Set Photo With Model as Main Product Image">
+                                                        <i class="fa-regular fa-star text-[9px]"></i> Set as Main
+                                                    </button>
+                                                `}
+                                            </div>
                                         </div>
                                     </div>
 
                                     <!-- Photo 2: Without Model (Velvet Still Life) -->
-                                    <div class="photo-card" id="photo_card_studio_${item.id}">
-                                        <div class="photo-card-media" id="media_studio_${item.id}">
+                                    <div class="photo-card ${item.main_image_choice === 'without_model' ? 'ring-2 ring-amber-400' : ''}" id="photo_card_studio_${item.id}">
+                                        <div class="photo-card-media relative" id="media_studio_${item.id}">
+                                            ${item.main_image_choice === 'without_model' ? `
+                                                <span class="absolute top-1.5 left-1.5 bg-amber-500 text-slate-950 text-[9px] font-extrabold px-1.5 py-0.5 rounded shadow z-10 flex items-center gap-1 tracking-wider">
+                                                    <i class="fa-solid fa-star text-[8px]"></i> MAIN
+                                                </span>
+                                            ` : ''}
                                             ${item.photo_without_model ? `
                                                 <img src="${item.photo_without_model.url}" alt="Without Model" title="Click to view full preview (Hover to zoom)" onclick="openLightbox('${item.photo_without_model.url}', 'Still Life - ${escapeHtml(item.code)}')">
                                             ` : `
@@ -819,6 +945,17 @@
                                                 <button type="button" id="btn_save_studio_${item.id}" ${item.photo_without_model ? '' : 'disabled'} onclick="saveImageIndividual(${index}, 'without_model')" class="shadcn-btn shadcn-btn-sm text-[11px] h-6 px-1.5 text-slate-700" title="Save to Gallery">
                                                     <i class="fa-solid fa-image text-[10px]"></i>
                                                 </button>
+                                            </div>
+                                            <div class="pt-1.5 border-t border-slate-100">
+                                                ${item.main_image_choice === 'without_model' ? `
+                                                    <button type="button" class="w-full py-1 px-1.5 text-[10px] font-bold rounded bg-amber-500 text-slate-950 flex items-center justify-center gap-1 shadow-2xs cursor-default">
+                                                        <i class="fa-solid fa-star text-[9px]"></i> Main Image
+                                                    </button>
+                                                ` : `
+                                                    <button type="button" onclick="setProductMainImage(${index}, 'without_model')" class="w-full py-1 px-1.5 text-[10px] font-medium rounded bg-slate-100 hover:bg-slate-200 text-slate-700 flex items-center justify-center gap-1 transition-colors" title="Set Photo Without Model as Main Product Image">
+                                                        <i class="fa-regular fa-star text-[9px]"></i> Set as Main
+                                                    </button>
+                                                `}
                                             </div>
                                         </div>
                                     </div>
@@ -1390,6 +1527,231 @@
                 toast.style.transition = 'opacity 0.2s ease';
                 setTimeout(() => toast.remove(), 200);
             }, 3200);
+        }
+
+        // ==================== SATURDAY'S UPLOADS MODAL LOGIC ====================
+        let satAllProducts = [];
+        let satCurrentGroup = 'all';
+        let satSelectedSkus = new Set();
+        let satIsLoading = false;
+
+        async function openSaturdayModal() {
+            const modal = document.getElementById('saturday-modal');
+            if (!modal) return;
+            modal.classList.remove('hidden');
+
+            if (satAllProducts.length === 0) {
+                await fetchSaturdayProducts();
+            } else {
+                renderSatTable();
+            }
+        }
+
+        function closeSaturdayModal() {
+            const modal = document.getElementById('saturday-modal');
+            if (modal) modal.classList.add('hidden');
+        }
+
+        async function fetchSaturdayProducts() {
+            const container = document.getElementById('sat-products-table-container');
+            container.innerHTML = `
+                <div class="flex flex-col items-center justify-center p-12 text-slate-400 text-xs">
+                    <i class="fa-solid fa-spinner fa-spin text-lg mb-2 text-slate-600"></i>
+                    <span>Loading 664 Saturday uploaded products...</span>
+                </div>
+            `;
+
+            try {
+                const res = await fetch('index.php?controller=allinonewriter&action=getSaturdayProducts&date=2026-10-10');
+                const data = await res.json();
+                if (!data.success) {
+                    container.innerHTML = `<div class="p-6 text-center text-rose-500 text-xs">${escapeHtml(data.error || 'Failed to load Saturday products.')}</div>`;
+                    return;
+                }
+
+                satAllProducts = data.products || [];
+
+                // Update tab counters
+                const gc = data.group_counts || {};
+                document.getElementById('sat-count-all').innerText = gc.all || satAllProducts.length;
+                if (document.getElementById('sat-count-tikka')) document.getElementById('sat-count-tikka').innerText = gc.tikka || 0;
+                if (document.getElementById('sat-count-damini')) document.getElementById('sat-count-damini').innerText = gc.damini || 0;
+                if (document.getElementById('sat-count-mala')) document.getElementById('sat-count-mala').innerText = gc.mala || 0;
+                if (document.getElementById('sat-count-kamar_patta')) document.getElementById('sat-count-kamar_patta').innerText = gc.kamar_patta || 0;
+                if (document.getElementById('sat-count-tikka_damini')) document.getElementById('sat-count-tikka_damini').innerText = gc.tikka_damini || 0;
+                if (document.getElementById('sat-count-apparel')) document.getElementById('sat-count-apparel').innerText = gc.apparel || 0;
+                document.getElementById('sat-modal-total-badge').innerText = `${satAllProducts.length} Items`;
+
+                renderSatTable();
+            } catch (e) {
+                console.error(e);
+                container.innerHTML = `<div class="p-6 text-center text-rose-500 text-xs">Error connecting to server.</div>`;
+            }
+        }
+
+        function filterSatGroup(groupKey, btn) {
+            satCurrentGroup = groupKey;
+            document.querySelectorAll('#sat-group-tabs .sat-tab').forEach(b => {
+                b.className = 'sat-tab px-2.5 py-1 text-xs font-medium rounded-md text-slate-600 hover:bg-slate-100 border border-slate-200';
+            });
+            if (btn) {
+                btn.className = 'sat-tab active px-2.5 py-1 text-xs font-semibold rounded-md bg-slate-900 text-white';
+            }
+            renderSatTable();
+        }
+
+        function getFilteredSatProducts() {
+            const query = (document.getElementById('sat-search-input')?.value || '').toLowerCase().trim();
+            return satAllProducts.filter(p => {
+                const matchesGroup = (satCurrentGroup === 'all') || (p.group_key === satCurrentGroup);
+                if (!matchesGroup) return false;
+                if (!query) return true;
+                const code = (p.code || '').toLowerCase();
+                const name = (p.name || '').toLowerCase();
+                return code.includes(query) || name.includes(query);
+            });
+        }
+
+        function renderSatTable() {
+            const container = document.getElementById('sat-products-table-container');
+            const filtered = getFilteredSatProducts();
+
+            document.getElementById('sat-filtered-count').innerText = filtered.length;
+            document.getElementById('sat-btn-filtered-count').innerText = filtered.length;
+            document.getElementById('sat-selected-badge').innerText = `${satSelectedSkus.size} Selected`;
+
+            if (filtered.length === 0) {
+                container.innerHTML = `
+                    <div class="p-10 text-center text-slate-400 text-xs">
+                        <i class="fa-solid fa-box-open text-2xl mb-2 text-slate-300"></i>
+                        <p>No products match the selected category or search filter.</p>
+                    </div>
+                `;
+                return;
+            }
+
+            let html = `
+                <table class="w-full text-left text-xs border-collapse">
+                    <thead>
+                        <tr class="border-b border-slate-200 text-slate-500 font-semibold bg-slate-100/60 sticky top-0 z-10">
+                            <th class="py-2 px-3 w-8 text-center">
+                                <span class="sr-only">Select</span>
+                            </th>
+                            <th class="py-2 px-3 w-14">Image</th>
+                            <th class="py-2 px-3">SKU & Category</th>
+                            <th class="py-2 px-3">Product Name</th>
+                            <th class="py-2 px-3 text-right">Rent / Sale</th>
+                            <th class="py-2 px-3 w-20 text-center">Action</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-slate-100 bg-white">
+            `;
+
+            filtered.forEach(p => {
+                const isChecked = satSelectedSkus.has(p.code);
+                const thumb = p.image_url || 'assets/images/placeholder.png';
+                html += `
+                    <tr class="hover:bg-slate-50 transition-colors ${isChecked ? 'bg-slate-50/80' : ''}">
+                        <td class="py-2 px-3 text-center">
+                            <input type="checkbox" onchange="toggleSatSku('${escapeHtml(p.code)}', this.checked)" ${isChecked ? 'checked' : ''} class="rounded text-slate-900 cursor-pointer">
+                        </td>
+                        <td class="py-2 px-3">
+                            <img src="${escapeHtml(thumb)}" alt="${escapeHtml(p.code)}" class="w-10 h-12 object-cover rounded border border-slate-200 bg-slate-100" onerror="this.src='https://placehold.co/40x50?text=No+Img'">
+                        </td>
+                        <td class="py-2 px-3">
+                            <div class="font-mono font-bold text-slate-900">${escapeHtml(p.code)}</div>
+                            <span class="inline-block px-1.5 py-0.5 rounded text-[10px] bg-slate-100 text-slate-600 font-medium">${escapeHtml(p.group_name || p.category_name)}</span>
+                        </td>
+                        <td class="py-2 px-3">
+                            <div class="text-slate-800 font-medium line-clamp-1">${escapeHtml(p.name)}</div>
+                            <div class="text-[10px] text-slate-400">Added: ${escapeHtml(p.date_added)}</div>
+                        </td>
+                        <td class="py-2 px-3 text-right">
+                            <div class="text-slate-900 font-semibold">₹${Number(p.rent_price || 0).toLocaleString('en-IN')}</div>
+                            <div class="text-[10px] text-slate-400">Sale: ₹${Number(p.sales_price || 0).toLocaleString('en-IN')}</div>
+                        </td>
+                        <td class="py-2 px-3 text-center">
+                            <button type="button" onclick="loadSingleSatSkuToQueue('${escapeHtml(p.code)}')" class="shadcn-btn shadcn-btn-sm text-slate-700 hover:text-slate-900" title="Load SKU into AI queue">
+                                <i class="fa-solid fa-plus"></i> Load
+                            </button>
+                        </td>
+                    </tr>
+                `;
+            });
+
+            html += `</tbody></table>`;
+            container.innerHTML = html;
+        }
+
+        function toggleSatSku(code, isChecked) {
+            if (isChecked) {
+                satSelectedSkus.add(code);
+            } else {
+                satSelectedSkus.delete(code);
+            }
+            document.getElementById('sat-selected-badge').innerText = `${satSelectedSkus.size} Selected`;
+        }
+
+        function toggleSelectAllSat(checked) {
+            const filtered = getFilteredSatProducts();
+            filtered.forEach(p => {
+                if (checked) {
+                    satSelectedSkus.add(p.code);
+                } else {
+                    satSelectedSkus.delete(p.code);
+                }
+            });
+            renderSatTable();
+        }
+
+        function copySatSkus() {
+            let skus = [];
+            if (satSelectedSkus.size > 0) {
+                skus = Array.from(satSelectedSkus);
+            } else {
+                skus = getFilteredSatProducts().map(p => p.code);
+            }
+            if (skus.length === 0) {
+                showToast('No SKUs to copy.', 'error');
+                return;
+            }
+            navigator.clipboard.writeText(skus.join(', '));
+            showToast(`Copied ${skus.length} SKUs to clipboard!`);
+        }
+
+        function loadSatSelectedIntoQueue() {
+            if (satSelectedSkus.size === 0) {
+                showToast('Please select at least one SKU to load.', 'error');
+                return;
+            }
+            const skus = Array.from(satSelectedSkus);
+            document.getElementById('sku_input').value = skus.join(', ');
+            closeSaturdayModal();
+            lookupProducts();
+            showToast(`Loaded ${skus.length} selected SKU(s) into queue!`);
+        }
+
+        function loadSatAllFilteredIntoQueue() {
+            const filtered = getFilteredSatProducts();
+            if (filtered.length === 0) {
+                showToast('No products match the filter.', 'error');
+                return;
+            }
+            const skus = filtered.slice(0, 100).map(p => p.code);
+            document.getElementById('sku_input').value = skus.join(', ');
+            closeSaturdayModal();
+            lookupProducts();
+            showToast(`Loaded ${skus.length} SKU(s) into queue!`);
+        }
+
+        function loadSingleSatSkuToQueue(code) {
+            const existing = document.getElementById('sku_input').value.trim();
+            const set = new Set(existing ? existing.split(/[\r\n,\s]+/) : []);
+            set.add(code);
+            document.getElementById('sku_input').value = Array.from(set).join(', ');
+            closeSaturdayModal();
+            lookupProducts();
+            showToast(`Added ${code} to queue!`);
         }
     </script>
 </body>

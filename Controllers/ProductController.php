@@ -1644,6 +1644,25 @@ class ProductController extends Controller {
             }
         }
 
+        // Apply Upload Date filter
+        $upload_date = $_GET['upload_date'] ?? ($_GET['filter'] ?? '');
+        if (!empty($upload_date)) {
+            if ($upload_date === 'saturday') {
+                $upload_date = '2026-10-10';
+            }
+            $escDate = mysqli_real_escape_string($db, $upload_date);
+            $jewellery_search .= " AND DATE(date_added) = '$escDate'";
+            $garments_search .= " AND DATE(date_added) = '$escDate'";
+        }
+
+        // Apply Featured filter
+        $featured = $_GET['featured'] ?? '';
+        if ($featured !== '') {
+            $featured = (int)$featured;
+            $jewellery_search .= " AND featured = $featured";
+            $garments_search .= " AND featured = $featured";
+        }
+
         $query = "(SELECT product_id as id, product_code as code, 'jewellery' as type, product_name as name, rent_price as db_rent_price, sales_price as original_sales_price, featured FROM product WHERE 1=1 $jewellery_search)
                   UNION ALL
                   (SELECT gproduct_id as id, gproduct_code as code, 'garments' as type, gproduct_name as name, rent_price as db_rent_price, sales_price as original_sales_price, featured FROM garment_product WHERE 1=1 $garments_search)
@@ -1655,14 +1674,69 @@ class ProductController extends Controller {
             die("SQL Error: " . mysqli_error($db));
         }
 
+        $format = strtolower($_GET['format'] ?? 'csv');
+        $dateSuffix = !empty($upload_date) ? 'saturday_' : '';
+        $filename = 'products_export_' . $dateSuffix . date('Ymd_His');
+        $childSkusLookup = array_flip(array_map('strtoupper', \Core\ProductSyncService::getChildSkus()));
+
+        if ($format === 'excel' || $format === 'xlsx') {
+            $spreadsheet = new \PhpOffice\PhpSpreadsheet\Spreadsheet();
+            $sheet = $spreadsheet->getActiveSheet();
+            $sheet->setTitle('Products');
+
+            $headers = ['SKU', 'Name', 'Description', 'Type', 'Category', 'Sub Category', 'Sales Price', 'Rental Price', 'Deposit', 'Quantity', 'Store Presence', 'Images'];
+            foreach ($headers as $colIdx => $header) {
+                $sheet->setCellValue([$colIdx + 1, 1], $header);
+            }
+            $sheet->getStyle('A1:L1')->getFont()->setBold(true);
+
+            $rowNum = 2;
+            while ($p = mysqli_fetch_assoc($result)) {
+                $fullProduct = $productModel->getProductById($p['id'], $p['type']);
+                if (!$fullProduct) continue;
+
+                $sku = $fullProduct['code'] ?? $p['code'] ?? '';
+                $qty = $productModel->getPosQuantity($sku);
+                $presence = isset($childSkusLookup[strtoupper(trim($sku))]) ? 'Both Stores' : 'Parent Only';
+
+                $images = $productModel->getProductImages($p['id'], $p['type']);
+                $imageUrls = [];
+                if ($images) {
+                    foreach ($images as $img) {
+                        $imageUrls[] = "https://srishringarr.com/yn/uploads" . $img['img_name'];
+                    }
+                }
+
+                $sheet->setCellValue([1, $rowNum], $sku);
+                $sheet->setCellValue([2, $rowNum], $fullProduct['name'] ?? $p['name'] ?? '');
+                $sheet->setCellValue([3, $rowNum], strip_tags($fullProduct['description'] ?? ''));
+                $sheet->setCellValue([4, $rowNum], ucfirst($p['type'] ?? ''));
+                $sheet->setCellValue([5, $rowNum], $fullProduct['category'] ?? '');
+                $sheet->setCellValue([6, $rowNum], $fullProduct['sub_category'] ?? '');
+                $sheet->setCellValue([7, $rowNum], (float)($fullProduct['s_price'] ?? 0));
+                $sheet->setCellValue([8, $rowNum], (float)($fullProduct['rental_price'] ?? 0));
+                $sheet->setCellValue([9, $rowNum], (float)($fullProduct['deposit'] ?? 0));
+                $sheet->setCellValue([10, $rowNum], (int)$qty);
+                $sheet->setCellValue([11, $rowNum], $presence);
+                $sheet->setCellValue([12, $rowNum], implode(', ', $imageUrls));
+                $rowNum++;
+            }
+
+            header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+            header('Content-Disposition: attachment; filename="' . $filename . '.xlsx"');
+            header('Cache-Control: max-age=0');
+
+            $writer = new \PhpOffice\PhpSpreadsheet\Writer\Xlsx($spreadsheet);
+            $writer->save('php://output');
+            exit;
+        }
+
+        // CSV Export
         header('Content-Type: text/csv; charset=utf-8');
-        header('Content-Disposition: attachment; filename="products_export_' . date('Ymd_His') . '.csv"');
+        header('Content-Disposition: attachment; filename="' . $filename . '.csv"');
 
         $output = fopen('php://output', 'w');
-        // Suppress deprecation warnings with @ for PHP 8.4 compatibility
-        @fputcsv($output, ['sku', 'name', 'description', 'type', 'category_id', 'subcat_id', 's_price', 'rental_price', 'deposit', 'qty', 'store_presence', 'images'], ',', '"', '\\');
-
-        $childSkusLookup = array_flip(array_map('strtoupper', \Core\ProductSyncService::getChildSkus()));
+        @fputcsv($output, ['sku', 'name', 'description', 'type', 'category', 'sub_category', 's_price', 'rental_price', 'deposit', 'qty', 'store_presence', 'images'], ',', '"', '\\');
 
         $i = 0;
         while ($p = mysqli_fetch_assoc($result)) {
