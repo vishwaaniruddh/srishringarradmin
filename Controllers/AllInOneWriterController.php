@@ -807,11 +807,23 @@ class AllInOneWriterController extends Controller
             }
         }
 
-        $studioTheme = trim($rawInput['studio_theme'] ?? ($_GET['studio_theme'] ?? 'royal_velvet'));
+        $studioTheme = trim($rawInput['studio_surface'] ?? ($rawInput['studio_theme'] ?? ($_GET['studio_surface'] ?? ($_GET['studio_theme'] ?? 'dark_marble'))));
+        $studioBgCustom = trim($rawInput['studio_bg_custom'] ?? ($rawInput['studio_custom_bg'] ?? ($_GET['studio_bg_custom'] ?? '')));
+        $studioShotType = trim($rawInput['studio_shot_type'] ?? ($_GET['studio_shot_type'] ?? 'macro'));
+        $customStudioPrompt = trim($rawInput['custom_studio_prompt'] ?? '');
 
-        // 2. Generate "Without Model" with Authentic Sri Shringarr Velvet Pillow Still Life
+        // 2. Generate "Without Model" (Studio Photo / Still Life)
         if ($mode === 'without_model' || $mode === 'both') {
-            $studioPrompt = $this->buildStudioStillLifePrompt($catInfo, $prodName, $prodCode, $customNote, $studioTheme);
+            $studioPrompt = $this->buildStudioStillLifePrompt(
+                $catInfo, 
+                $prodName, 
+                $prodCode, 
+                $customNote, 
+                $studioTheme, 
+                $studioShotType, 
+                $studioBgCustom, 
+                $customStudioPrompt
+            );
 
             $parts = [['text' => $studioPrompt]];
             if ($productImagePart) $parts[] = $productImagePart;
@@ -864,34 +876,56 @@ class AllInOneWriterController extends Controller
     }
 
     /**
-     * Build Signature "Without Model" (Studio Still Life) photoshoot prompt
-     * matching the authentic Sri Shringarr boutique velvet cushion photography aesthetic.
+     * Build "Without Model" (Studio Product Still Life) photoshoot prompt
+     * supporting all Product Edit presets (Dark Marble, Velvet Cushion, Wooden Stand, Reflective Glass, Champagne Silk, White Studio)
+     * shot types (Macro Close-Up, Flat Lay, 3/4 Display Angle, Floating Display), and anatomical placement rules.
      */
-    public function buildStudioStillLifePrompt($catInfo, $prodName, $prodCode, $customNote = '', $studioTheme = 'royal_velvet')
+    public function buildStudioStillLifePrompt($catInfo, $prodName, $prodCode, $customNote = '', $studioTheme = 'dark_marble', $studioShotType = 'macro', $customBg = '', $customStudioPrompt = '')
     {
-        $themeDescriptions = [
-            'royal_velvet' => "Resting elegantly on a plush, angled royal wine-burgundy / deep maroon micro-velvet jewelry cushion. The cushion is nestled amidst soft, flowing drapery of dark Banarasi silk and zari brocade fabric with subtle golden weave patterns. Delicate accents of fresh red rose petals rest softly near the edge of the velvet.",
-            'velvet_rose_petals' => "Resting gently on a luxurious deep maroon velvet jewelry pillow with vibrant fresh crimson rose petals delicately scattered around the cushion base and velvet folds.",
-            'royal_navy_velvet' => "Resting gracefully on a plush royal midnight-navy blue velvet jewelry cushion, contrasted against rich textured dark raw silk folds in deep moody luxury studio atmosphere.",
-            'dark_emerald_velvet' => "Resting on a plush deep emerald green royal micro-velvet jewelry cushion, surrounded by rich dark brocade fabric with warm golden accents.",
-            'black_velvet' => "Resting on a premium pitch-black micro-velvet jewelry display pad with ultra-high contrast dark moody chiaroscuro aesthetics."
+        if (!empty($customStudioPrompt)) {
+            return $customStudioPrompt;
+        }
+
+        // Display Surface / Backdrop Presets matching Product Edit Page
+        $surfacePresets = [
+            'dark_marble' => 'luxury black marble surface with soft warm directional studio spotlighting',
+            'velvet_cushion' => 'royal velvet jewelry display cushion with subtle warm accent lighting',
+            'wooden_stand' => 'minimalist rustic wooden jewelry stand with soft natural shadows',
+            'reflective_glass' => 'reflective dark mirror glass surface with sharp luxury reflections',
+            'champagne_silk' => 'draped champagne silk fabric backdrop with soft diffuse studio lighting',
+            'white_studio' => 'pristine white minimalist studio display backdrop',
+            'royal_velvet' => 'plush angled royal wine-burgundy / deep maroon micro-velvet jewelry cushion nestled amidst banarasi silk drapery',
+            'velvet_rose_petals' => 'luxurious deep maroon velvet jewelry pillow with vibrant fresh crimson rose petals delicately scattered',
+            'royal_navy_velvet' => 'plush royal midnight-navy blue velvet jewelry cushion with dark raw silk folds',
+            'dark_emerald_velvet' => 'plush deep emerald green royal micro-velvet jewelry cushion with warm golden zari accents',
+            'black_velvet' => 'premium pitch-black micro-velvet jewelry display pad with ultra-high contrast chiaroscuro aesthetics'
         ];
 
-        $themeDesc = $themeDescriptions[$studioTheme] ?? $themeDescriptions['royal_velvet'];
+        // Shot Types matching Product Edit Page
+        $shotTypeDescriptions = [
+            'macro' => 'ultra-sharp macro close-up product photography highlighting fine details, gemstone sparkle, and metal texture',
+            'flat_lay' => 'professional flat lay top-down product photography layout',
+            'angle_3_4' => 'elegant 3/4 perspective product display shot showing side and front angles',
+            'floating' => 'dramatic floating product display with soft realistic shadow underneath'
+        ];
 
-        $prompt = "A high-end, luxury commercial e-commerce still-life studio macro photograph of this exact " . $catInfo['copy_context'] . " (" . $prodName . ", SKU: " . $prodCode . ").\n\n" .
-            "AUTHENTIC BOUTIQUE PRESENTATION & STYLING:\n" .
-            "- " . $themeDesc . "\n" .
-            "- " . $catInfo['studio_instruction'] . "\n\n" .
-            "LIGHTING & CAMERA SPECIFICATIONS:\n" .
-            "- Shot at a 40° to 45° angled top-down macro perspective, capturing the three-dimensional depth, intricate craftsmanship, and luxurious texture of the jewelry and velvet pile.\n" .
-            "- Warm, dramatic directional studio spotlighting (chiaroscuro) with soft diffuse fill, casting soft natural shadows.\n" .
-            "- Needle-sharp macro focus on the jewelry piece, showcasing the brilliant metallic luster of 22k gold/rhodium plating, the crystalline sparkle of Kundan/Polki/zircon stones, and the silky sheen of lustrous pearl drops.\n" .
-            "- Cinematic shallow depth of field (f/2.8 macro bokeh) with a soft, moody, opulent out-of-focus background.\n\n" .
+        $bgDesc = !empty($customBg) ? $customBg : ($surfacePresets[$studioTheme] ?? $surfacePresets['dark_marble']);
+        $shotDesc = $shotTypeDescriptions[$studioShotType] ?? ($studioShotType ?: $shotTypeDescriptions['macro']);
+
+        $categoryContext = $catInfo['copy_context'] ?? 'Jewellery';
+        $studioInstruction = $catInfo['studio_instruction'] ?? '';
+
+        $prompt = "Ultra-high resolution professional studio product photography of this exact " . $categoryContext . " (" . $prodName . ", SKU: " . $prodCode . ") placed on " . $bgDesc . ".\n\n" .
+            "SHOT & COMPOSITION:\n" .
+            "- Shot type: " . $shotDesc . ".\n" .
+            ($studioInstruction ? "- Placement & Layout: " . $studioInstruction . "\n" : "") .
+            "- Needle-sharp focus on the jewelry piece, showcasing the brilliant metallic luster of 22k gold/rhodium plating, crystalline sparkle of Kundan/Polki/zircon stones, and fine metal craftsmanship.\n" .
+            "- Soft diffuse studio lighting with natural gentle shadows, 8k resolution, razor-sharp textures.\n\n" .
             "STRICT RULES & CONSTRAINTS:\n" .
-            "- STRICTLY NO human model, person, face, lips, ears, hands, or fingers anywhere in the image. Pure still-life product photography only.\n" .
-            "- STRICTLY NO plastic mannequins, mannequin heads, mannequin necks, or cheap acrylic showroom stands.\n" .
-            "- The jewelry piece is the absolute centerpiece hero. Do not alter its authentic design, colors, gemstones, or craftsmanship.\n" .
+            "- STRICTLY NO human model, NO person, NO face, NO lips, NO ears, NO hands, NO fingers anywhere in the image. Pure product-only still-life photography.\n" .
+            "- STRICTLY NO plastic mannequin heads, necks, or cheap acrylic showroom stands.\n" .
+            "- The product piece is the absolute centerpiece hero. Do not alter its authentic design, colors, gemstones, or craftsmanship.\n" .
+            "- Aspect ratio: 2:3 vertical format.\n" .
             ($customNote ? "- Custom Styling Note: " . $customNote . "\n" : "");
 
         return $prompt;
@@ -1239,7 +1273,7 @@ class AllInOneWriterController extends Controller
             ],
             'generationConfig' => [
                 'imageConfig' => [
-                    'aspectRatio' => '3:4'
+                    'aspectRatio' => '2:3'
                 ]
             ]
         ]);

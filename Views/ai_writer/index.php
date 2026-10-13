@@ -130,6 +130,35 @@
             background: #10b981;
         }
 
+        /* Dedicated Studio Surface Pills (override any vercel.css main .text-white reset) */
+        .surface-pill {
+            display: inline-flex;
+            align-items: center;
+            padding: 5px 12px;
+            border-radius: 9999px;
+            font-size: 12px;
+            font-weight: 500;
+            border: 1px solid var(--slate-200);
+            background: #ffffff !important;
+            color: #334155 !important;
+            cursor: pointer;
+            transition: all 0.15s ease;
+            user-select: none;
+            line-height: 1.25;
+        }
+        .surface-pill:hover {
+            background: #f8fafc !important;
+            color: #0f172a !important;
+            border-color: #cbd5e1 !important;
+        }
+        .surface-pill.active {
+            background: #0f172a !important;
+            color: #ffffff !important;
+            border-color: #0f172a !important;
+            font-weight: 600;
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08);
+        }
+
         /* Form Inputs */
         .field-input, .field-textarea, .field-select {
             width: 100%;
@@ -439,16 +468,22 @@
                                         </div>
 
                                         <!-- Studio Backdrop Theme (Without Model) -->
-                                        <div class="flex items-center gap-2 bg-slate-50 border border-slate-200 px-2.5 py-1 rounded-md">
+                                        <div class="flex items-center gap-2 bg-slate-50 border border-slate-200 px-2.5 py-1 rounded-md" title="Display Surface & Backdrop preset for Photo 2">
                                             <span class="text-[11px] font-semibold text-slate-500 uppercase tracking-wider">
-                                                <i class="fa-solid fa-gem text-slate-400"></i> Studio Backdrop:
+                                                <i class="fa-solid fa-gem text-slate-400"></i> Studio Surface:
                                             </span>
-                                            <select id="config_studio_theme" class="bg-transparent text-xs font-medium text-slate-800 outline-none cursor-pointer">
-                                                <option value="royal_velvet" selected>Royal Wine Velvet Cushion (Signature)</option>
-                                                <option value="velvet_rose_petals">Velvet Cushion + Fresh Rose Petals</option>
-                                                <option value="royal_navy_velvet">Royal Navy Blue Velvet Cushion</option>
-                                                <option value="dark_emerald_velvet">Emerald Green Velvet &amp; Brocade</option>
-                                                <option value="black_velvet">Deep Black Velvet (High Contrast)</option>
+                                            <select id="config_studio_theme" onchange="syncStudioSurfaceFromSelect(this.value)" class="bg-transparent text-xs font-medium text-slate-800 outline-none cursor-pointer">
+                                                <option value="dark_marble" selected>Dark Marble (Luxury Studio)</option>
+                                                <option value="velvet_cushion">Velvet Cushion (Royal Warmth)</option>
+                                                <option value="wooden_stand">Wooden Stand (Minimalist)</option>
+                                                <option value="reflective_glass">Reflective Glass (High Mirror)</option>
+                                                <option value="champagne_silk">Champagne Silk (Soft Drapery)</option>
+                                                <option value="white_studio">White Studio (Pristine Clean)</option>
+                                                <option value="royal_velvet">Wine Velvet Cushion (Signature)</option>
+                                                <option value="velvet_rose_petals">Velvet + Fresh Rose Petals</option>
+                                                <option value="dark_emerald_velvet">Emerald Green Velvet</option>
+                                                <option value="royal_navy_velvet">Midnight Navy Velvet</option>
+                                                <option value="black_velvet">Deep Black Velvet</option>
                                             </select>
                                         </div>
 
@@ -510,6 +545,59 @@
                                             <i class="fa-solid fa-magnifying-glass"></i>
                                             <span>Search &amp; Load Products</span>
                                         </button>
+                                    </div>
+                                </div>
+
+                                <!-- ==================== AI STUDIO PHOTO (WITHOUT MODEL) SETTINGS PANEL ==================== -->
+                                <div id="studio_settings_panel" class="pt-3.5 border-t border-slate-100 bg-slate-50/60 -mx-4 -mb-4 p-4 rounded-b-lg">
+                                    <div class="flex items-center justify-between mb-2.5 flex-wrap gap-2">
+                                        <div class="flex items-center gap-2">
+                                            <span class="w-6 h-6 rounded bg-slate-900 text-white flex items-center justify-center text-[11px]">
+                                                <i class="fa-solid fa-camera-retro"></i>
+                                            </span>
+                                            <span class="text-xs font-bold text-slate-900 uppercase tracking-wider">AI Image Studio &mdash; Photo Without Model Settings</span>
+                                            <span class="shadcn-badge font-semibold text-[10px] bg-white border border-slate-200 text-slate-700">Product Edit Standard</span>
+                                        </div>
+                                        <span class="text-[11px] text-slate-500">
+                                            Controls surface backdrop &amp; shot angle for Photo 2 &amp; Batch Still Life
+                                        </span>
+                                    </div>
+
+                                    <div class="grid grid-cols-1 lg:grid-cols-12 gap-4 items-start">
+                                        <!-- DISPLAY SURFACE / BACKDROP (8 cols) -->
+                                        <div class="lg:col-span-7 xl:col-span-8 space-y-2">
+                                            <div class="flex items-center justify-between">
+                                                <label class="text-[11px] font-bold text-slate-700 uppercase tracking-wider flex items-center gap-1.5">
+                                                    <i class="fa-solid fa-gem text-slate-400"></i> Display Surface / Backdrop
+                                                </label>
+                                                <span class="text-[10px] text-slate-400">Click a preset or customize prompt</span>
+                                            </div>
+                                            <!-- Preset buttons matching product edit page -->
+                                            <div class="flex flex-wrap gap-1.5" id="studio_surface_pills"></div>
+                                            <!-- Editable Custom Surface Input -->
+                                            <div class="relative">
+                                                <input type="text" id="config_studio_bg_custom" class="field-input text-xs font-medium text-slate-800" value="luxury black marble surface with soft warm directional studio spotlighting" placeholder="Describe the background, display surface, or props..." oninput="onCustomBgInputChanged(this.value)">
+                                            </div>
+                                        </div>
+
+                                        <!-- SHOT TYPE (4 cols) -->
+                                        <div class="lg:col-span-5 xl:col-span-4 space-y-2">
+                                            <label class="text-[11px] font-bold text-slate-700 uppercase tracking-wider flex items-center gap-1.5">
+                                                <i class="fa-solid fa-crosshairs text-slate-400"></i> Shot Type
+                                            </label>
+                                            <div class="space-y-1.5" id="studio_shot_type_radios"></div>
+                                        </div>
+                                    </div>
+
+                                    <!-- Live Prompt Preview -->
+                                    <div class="mt-3 pt-2.5 border-t border-slate-200/70 flex flex-col gap-1">
+                                        <div class="flex items-center justify-between text-[11px] text-slate-500">
+                                            <span class="font-semibold text-slate-700 flex items-center gap-1.5">
+                                                <i class="fa-solid fa-terminal text-slate-400 text-[10px]"></i> Live Studio Prompt Preview:
+                                            </span>
+                                            <span id="prompt_preview_chars" class="font-mono text-[10px] text-slate-400">0 chars</span>
+                                        </div>
+                                        <textarea id="studio_live_prompt_preview" rows="2" class="field-textarea font-mono text-[11px] text-slate-600 bg-white" readonly></textarea>
                                     </div>
                                 </div>
                             </div>
@@ -630,7 +718,6 @@
             <img id="lightbox-img" src="" alt="Zoom" class="max-h-[82vh] w-auto mx-auto rounded object-contain">
             <div class="flex justify-between items-center px-3 py-2 border-t border-slate-100 mt-2">
                 <span id="lightbox-caption" class="text-xs font-semibold text-slate-700">Preview</span>
-                <div class="flex items-center gap-2">
                     <a id="lightbox-download" href="#" download class="shadcn-btn shadcn-btn-sm">
                         <i class="fa-solid fa-download"></i> Download
                     </a>
@@ -640,6 +727,80 @@
                 </div>
             </div>
         </div>
+    </div>
+
+    <!-- Studio Product Specific Customizer Modal -->
+    <div id="studio-custom-modal" class="hidden fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[100000] flex items-center justify-center p-4" onclick="closeStudioCustomModal()">
+        <div class="bg-white border border-slate-200 rounded-xl shadow-2xl max-w-2xl w-full max-h-[90vh] flex flex-col overflow-hidden" onclick="event.stopPropagation()">
+            <!-- Modal Header -->
+            <div class="px-5 py-4 border-b border-slate-200 flex items-center justify-between bg-slate-50/50">
+                <div class="flex items-center gap-2.5">
+                    <div class="w-8 h-8 rounded-lg bg-slate-900 text-white flex items-center justify-center text-sm">
+                        <i class="fa-solid fa-sliders"></i>
+                    </div>
+                    <div>
+                        <div class="flex items-center gap-2">
+                            <h2 class="text-sm font-bold text-slate-900">Customize Studio Photo (Without Model)</h2>
+                            <span id="modal_studio_sku_badge" class="text-[11px] font-mono font-bold text-slate-700 bg-slate-200/80 px-2 py-0.5 rounded">SKU</span>
+                        </div>
+                        <p class="text-[11px] text-slate-500 mt-0.5" id="modal_studio_product_title">Configure surface backdrop, shot angle, and custom prompt for this specific item.</p>
+                    </div>
+                </div>
+                <button type="button" onclick="closeStudioCustomModal()" class="w-8 h-8 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 flex items-center justify-center text-sm transition-colors">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+
+            <!-- Modal Body -->
+            <div class="p-5 overflow-y-auto space-y-4">
+                <!-- Surface Presets -->
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                        Display Surface / Backdrop
+                    </label>
+                    <div class="flex flex-wrap gap-1.5" id="modal_surface_pills"></div>
+                    <input type="text" id="modal_custom_bg" class="field-input text-xs font-medium mt-2" placeholder="Describe the background, display surface, or props..." oninput="updateModalPromptPreview()">
+                </div>
+
+                <!-- Shot Type -->
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                        Shot Type
+                    </label>
+                    <div class="grid grid-cols-2 gap-2" id="modal_shot_type_radios"></div>
+                </div>
+
+                <!-- Editable Prompt Textarea -->
+                <div>
+                    <div class="flex items-center justify-between mb-1">
+                        <label class="text-xs font-bold text-slate-700 uppercase tracking-wider">
+                            Final Studio Prompt (Edit If Needed)
+                        </label>
+                        <button type="button" onclick="resetModalPromptToDefault()" class="text-[11px] text-slate-500 hover:text-slate-800 underline">
+                            Reset to default
+                        </button>
+                    </div>
+                    <textarea id="modal_studio_prompt" rows="4" class="field-textarea text-xs font-mono" placeholder="Prompt used for generating the still life photo..."></textarea>
+                </div>
+            </div>
+
+            <!-- Modal Footer -->
+            <div class="px-5 py-3 border-t border-slate-200 bg-slate-50/50 flex items-center justify-between">
+                <button type="button" onclick="closeStudioCustomModal()" class="shadcn-btn shadcn-btn-sm">
+                    Cancel
+                </button>
+                <div class="flex items-center gap-2">
+                    <button type="button" onclick="saveStudioCustomModal(false)" class="shadcn-btn shadcn-btn-sm text-slate-700">
+                        <i class="fa-solid fa-check"></i> Apply Settings
+                    </button>
+                    <button type="button" onclick="saveStudioCustomModal(true)" class="shadcn-btn shadcn-btn-sm shadcn-btn-primary">
+                        <i class="fa-solid fa-wand-magic-sparkles"></i> Generate Studio Photo Now
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Saturday Uploads Browser Modal -->
     <div id="saturday-modal" class="hidden fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[100000] flex items-center justify-center p-4" onclick="closeSaturdayModal()">
         <div class="bg-white border border-slate-200 rounded-xl shadow-2xl max-w-4xl w-full max-h-[90vh] flex flex-col overflow-hidden" onclick="event.stopPropagation()">
@@ -728,6 +889,285 @@
         const categoryOptions = <?php echo json_encode(array_map(function($c) { return ['name' => $c['name'], 'type' => $c['type']]; }, $categories)); ?>;
 
         let loadedProducts = [];
+
+        // ==================== STUDIO PHOTO (WITHOUT MODEL) CONFIGURATION ====================
+        const STUDIO_SURFACES = [
+            { key: 'dark_marble', label: 'Dark Marble', prompt: 'luxury black marble surface with soft warm directional studio spotlighting' },
+            { key: 'velvet_cushion', label: 'Velvet Cushion', prompt: 'royal velvet jewelry display cushion with subtle warm accent lighting' },
+            { key: 'wooden_stand', label: 'Wooden Stand', prompt: 'minimalist rustic wooden jewelry stand with soft natural shadows' },
+            { key: 'reflective_glass', label: 'Reflective Glass', prompt: 'reflective dark mirror glass surface with sharp luxury reflections' },
+            { key: 'champagne_silk', label: 'Champagne Silk', prompt: 'draped champagne silk fabric backdrop with soft diffuse studio lighting' },
+            { key: 'white_studio', label: 'White Studio', prompt: 'pristine white minimalist studio display backdrop' },
+            { key: 'royal_velvet', label: 'Wine Velvet', prompt: 'plush angled royal wine-burgundy / deep maroon micro-velvet jewelry cushion nestled amidst banarasi silk drapery' },
+            { key: 'velvet_rose_petals', label: 'Rose Petals Velvet', prompt: 'luxurious deep maroon velvet jewelry pillow with vibrant fresh crimson rose petals delicately scattered' },
+            { key: 'dark_emerald_velvet', label: 'Emerald Velvet', prompt: 'plush deep emerald green royal micro-velvet jewelry cushion with warm golden zari accents' }
+        ];
+
+        const STUDIO_SHOT_TYPES = [
+            { key: 'macro', label: 'Macro Close-Up', prompt: 'ultra-sharp macro close-up product photography highlighting fine details, gemstone sparkle, and metal texture' },
+            { key: 'flat_lay', label: 'Flat Lay (Top-Down)', prompt: 'professional flat lay top-down product photography layout' },
+            { key: 'angle_3_4', label: '3/4 Display Angle', prompt: 'elegant 3/4 perspective product display shot showing side and front angles' },
+            { key: 'floating', label: 'Floating Display', prompt: 'dramatic floating product display with soft realistic shadow underneath' }
+        ];
+
+        let selectedStudioSurfaceKey = 'dark_marble';
+        let selectedStudioShotTypeKey = 'macro';
+
+        let modalActiveIndex = null;
+        let modalSelectedSurfaceKey = 'dark_marble';
+        let modalSelectedShotTypeKey = 'macro';
+
+        function getSelectedStudioSurface() {
+            return selectedStudioSurfaceKey;
+        }
+
+        function getSelectedStudioCustomBg() {
+            const input = document.getElementById('config_studio_bg_custom');
+            return input ? input.value.trim() : 'luxury black marble surface with soft warm directional studio spotlighting';
+        }
+
+        function getSelectedStudioShotType() {
+            return selectedStudioShotTypeKey;
+        }
+
+        function getActiveStudioSurfaceLabel() {
+            const found = STUDIO_SURFACES.find(s => s.key === selectedStudioSurfaceKey);
+            return found ? found.label : 'Dark Marble';
+        }
+
+        function renderStudioSurfacePills() {
+            const container = document.getElementById('studio_surface_pills');
+            if (!container) return;
+            let html = '';
+            STUDIO_SURFACES.forEach(s => {
+                const isActive = s.key === selectedStudioSurfaceKey;
+                html += `
+                    <button type="button" onclick="selectStudioSurfacePreset('${s.key}')" class="surface-pill ${isActive ? 'active' : ''}">
+                        ${escapeHtml(s.label)}
+                    </button>
+                `;
+            });
+            container.innerHTML = html;
+        }
+
+        function selectStudioSurfacePreset(key) {
+            selectedStudioSurfaceKey = key;
+            renderStudioSurfacePills();
+
+            const preset = STUDIO_SURFACES.find(s => s.key === key);
+            if (preset) {
+                const input = document.getElementById('config_studio_bg_custom');
+                if (input) {
+                    input.value = preset.prompt;
+                    input.style.transition = 'all 0.3s ease';
+                    input.style.boxShadow = '0 0 0 2px rgba(15, 23, 42, 0.25)';
+                    setTimeout(() => { if (input) input.style.boxShadow = ''; }, 600);
+                }
+                const sel = document.getElementById('config_studio_theme');
+                if (sel) sel.value = key;
+            }
+            updateStudioLivePromptPreview();
+            updateLoadedProductSurfaceLabels();
+        }
+
+        function syncStudioSurfaceFromSelect(val) {
+            const match = STUDIO_SURFACES.find(s => s.key === val);
+            if (match) {
+                selectStudioSurfacePreset(val);
+            } else {
+                selectedStudioSurfaceKey = val;
+                renderStudioSurfacePills();
+                updateStudioLivePromptPreview();
+            }
+        }
+
+        function onCustomBgInputChanged(val) {
+            updateStudioLivePromptPreview();
+        }
+
+        function renderStudioShotTypes() {
+            const container = document.getElementById('studio_shot_type_radios');
+            if (!container) return;
+            let html = '';
+            STUDIO_SHOT_TYPES.forEach(st => {
+                const isChecked = st.key === selectedStudioShotTypeKey;
+                html += `
+                    <label class="flex items-center gap-2 text-xs text-slate-700 cursor-pointer p-1 rounded hover:bg-white transition-colors">
+                        <input type="radio" name="studio_shot_type" value="${st.key}" ${isChecked ? 'checked' : ''} onchange="selectStudioShotType('${st.key}')" class="rounded-full text-slate-900 focus:ring-0">
+                        <span class="${isChecked ? 'font-semibold text-slate-900' : 'text-slate-600'}">${escapeHtml(st.label)}</span>
+                    </label>
+                `;
+            });
+            container.innerHTML = html;
+        }
+
+        function selectStudioShotType(key) {
+            selectedStudioShotTypeKey = key;
+            renderStudioShotTypes();
+            updateStudioLivePromptPreview();
+        }
+
+        function updateStudioLivePromptPreview() {
+            const previewEl = document.getElementById('studio_live_prompt_preview');
+            if (!previewEl) return;
+            const customBg = getSelectedStudioCustomBg() || 'luxury black marble surface with soft warm directional studio spotlighting';
+            const shotObj = STUDIO_SHOT_TYPES.find(st => st.key === selectedStudioShotTypeKey) || STUDIO_SHOT_TYPES[0];
+            const prompt = `Ultra-high resolution professional studio product photography of this exact item placed on ${customBg}. Shot type: ${shotObj.prompt}. No human model, no hands, product-only studio display photoshoot with soft diffuse studio lighting, 8k resolution, razor-sharp focus on details, gemstone sparkle and fine metal craftsmanship. Do not change product design or features. Aspect ratio: 2:3 vertical format.`;
+            previewEl.value = prompt;
+            const charCounter = document.getElementById('prompt_preview_chars');
+            if (charCounter) charCounter.innerText = `${prompt.length} chars`;
+        }
+
+        function updateLoadedProductSurfaceLabels() {
+            const activeLabel = getActiveStudioSurfaceLabel();
+            loadedProducts.forEach(item => {
+                if (!item.custom_studio_surface_label) {
+                    const hint = document.getElementById(`surface_hint_${item.id}`);
+                    if (hint) hint.innerText = activeLabel;
+                    const title = document.getElementById(`card_studio_title_${item.id}`);
+                    if (title) title.innerHTML = `<i class="fa-solid fa-camera text-slate-400 text-[10px]"></i> ${escapeHtml(activeLabel)}`;
+                }
+            });
+        }
+
+        // ==================== INDIVIDUAL PRODUCT STUDIO CUSTOMIZER MODAL ====================
+        function openStudioCustomModal(index) {
+            const item = loadedProducts[index];
+            if (!item) return;
+            modalActiveIndex = index;
+            modalSelectedSurfaceKey = item.custom_studio_surface || selectedStudioSurfaceKey;
+            modalSelectedShotTypeKey = item.custom_studio_shot_type || selectedStudioShotTypeKey;
+
+            const skuBadge = document.getElementById('modal_studio_sku_badge');
+            if (skuBadge) skuBadge.innerText = item.code || 'SKU';
+            const prodTitle = document.getElementById('modal_studio_product_title');
+            if (prodTitle) prodTitle.innerText = `${item.name || item.code} (${categoryOptions[item.category_key]?.name || item.category_key})`;
+
+            const customBgInput = document.getElementById('modal_custom_bg');
+            if (customBgInput) {
+                const defPreset = STUDIO_SURFACES.find(s => s.key === modalSelectedSurfaceKey);
+                customBgInput.value = item.custom_studio_bg || (defPreset ? defPreset.prompt : getSelectedStudioCustomBg());
+            }
+
+            renderModalSurfacePills();
+            renderModalShotTypes();
+
+            const promptTextarea = document.getElementById('modal_studio_prompt');
+            if (promptTextarea) {
+                promptTextarea.value = item.custom_studio_prompt || buildModalDefaultPrompt(item);
+            }
+
+            const modal = document.getElementById('studio-custom-modal');
+            if (modal) modal.classList.remove('hidden');
+        }
+
+        function closeStudioCustomModal() {
+            const modal = document.getElementById('studio-custom-modal');
+            if (modal) modal.classList.add('hidden');
+            modalActiveIndex = null;
+        }
+
+        function renderModalSurfacePills() {
+            const container = document.getElementById('modal_surface_pills');
+            if (!container) return;
+            let html = '';
+            STUDIO_SURFACES.forEach(s => {
+                const isActive = s.key === modalSelectedSurfaceKey;
+                html += `
+                    <button type="button" onclick="selectModalSurfacePreset('${s.key}')" class="surface-pill ${isActive ? 'active' : ''}">
+                        ${escapeHtml(s.label)}
+                    </button>
+                `;
+            });
+            container.innerHTML = html;
+        }
+
+        function selectModalSurfacePreset(key) {
+            modalSelectedSurfaceKey = key;
+            renderModalSurfacePills();
+            const preset = STUDIO_SURFACES.find(s => s.key === key);
+            if (preset) {
+                const input = document.getElementById('modal_custom_bg');
+                if (input) input.value = preset.prompt;
+            }
+            updateModalPromptPreview();
+        }
+
+        function renderModalShotTypes() {
+            const container = document.getElementById('modal_shot_type_radios');
+            if (!container) return;
+            let html = '';
+            STUDIO_SHOT_TYPES.forEach(st => {
+                const isChecked = st.key === modalSelectedShotTypeKey;
+                html += `
+                    <label class="flex items-center gap-2 text-xs text-slate-700 cursor-pointer p-1.5 rounded border border-slate-200 bg-white hover:bg-slate-50 transition-colors">
+                        <input type="radio" name="modal_shot_type" value="${st.key}" ${isChecked ? 'checked' : ''} onchange="selectModalShotType('${st.key}')" class="rounded-full text-slate-900 focus:ring-0">
+                        <span class="${isChecked ? 'font-semibold text-slate-900' : 'text-slate-600'}">${escapeHtml(st.label)}</span>
+                    </label>
+                `;
+            });
+            container.innerHTML = html;
+        }
+
+        function selectModalShotType(key) {
+            modalSelectedShotTypeKey = key;
+            renderModalShotTypes();
+            updateModalPromptPreview();
+        }
+
+        function buildModalDefaultPrompt(item) {
+            const customBg = document.getElementById('modal_custom_bg')?.value.trim() || 'luxury black marble surface with soft warm directional studio spotlighting';
+            const shotObj = STUDIO_SHOT_TYPES.find(st => st.key === modalSelectedShotTypeKey) || STUDIO_SHOT_TYPES[0];
+            const catName = categoryOptions[item.category_key]?.name || 'jewellery';
+            return `Ultra-high resolution professional studio product photography of this exact ${catName} placed on ${customBg}. Shot type: ${shotObj.prompt}. No human model, no hands, product-only studio display photoshoot with soft diffuse studio lighting, 8k resolution, razor-sharp focus on details, gemstone sparkle and fine metal craftsmanship. Do not change the ${catName} design or features. Aspect ratio: 2:3 vertical format.`;
+        }
+
+        function updateModalPromptPreview() {
+            if (modalActiveIndex === null) return;
+            const item = loadedProducts[modalActiveIndex];
+            if (!item) return;
+            const promptTextarea = document.getElementById('modal_studio_prompt');
+            if (promptTextarea) {
+                promptTextarea.value = buildModalDefaultPrompt(item);
+            }
+        }
+
+        function resetModalPromptToDefault() {
+            if (modalActiveIndex === null) return;
+            const item = loadedProducts[modalActiveIndex];
+            if (!item) return;
+            const promptTextarea = document.getElementById('modal_studio_prompt');
+            if (promptTextarea) {
+                promptTextarea.value = buildModalDefaultPrompt(item);
+            }
+        }
+
+        function saveStudioCustomModal(generateNow = false) {
+            if (modalActiveIndex === null) return;
+            const item = loadedProducts[modalActiveIndex];
+            if (!item) return;
+
+            const surfaceObj = STUDIO_SURFACES.find(s => s.key === modalSelectedSurfaceKey);
+            item.custom_studio_surface = modalSelectedSurfaceKey;
+            item.custom_studio_surface_label = surfaceObj ? surfaceObj.label : 'Custom Studio';
+            item.custom_studio_bg = document.getElementById('modal_custom_bg')?.value.trim() || '';
+            item.custom_studio_shot_type = modalSelectedShotTypeKey;
+            item.custom_studio_prompt = document.getElementById('modal_studio_prompt')?.value.trim() || '';
+
+            // Update card UI
+            const hint = document.getElementById(`surface_hint_${item.id}`);
+            if (hint) hint.innerText = item.custom_studio_surface_label;
+            const title = document.getElementById(`card_studio_title_${item.id}`);
+            if (title) title.innerHTML = `<i class="fa-solid fa-camera text-slate-400 text-[10px]"></i> ${escapeHtml(item.custom_studio_surface_label)}`;
+
+            const savedIndex = modalActiveIndex;
+            closeStudioCustomModal();
+            showToast(`Studio options customized for ${item.code}!`);
+
+            if (generateNow) {
+                generatePhotoSingleMode(savedIndex, 'without_model');
+            }
+        }
 
         // Auto-detect SKU count on input
         document.getElementById('sku_input').addEventListener('input', function(e) {
@@ -977,7 +1417,7 @@
                                         </div>
                                     </div>
 
-                                    <!-- Photo 2: Without Model (Velvet Still Life) -->
+                                    <!-- Photo 2: Without Model (Studio Still Life) -->
                                     <div class="photo-card ${item.main_image_choice === 'without_model' ? 'ring-2 ring-amber-400' : ''}" id="photo_card_studio_${item.id}">
                                         <div class="photo-card-media relative" id="media_studio_${item.id}">
                                             ${item.main_image_choice === 'without_model' ? `
@@ -989,24 +1429,29 @@
                                                 <img src="${item.photo_without_model.url}" alt="Without Model" title="Click to view full preview (Hover to zoom)" onclick="openLightbox('${item.photo_without_model.url}', 'Still Life - ${escapeHtml(item.code)}')">
                                             ` : `
                                                 <div class="photo-card-empty">
-                                                    <i class="fa-solid fa-gem text-xl text-slate-300"></i>
-                                                    <span class="font-semibold text-[11px] text-slate-600">Still Life</span>
-                                                    <span class="text-[9.5px] text-slate-400 line-clamp-2">Velvet Cushion</span>
+                                                    <i class="fa-solid fa-camera text-xl text-slate-300"></i>
+                                                    <span class="font-semibold text-[11px] text-slate-600">Without Model</span>
+                                                    <span class="text-[9.5px] text-slate-400 line-clamp-2" id="surface_hint_${item.id}">
+                                                        ${escapeHtml(item.custom_studio_surface_label || getActiveStudioSurfaceLabel())}
+                                                    </span>
                                                 </div>
                                             `}
                                         </div>
                                         <div class="photo-card-body">
                                             <div class="flex items-center justify-between">
-                                                <span class="text-[11px] font-semibold text-slate-800 truncate">
-                                                    <i class="fa-solid fa-gem text-slate-400 text-[10px]"></i> Velvet
+                                                <span class="text-[11px] font-semibold text-slate-800 truncate" id="card_studio_title_${item.id}">
+                                                    <i class="fa-solid fa-camera text-slate-400 text-[10px]"></i> ${escapeHtml(item.custom_studio_surface_label || getActiveStudioSurfaceLabel())}
                                                 </span>
                                                 <span id="badge_studio_${item.id}" class="text-[10px] text-slate-500 font-medium truncate">
                                                     ${item.photo_without_model ? (item.saved_without_model ? 'Saved' : 'Ready') : 'None'}
                                                 </span>
                                             </div>
                                             <div class="flex items-center gap-1 pt-0.5">
-                                                <button type="button" onclick="generatePhotoSingleMode(${index}, 'without_model')" class="shadcn-btn shadcn-btn-sm flex-1 text-[11px] h-6 px-1 text-slate-700" title="Generate Still Life Photo">
+                                                <button type="button" onclick="generatePhotoSingleMode(${index}, 'without_model')" class="shadcn-btn shadcn-btn-sm flex-1 text-[11px] h-6 px-1 text-slate-700" title="Generate Studio Photo">
                                                     <i class="fa-solid fa-wand-magic text-[10px]"></i> Gen
+                                                </button>
+                                                <button type="button" onclick="openStudioCustomModal(${index})" class="shadcn-btn shadcn-btn-sm text-[11px] h-6 px-1.5 text-slate-700 hover:bg-slate-100" title="Customize Surface Backdrop & Shot Type for this product">
+                                                    <i class="fa-solid fa-sliders text-[10px]"></i>
                                                 </button>
                                                 <button type="button" id="btn_save_studio_${item.id}" ${item.photo_without_model ? '' : 'disabled'} onclick="saveImageIndividual(${index}, 'without_model')" class="shadcn-btn shadcn-btn-sm text-[11px] h-6 px-1.5 text-slate-700" title="Save to Gallery">
                                                     <i class="fa-solid fa-image text-[10px]"></i>
@@ -1250,7 +1695,11 @@
                                     type: item.type,
                                     mode: 'without_model',
                                     face_reference: faceModel,
-                                    studio_theme: studioTheme,
+                                    studio_theme: item.custom_studio_surface || getSelectedStudioSurface(),
+                                    studio_surface: item.custom_studio_surface || getSelectedStudioSurface(),
+                                    studio_bg_custom: item.custom_studio_bg || getSelectedStudioCustomBg(),
+                                    studio_shot_type: item.custom_studio_shot_type || getSelectedStudioShotType(),
+                                    custom_studio_prompt: item.custom_studio_prompt || '',
                                     category_key: currentCatKey
                                 })
                             });
@@ -1354,7 +1803,10 @@
             if (!item) return;
 
             const faceModel = document.getElementById('config_face_model').value;
-            const studioTheme = document.getElementById('config_studio_theme').value;
+            const studioTheme = item.custom_studio_surface || getSelectedStudioSurface();
+            const studioCustomBg = item.custom_studio_bg || getSelectedStudioCustomBg();
+            const studioShotType = item.custom_studio_shot_type || getSelectedStudioShotType();
+            const studioPrompt = item.custom_studio_prompt || '';
             const pill = document.getElementById(`status_pill_${item.id}`);
             if (pill) pill.innerHTML = '<span class="status-dot active"></span> Generating Photos in Parallel...';
 
@@ -1381,6 +1833,10 @@
                         mode: 'without_model',
                         face_reference: faceModel,
                         studio_theme: studioTheme,
+                        studio_surface: studioTheme,
+                        studio_bg_custom: studioCustomBg,
+                        studio_shot_type: studioShotType,
+                        custom_studio_prompt: studioPrompt,
                         category_key: item.category_key
                     })
                 }).then(r => r.json());
@@ -1409,15 +1865,19 @@
             if (!item) return;
 
             const faceModel = document.getElementById('config_face_model').value;
-            const studioTheme = document.getElementById('config_studio_theme').value;
+            const studioTheme = item.custom_studio_surface || getSelectedStudioSurface();
+            const studioCustomBg = item.custom_studio_bg || getSelectedStudioCustomBg();
+            const studioShotType = item.custom_studio_shot_type || getSelectedStudioShotType();
+            const studioPrompt = item.custom_studio_prompt || '';
             const cardId = mode === 'with_model' ? `media_model_${item.id}` : `media_studio_${item.id}`;
             const mediaBox = document.getElementById(cardId);
             const originalHtml = mediaBox.innerHTML;
+            const surfaceTitle = item.custom_studio_surface_label || getActiveStudioSurfaceLabel();
 
             mediaBox.innerHTML = `
                 <div class="photo-card-empty">
                     <i class="fa-solid fa-spinner fa-spin text-2xl text-slate-400"></i>
-                    <span class="font-semibold text-slate-600">Generating ${mode === 'with_model' ? 'Model' : 'Velvet Still Life'} Photo...</span>
+                    <span class="font-semibold text-slate-600">Generating ${mode === 'with_model' ? 'Model' : surfaceTitle} Photo...</span>
                 </div>
             `;
 
@@ -1431,6 +1891,10 @@
                         mode: mode,
                         face_reference: faceModel,
                         studio_theme: studioTheme,
+                        studio_surface: studioTheme,
+                        studio_bg_custom: studioCustomBg,
+                        studio_shot_type: studioShotType,
+                        custom_studio_prompt: studioPrompt,
                         category_key: item.category_key
                     })
                 });
@@ -2076,6 +2540,17 @@
             lookupProducts();
             showToast(`Added ${code} to queue!`);
         }
+
+        // Initialize Studio Photo (Without Model) UI Controls
+        document.addEventListener('DOMContentLoaded', function() {
+            renderStudioSurfacePills();
+            renderStudioShotTypes();
+            updateStudioLivePromptPreview();
+        });
+        // Also call immediately in case DOM is already loaded
+        renderStudioSurfacePills();
+        renderStudioShotTypes();
+        updateStudioLivePromptPreview();
     </script>
 </body>
 </html>
