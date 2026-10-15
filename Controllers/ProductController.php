@@ -1541,6 +1541,177 @@ class ProductController extends Controller {
         exit;
     }
 
+    /**
+     * Dedicated Product Export & Import Batches History Page
+     */
+    public function exportPage() {
+        $productModel = new ProductModel();
+        $db = $productModel->getDbConnection();
+
+        // 1. Fetch historical import dates with breakdown
+        $historySql = "
+            SELECT 
+                DATE(date_added) as import_date,
+                COUNT(CASE WHEN type = 'jewellery' THEN 1 END) as jewellery_count,
+                COUNT(CASE WHEN type = 'garment' THEN 1 END) as garment_count,
+                COUNT(*) as total_count
+            FROM (
+                SELECT product_id as id, 'jewellery' as type, date_added FROM product WHERE date_added IS NOT NULL AND date_added != '0000-00-00 00:00:00'
+                UNION ALL
+                SELECT gproduct_id as id, 'garment' as type, date_added FROM garment_product WHERE date_added IS NOT NULL AND date_added != '0000-00-00 00:00:00'
+            ) as combined
+            GROUP BY DATE(date_added)
+            ORDER BY import_date DESC
+        ";
+        $historyRes = mysqli_query($db, $historySql);
+        $importHistory = [];
+        $totalImportedLifetime = 0;
+        if ($historyRes) {
+            while ($row = mysqli_fetch_assoc($historyRes)) {
+                $importHistory[] = $row;
+                $totalImportedLifetime += (int)$row['total_count'];
+            }
+        }
+
+        // 2. Active filters from GET
+        $filterMode = trim($_GET['mode'] ?? 'single'); // 'single', 'range', 'all'
+        $singleDate = trim($_GET['date'] ?? ($_GET['upload_date'] ?? ''));
+        $startDate = trim($_GET['start_date'] ?? ($_GET['date_from'] ?? ''));
+        $endDate = trim($_GET['end_date'] ?? ($_GET['date_to'] ?? ''));
+        $productType = trim($_GET['type'] ?? 'all'); // 'all', 'jewellery', 'garments'
+        $search = trim($_GET['search'] ?? '');
+
+        // If 'saturday' keyword was passed
+        if ($singleDate === 'saturday') {
+            $singleDate = '2026-10-10';
+        }
+
+        // Default singleDate to most recent batch if no filters provided
+        if (empty($singleDate) && empty($startDate) && empty($endDate) && $filterMode === 'single' && !empty($importHistory)) {
+            $singleDate = $importHistory[0]['import_date'];
+        }
+
+        // Build SQL conditions
+        $jewelleryConditions = [];
+        $garmentConditions = [];
+
+        if (!empty($search)) {
+            $searchEsc = mysqli_real_escape_string($db, $search);
+            $jewelleryConditions[] = "(p.product_code LIKE '%$searchEsc%' OR p.product_name LIKE '%$searchEsc%')";
+            $garmentConditions[] = "(g.gproduct_code LIKE '%$searchEsc%' OR g.gproduct_name LIKE '%$searchEsc%')";
+        }
+
+        if ($filterMode === 'single' && !empty($singleDate)) {
+            $dateEsc = mysqli_real_escape_string($db, $singleDate);
+            $jewelleryConditions[] = "DATE(p.date_added) = '$dateEsc'";
+            $garmentConditions[] = "DATE(g.date_added) = '$dateEsc'";
+        } elseif ($filterMode === 'range') {
+            if (!empty($startDate) && !empty($endDate)) {
+                $startEsc = mysqli_real_escape_string($db, $startDate);
+                $endEsc = mysqli_real_escape_string($db, $endDate);
+                $jewelleryConditions[] = "DATE(p.date_added) BETWEEN '$startEsc' AND '$endEsc'";
+                $garmentConditions[] = "DATE(g.date_added) BETWEEN '$startEsc' AND '$endEsc'";
+            } elseif (!empty($startDate)) {
+                $startEsc = mysqli_real_escape_string($db, $startDate);
+                $jewelleryConditions[] = "DATE(p.date_added) >= '$startEsc'";
+                $garmentConditions[] = "DATE(g.date_added) >= '$startEsc'";
+            } elseif (!empty($endDate)) {
+                $endEsc = mysqli_real_escape_string($db, $endDate);
+                $jewelleryConditions[] = "DATE(p.date_added) <= '$endEsc'";
+                $garmentConditions[] = "DATE(g.date_added) <= '$endEsc'";
+            }
+        }
+
+        $jWhere = !empty($jewelleryConditions) ? " WHERE " . implode(" AND ", $jewelleryConditions) : "";
+        $gWhere = !empty($garmentConditions) ? " WHERE " . implode(" AND ", $garmentConditions) : "";
+
+        // Query preview & total counts
+        $previewProducts = [];
+        $totalFilteredCount = 0;
+        $jewelleryFilteredCount = 0;
+        $garmentFilteredCount = 0;
+
+        $unionQueries = [];
+        if ($productType === 'all' || $productType === 'jewellery') {
+            $unionQueries[] = "
+                SELECT 
+                    p.product_id as id,
+                    p.product_code as code,
+                    'jewellery' as type,
+                    p.product_name as name,
+                    p.rent_price,
+                    p.sales_price,
+                    p.deposit,
+                    p.date_added,
+                    p.product_image as main_image,
+                    COALESCE(s.name, j.categories_name, 'Jewellery') as category_name
+                FROM product p
+                LEFT JOIN subcat1 s ON p.subcat_id = s.subcat_id
+                LEFT JOIN jewel_subcat j ON p.categories_id = j.subcat_id
+                $jWhere
+            ";
+        }
+
+        if ($productType === 'all' || $productType === 'garments') {
+            $unionQueries[] = "
+                SELECT 
+                    g.gproduct_id as id,
+                    g.gproduct_code as code,
+                    'garments' as type,
+                    g.gproduct_name as name,
+                    g.rent_price,
+                    g.sales_price,
+                    g.deposit,
+                    g.date_added,
+                    g.gproduct_image as main_image,
+                    COALESCE(gm.name, 'Apparel') as category_name
+                FROM garment_product g
+                LEFT JOIN garments gm ON g.garment_id = gm.garment_id
+                $gWhere
+            ";
+        }
+
+        if (!empty($unionQueries)) {
+            $combinedQuery = implode(" UNION ALL ", $unionQueries);
+            
+            // Total count query
+            $countQuery = "SELECT COUNT(*) as total, 
+                                  COUNT(CASE WHEN type = 'jewellery' THEN 1 END) as j_count,
+                                  COUNT(CASE WHEN type = 'garments' THEN 1 END) as g_count
+                           FROM ($combinedQuery) as t";
+            $countRes = mysqli_query($db, $countQuery);
+            if ($countRes && $cRow = mysqli_fetch_assoc($countRes)) {
+                $totalFilteredCount = (int)$cRow['total'];
+                $jewelleryFilteredCount = (int)$cRow['j_count'];
+                $garmentFilteredCount = (int)$cRow['g_count'];
+            }
+
+            // Preview items limit 60
+            $previewQuery = "$combinedQuery ORDER BY date_added DESC, id DESC LIMIT 60";
+            $pRes = mysqli_query($db, $previewQuery);
+            if ($pRes) {
+                while ($pRow = mysqli_fetch_assoc($pRes)) {
+                    $previewProducts[] = $pRow;
+                }
+            }
+        }
+
+        $this->view('products/export', [
+            'importHistory' => $importHistory,
+            'totalImportedLifetime' => $totalImportedLifetime,
+            'filterMode' => $filterMode,
+            'singleDate' => $singleDate,
+            'startDate' => $startDate,
+            'endDate' => $endDate,
+            'productType' => $productType,
+            'search' => $search,
+            'previewProducts' => $previewProducts,
+            'totalFilteredCount' => $totalFilteredCount,
+            'jewelleryFilteredCount' => $jewelleryFilteredCount,
+            'garmentFilteredCount' => $garmentFilteredCount
+        ]);
+    }
+
     public function export() {
         while (ob_get_level()) ob_end_clean(); // Clear any buffers
         
@@ -1556,6 +1727,7 @@ class ProductController extends Controller {
         $sortBy = $_GET['sort_by'] ?? 'id';
         $sortOrder = strtoupper($_GET['sort_order'] ?? 'DESC');
         $availableOnly = isset($_GET['available_only']) && ($_GET['available_only'] == 1 || $_GET['available_only'] == 'true');
+        $productType = strtolower(trim($_GET['type'] ?? 'all'));
 
         $allowed_sort_by = [
             'id' => 'id',
@@ -1563,7 +1735,8 @@ class ProductController extends Controller {
             'code' => 'code',
             'rent_price' => 'db_rent_price',
             'sales_price' => 'original_sales_price',
-            'featured' => 'featured'
+            'featured' => 'featured',
+            'date_added' => 'date_added'
         ];
         
         $order_clause = "id DESC";
@@ -1580,8 +1753,15 @@ class ProductController extends Controller {
         
         if (!empty($search)) {
             $search_safe = mysqli_real_escape_string($db, $search);
-            $jewellery_search = " AND (product_name LIKE '%$search_safe%' OR product_code LIKE '%$search_safe%')";
-            $garments_search = " AND (gproduct_name LIKE '%$search_safe%' OR gproduct_code LIKE '%$search_safe%')";
+            $jewellery_search .= " AND (product_name LIKE '%$search_safe%' OR product_code LIKE '%$search_safe%')";
+            $garments_search .= " AND (gproduct_name LIKE '%$search_safe%' OR gproduct_code LIKE '%$search_safe%')";
+        }
+
+        // Product type filtering
+        if ($productType === 'jewellery') {
+            $garments_search .= " AND 1=0";
+        } elseif ($productType === 'garments' || $productType === 'garment') {
+            $jewellery_search .= " AND 1=0";
         }
 
         if (!empty($category_param)) {
@@ -1644,12 +1824,32 @@ class ProductController extends Controller {
             }
         }
 
-        // Apply Upload Date filter
-        $upload_date = $_GET['upload_date'] ?? ($_GET['filter'] ?? '');
-        if (!empty($upload_date)) {
-            if ($upload_date === 'saturday') {
-                $upload_date = '2026-10-10';
+        // Apply Upload Date / Date Range filter
+        $upload_date = $_GET['upload_date'] ?? ($_GET['filter'] ?? ($_GET['date'] ?? ''));
+        $start_date = trim($_GET['start_date'] ?? ($_GET['date_from'] ?? ''));
+        $end_date = trim($_GET['end_date'] ?? ($_GET['date_to'] ?? ''));
+        $mode = trim($_GET['mode'] ?? 'single');
+
+        if ($upload_date === 'saturday') {
+            $upload_date = '2026-10-10';
+        }
+
+        if ($mode === 'range' || (!empty($start_date) && !empty($end_date))) {
+            if (!empty($start_date) && !empty($end_date)) {
+                $escStart = mysqli_real_escape_string($db, $start_date);
+                $escEnd = mysqli_real_escape_string($db, $end_date);
+                $jewellery_search .= " AND DATE(date_added) BETWEEN '$escStart' AND '$escEnd'";
+                $garments_search .= " AND DATE(date_added) BETWEEN '$escStart' AND '$escEnd'";
+            } elseif (!empty($start_date)) {
+                $escStart = mysqli_real_escape_string($db, $start_date);
+                $jewellery_search .= " AND DATE(date_added) >= '$escStart'";
+                $garments_search .= " AND DATE(date_added) >= '$escStart'";
+            } elseif (!empty($end_date)) {
+                $escEnd = mysqli_real_escape_string($db, $end_date);
+                $jewellery_search .= " AND DATE(date_added) <= '$escEnd'";
+                $garments_search .= " AND DATE(date_added) <= '$escEnd'";
             }
+        } elseif (!empty($upload_date)) {
             $escDate = mysqli_real_escape_string($db, $upload_date);
             $jewellery_search .= " AND DATE(date_added) = '$escDate'";
             $garments_search .= " AND DATE(date_added) = '$escDate'";
@@ -1663,9 +1863,9 @@ class ProductController extends Controller {
             $garments_search .= " AND featured = $featured";
         }
 
-        $query = "(SELECT product_id as id, product_code as code, 'jewellery' as type, product_name as name, rent_price as db_rent_price, sales_price as original_sales_price, featured FROM product WHERE 1=1 $jewellery_search)
+        $query = "(SELECT product_id as id, product_code as code, 'jewellery' as type, product_name as name, rent_price as db_rent_price, sales_price as original_sales_price, date_added, featured FROM product WHERE 1=1 $jewellery_search)
                   UNION ALL
-                  (SELECT gproduct_id as id, gproduct_code as code, 'garments' as type, gproduct_name as name, rent_price as db_rent_price, sales_price as original_sales_price, featured FROM garment_product WHERE 1=1 $garments_search)
+                  (SELECT gproduct_id as id, gproduct_code as code, 'garments' as type, gproduct_name as name, rent_price as db_rent_price, sales_price as original_sales_price, date_added, featured FROM garment_product WHERE 1=1 $garments_search)
                   ORDER BY $order_clause";
                   
         $result = $productModel->query($db, $query);
@@ -1675,8 +1875,13 @@ class ProductController extends Controller {
         }
 
         $format = strtolower($_GET['format'] ?? 'csv');
-        $dateSuffix = !empty($upload_date) ? 'saturday_' : '';
-        $filename = 'products_export_' . $dateSuffix . date('Ymd_His');
+        $dateSuffix = '';
+        if (!empty($start_date) && !empty($end_date)) {
+            $dateSuffix = $start_date . '_to_' . $end_date . '_';
+        } elseif (!empty($upload_date)) {
+            $dateSuffix = $upload_date . '_';
+        }
+        $filename = 'imported_products_export_' . $dateSuffix . date('Ymd_His');
         $childSkusLookup = array_flip(array_map('strtoupper', \Core\ProductSyncService::getChildSkus()));
 
         if ($format === 'excel' || $format === 'xlsx') {
@@ -1684,11 +1889,11 @@ class ProductController extends Controller {
             $sheet = $spreadsheet->getActiveSheet();
             $sheet->setTitle('Products');
 
-            $headers = ['SKU', 'Name', 'Description', 'Type', 'Category', 'Sub Category', 'Sales Price', 'Rental Price', 'Deposit', 'Quantity', 'Store Presence', 'Images'];
+            $headers = ['SKU', 'Name', 'Description', 'Type', 'Category', 'Sub Category', 'Sales Price', 'Rental Price', 'Deposit', 'Quantity', 'Store Presence', 'Import / Added Date', 'Images'];
             foreach ($headers as $colIdx => $header) {
                 $sheet->setCellValue([$colIdx + 1, 1], $header);
             }
-            $sheet->getStyle('A1:L1')->getFont()->setBold(true);
+            $sheet->getStyle('A1:M1')->getFont()->setBold(true);
 
             $rowNum = 2;
             while ($p = mysqli_fetch_assoc($result)) {
@@ -1718,7 +1923,8 @@ class ProductController extends Controller {
                 $sheet->setCellValue([9, $rowNum], (float)($fullProduct['deposit'] ?? 0));
                 $sheet->setCellValue([10, $rowNum], (int)$qty);
                 $sheet->setCellValue([11, $rowNum], $presence);
-                $sheet->setCellValue([12, $rowNum], implode(', ', $imageUrls));
+                $sheet->setCellValue([12, $rowNum], $p['date_added'] ?? '');
+                $sheet->setCellValue([13, $rowNum], implode(', ', $imageUrls));
                 $rowNum++;
             }
 
@@ -1736,7 +1942,9 @@ class ProductController extends Controller {
         header('Content-Disposition: attachment; filename="' . $filename . '.csv"');
 
         $output = fopen('php://output', 'w');
-        @fputcsv($output, ['sku', 'name', 'description', 'type', 'category', 'sub_category', 's_price', 'rental_price', 'deposit', 'qty', 'store_presence', 'images'], ',', '"', '\\');
+        // Add UTF-8 BOM so Excel opens it with proper encoding
+        fprintf($output, chr(0xEF).chr(0xBB).chr(0xBF));
+        @fputcsv($output, ['sku', 'name', 'description', 'type', 'category', 'sub_category', 's_price', 'rental_price', 'deposit', 'qty', 'store_presence', 'import_date', 'images'], ',', '"', '\\');
 
         $i = 0;
         while ($p = mysqli_fetch_assoc($result)) {
@@ -1767,6 +1975,7 @@ class ProductController extends Controller {
                 $fullProduct['deposit'] ?? 0,
                 $qty,
                 $presence,
+                $p['date_added'] ?? '',
                 implode(',', $imageUrls)
             ], ',', '"', '\\');
             

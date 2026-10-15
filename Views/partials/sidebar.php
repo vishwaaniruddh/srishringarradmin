@@ -511,6 +511,11 @@ $admin_initials = strtoupper(substr($admin_name, 0, 2));
                             <i class="fa-solid fa-trash-can"></i> Bulk Delete
                         </a>
                     </li>
+                    <li class="<?php echo ($currentController === 'product' && in_array($currentAction, ['exportpage', 'export'])) ? 'active' : ''; ?>">
+                        <a href="index.php?controller=product&action=exportPage">
+                            <i class="fa-solid fa-file-export"></i> Product Export
+                        </a>
+                    </li>
                 </ul>
             </li>
 
