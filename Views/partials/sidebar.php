@@ -511,11 +511,6 @@ $admin_initials = strtoupper(substr($admin_name, 0, 2));
                             <i class="fa-solid fa-trash-can"></i> Bulk Delete
                         </a>
                     </li>
-                    <li class="<?php echo ($currentController === 'photodownloader') ? 'active' : ''; ?>">
-                        <a href="index.php?controller=photodownloader&action=index">
-                            <i class="fa-solid fa-cloud-arrow-down"></i> Photo Downloader
-                        </a>
-                    </li>
                 </ul>
             </li>
 
