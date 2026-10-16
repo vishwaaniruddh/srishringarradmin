@@ -411,30 +411,19 @@
                                             <span class="text-[11px] font-semibold text-slate-500 uppercase tracking-wider">
                                                 <i class="fa-solid fa-filter text-slate-400"></i> Category:
                                             </span>
-                                            <select id="config_category_filter" class="bg-transparent text-xs font-medium text-slate-800 outline-none cursor-pointer">
-                                                <option value="all">All Categories</option>
-                                                <optgroup label="Jewellery">
-                                                    <option value="kamar_patta">Kamar Patta (Waist Belt / Belly Chain)</option>
-                                                    <option value="necklace_set">Necklace Sets &amp; Chokers</option>
-                                                    <option value="earrings">Earrings / Jhumkas</option>
-                                                    <option value="damini_mathapatti">Damini / Mathapatti / Maang Tikka</option>
-                                                    <option value="nath">Nath (Nose Ring)</option>
-                                                    <option value="hath_phool">Hath Phool / Hath Panja</option>
-                                                    <option value="bangles_bracelets">Bangles, Bracelets &amp; Kadas</option>
-                                                    <option value="baju_bandh">Baju Bandh (Armlet)</option>
-                                                    <option value="payal_pagpan">Payal / Pag Pan (Anklets)</option>
-                                                    <option value="rings">Finger Rings</option>
-                                                    <option value="mala">Mala / Long Chains</option>
-                                                    <option value="pendant_set">Pendant Sets</option>
-                                                    <option value="bridal_set">Bridal Complete Set</option>
-                                                </optgroup>
-                                                <optgroup label="Apparel">
-                                                    <option value="lehenga_choli">Lehenga Choli</option>
-                                                    <option value="evening_gowns">Evening &amp; Trail Gowns</option>
-                                                    <option value="designer_blouse">Designer Blouses</option>
-                                                    <option value="indo_western">Indo Western Outfits</option>
-                                                    <option value="kurtis">Kurtis &amp; Tunics</option>
-                                                </optgroup>
+                                            <select id="config_category_filter" class="bg-transparent text-xs font-medium text-slate-800 outline-none cursor-pointer max-w-[280px]">
+                                                <option value="">All Categories</option>
+                                                <?php if (!empty($categories)): ?>
+                                                    <?php foreach ($categories as $parent => $data): ?>
+                                                        <optgroup label="<?php echo htmlspecialchars($parent); ?> (<?php echo $data['count']; ?>)">
+                                                            <?php foreach ($data['children'] as $value => $childData): ?>
+                                                                <option value="<?php echo htmlspecialchars($value); ?>">
+                                                                    <?php echo $childData['name']; ?> (<?php echo $childData['count']; ?>)
+                                                                </option>
+                                                            <?php endforeach; ?>
+                                                        </optgroup>
+                                                    <?php endforeach; ?>
+                                                <?php endif; ?>
                                             </select>
                                         </div>
 
@@ -886,7 +875,7 @@
     <!-- Script Application Logic -->
     <script>
         // Available category definitions passed from backend
-        const categoryOptions = <?php echo json_encode(array_map(function($c) { return ['name' => $c['name'], 'type' => $c['type']]; }, $categories)); ?>;
+        const categoryOptions = <?php echo json_encode(array_map(function($c) { return ['name' => $c['name'], 'type' => $c['type']]; }, $categoryDefinitions ?? [])); ?>;
 
         let loadedProducts = [];
 

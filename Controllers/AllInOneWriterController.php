@@ -255,12 +255,17 @@ class AllInOneWriterController extends Controller
             }
         }
 
+        $productModel = new ProductModel();
+        $categories = $productModel->getCategories();
+        $categoryDefinitions = self::getCategoryDefinitions();
+
         $this->view('ai_writer/index', [
             'hasApiKey' => $hasApiKey,
             'hasGemini' => $hasGemini,
             'hasOpenAi' => $hasOpenAi,
             'availableModels' => $availableModels,
-            'categories' => self::getCategoryDefinitions()
+            'categories' => $categories,
+            'categoryDefinitions' => $categoryDefinitions
         ]);
     }
 
@@ -278,7 +283,7 @@ class AllInOneWriterController extends Controller
             $uploadDate = '2026-10-10';
         }
 
-        if (empty($skuInput) && empty($catFilter) && empty($uploadDate)) {
+        if (empty($skuInput) && (empty($catFilter) || $catFilter === 'all') && empty($uploadDate)) {
             $this->json(['success' => false, 'error' => 'Please enter SKUs, select a category, or choose an upload date.'], 400);
             return;
         }
@@ -1456,6 +1461,28 @@ class AllInOneWriterController extends Controller
      */
     private function getCategorySqlClause($catKey)
     {
+        if (strpos($catKey, ':') !== false) {
+            list($type, $id) = explode(':', $catKey);
+            $id = (int)$id;
+
+            if ($type === 'garment') {
+                return [
+                    'jewel' => "1=0",
+                    'garment' => "(garment_id = $id OR product_for = $id OR EXISTS (SELECT 1 FROM product_categories pc WHERE pc.product_id = garment_product.gproduct_id AND pc.product_type = 'garments' AND (pc.legacy_category_id = $id OR pc.legacy_subcategory_id = $id)))"
+                ];
+            } elseif ($type === 'jewel_parent' || $type === 'jewel_main') {
+                return [
+                    'jewel' => "(categories_id = $id OR subcat_id IN (SELECT subcat_id FROM subcat1 WHERE maincat_id = $id) OR EXISTS (SELECT 1 FROM product_categories pc WHERE pc.product_id = product.product_id AND pc.product_type = 'jewellery' AND (pc.legacy_category_id = $id OR pc.legacy_subcategory_id IN (SELECT subcat_id FROM subcat1 WHERE maincat_id = $id))))",
+                    'garment' => "1=0"
+                ];
+            } elseif ($type === 'jewel_child' || $type === 'jewel_sub') {
+                return [
+                    'jewel' => "(subcat_id = $id OR EXISTS (SELECT 1 FROM product_categories pc WHERE pc.product_id = product.product_id AND pc.product_type = 'jewellery' AND pc.legacy_subcategory_id = $id))",
+                    'garment' => "1=0"
+                ];
+            }
+        }
+
         switch ($catKey) {
             case 'kamar_patta':
                 return [
