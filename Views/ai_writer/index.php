@@ -1280,14 +1280,6 @@
                 const thumb = item.primary_image_url || 'assets/placeholder.png';
                 const typeBadge = item.type === 'jewellery' ? 'Jewellery' : 'Apparel';
                 
-                // Build category select dropdown HTML
-                let catSelectHtml = `<select id="card_cat_${item.id}" onchange="changeProductCategory(${index}, this.value)" class="text-xs font-semibold text-slate-800 bg-transparent outline-none cursor-pointer">`;
-                for (const [key, def] of Object.entries(categoryOptions)) {
-                    const sel = (key === item.category_key) ? 'selected' : '';
-                    catSelectHtml += `<option value="${key}" ${sel}>${escapeHtml(def.name)}</option>`;
-                }
-                catSelectHtml += `</select>`;
-
                 // Placement badge text
                 const placementHint = getPlacementHint(item.category_key);
 
@@ -1308,12 +1300,6 @@
                                         ${typeBadge}
                                     </span>
                                     
-                                    <!-- Category Selector -->
-                                    <div class="flex items-center gap-1.5 bg-white border border-slate-200 px-2 py-0.5 rounded shadow-2xs">
-                                        <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Category:</span>
-                                        ${catSelectHtml}
-                                    </div>
-
                                     <span id="cat_hint_${item.id}" class="shadcn-badge font-mono text-[10px] text-amber-800 bg-amber-50 border-amber-200">
                                         <i class="fa-solid fa-crosshairs"></i> ${placementHint}
                                     </span>
