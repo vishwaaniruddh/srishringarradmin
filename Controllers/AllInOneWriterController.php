@@ -1188,13 +1188,8 @@ class AllInOneWriterController extends Controller
         mysqli_stmt_close($stmt);
 
         // Update main catalog image if designated
-        if ($setAsMain) {
-            $escRel = mysqli_real_escape_string($this->db, $relativePath);
-            if ($type === 'jewellery') {
-                mysqli_query($this->db, "UPDATE product SET product_image = '$escRel' WHERE product_id = $id");
-            } else {
-                mysqli_query($this->db, "UPDATE garment_product SET gproduct_image = '$escRel' WHERE gproduct_id = $id");
-            }
+        if ($setAsMain && $insertId) {
+            $productModel->setMainProductImage($insertId, $id, $type);
         }
 
         return [
@@ -1246,10 +1241,19 @@ class AllInOneWriterController extends Controller
             $clean = '/' . ltrim($clean, '/');
 
             $escRel = mysqli_real_escape_string($this->db, $clean);
-            if ($type === 'jewellery') {
-                mysqli_query($this->db, "UPDATE product SET product_image = '$escRel' WHERE product_id = $id");
+            $imgField = ($type === 'jewellery') ? 'product_id' : 'gproduct_id';
+            $findImg = mysqli_query($this->db, "SELECT id FROM product_images_new WHERE (img_name = '$escRel' OR img_name = '" . ltrim($escRel, '/') . "') AND $imgField = $id LIMIT 1");
+            $imgRow = mysqli_fetch_assoc($findImg);
+
+            $productModel = new ProductModel();
+            if ($imgRow && !empty($imgRow['id'])) {
+                $productModel->setMainProductImage((int)$imgRow['id'], $id, $type);
             } else {
-                mysqli_query($this->db, "UPDATE garment_product SET gproduct_image = '$escRel' WHERE gproduct_id = $id");
+                if ($type === 'jewellery') {
+                    mysqli_query($this->db, "UPDATE product SET product_image = '$escRel' WHERE product_id = $id");
+                } else {
+                    mysqli_query($this->db, "UPDATE garment_product SET gproduct_image = '$escRel' WHERE gproduct_id = $id");
+                }
             }
 
             $this->json([

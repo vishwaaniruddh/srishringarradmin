@@ -245,6 +245,10 @@
                                 <i class="fa-solid fa-arrow-up-right-from-square" style="font-size: 11px;"></i>
                                 <span>Storefront Preview</span>
                             </a>
+                            <a href="index.php?controller=video_generator&sku=<?php echo urlencode($product['code']); ?>" class="shadcn-btn shadcn-btn-outline" title="Generate 10-20s video motion for this product">
+                                <i class="fa-solid fa-video" style="font-size: 11px;"></i>
+                                <span>Generate Video</span>
+                            </a>
                             <a href="index.php?controller=product&action=edit&id=<?php echo $product['id']; ?>&type=<?php echo $type; ?>" class="shadcn-btn shadcn-btn-primary" title="Edit this product">
                                 <i class="fa-solid fa-pen-to-square" style="font-size: 11px;"></i>
                                 <span>Edit Product</span>

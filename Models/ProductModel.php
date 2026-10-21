@@ -1767,10 +1767,17 @@ class ProductModel extends Model
 
             // Update image weights if provided in form post
             if (isset($data['image_weights']) && is_array($data['image_weights']) && count($data['image_weights']) > 0) {
+                $mainImgId = null;
                 foreach ($data['image_weights'] as $imgId => $w) {
                     $wVal = (int)$w;
                     $iId = (int)$imgId;
+                    if ($wVal === 0) {
+                        $mainImgId = $iId;
+                    }
                     $this->query($this->db, "UPDATE product_images_new SET rank = $wVal WHERE id = $iId");
+                }
+                if ($mainImgId) {
+                    $this->setMainProductImage($mainImgId, $id, $type);
                 }
             }
 
@@ -2062,12 +2069,25 @@ class ProductModel extends Model
         $imageId = (int) $imageId;
         $productId = (int) $productId;
         $img_field = ($type === 'jewellery') ? 'product_id' : 'gproduct_id';
+        $table = ($type === 'jewellery') ? 'product' : 'garment_product';
+        $code_field = ($type === 'jewellery') ? 'product_code' : 'gproduct_code';
+        $pk = ($type === 'jewellery') ? 'product_id' : 'gproduct_id';
+
+        // Fetch SKU to ensure all associated images are linked
+        $skuRes = $this->query($this->db, "SELECT $code_field as code FROM $table WHERE $pk = $productId LIMIT 1");
+        $skuRow = $this->fetchOne($skuRes);
+        $sku = $skuRow ? mysqli_real_escape_string($this->db, $skuRow['code']) : '';
+
+        if (!empty($sku)) {
+            $this->query($this->db, "UPDATE product_images_new SET $img_field = $productId WHERE pro_code = '$sku' AND ($img_field != $productId OR $img_field IS NULL OR $img_field = 0)");
+        }
 
         // 1. Set chosen image to rank 0
         $this->query($this->db, "UPDATE product_images_new SET rank = 0 WHERE id = $imageId");
 
         // 2. Fetch all OTHER images for this product ordered by their current rank and id
-        $otherSql = "SELECT id FROM product_images_new WHERE $img_field = $productId AND id != $imageId ORDER BY rank ASC, id ASC";
+        $whereClause = !empty($sku) ? "($img_field = $productId OR pro_code = '$sku') AND id != $imageId" : "$img_field = $productId AND id != $imageId";
+        $otherSql = "SELECT id FROM product_images_new WHERE $whereClause ORDER BY rank ASC, id ASC";
         $resOthers = $this->query($this->db, $otherSql);
         $others = $this->fetchAll($resOthers);
 
@@ -2085,9 +2105,7 @@ class ProductModel extends Model
         $row = $this->fetchOne($res);
         if ($row) {
             $main_image = $row['img_name'];
-            $table = ($type === 'jewellery') ? 'product' : 'garment_product';
             $field = ($type === 'jewellery') ? 'product_image' : 'gproduct_image';
-            $pk = ($type === 'jewellery') ? 'product_id' : 'gproduct_id';
 
             $sql3 = "UPDATE $table SET $field = ? WHERE $pk = ?";
             $stmt = mysqli_prepare($this->db, $sql3);

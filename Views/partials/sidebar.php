@@ -17,7 +17,7 @@ $isPhotoDownloaderActive = ($currentController === 'photodownloader');
 $isOrdersActive = ($currentController === 'orders');
 $isDiscountsActive = in_array($currentController, ['discount', 'coupon']);
 
-$isAiActive = in_array($currentController, ['aianalytics', 'aimodels', 'allinonewriter']) || 
+$isAiActive = in_array($currentController, ['aianalytics', 'aimodels', 'allinonewriter', 'video_generator', 'videogenerator']) || 
               ($currentController === 'product' && in_array($currentAction, ['bulkaiwriter', 'desccorrector']));
 
 $isMarketingActive = ($currentController === 'newsletter');
@@ -595,6 +595,11 @@ $admin_initials = strtoupper(substr($admin_name, 0, 2));
                     <li class="<?php echo ($currentController === 'aimodels') ? 'active' : ''; ?>">
                         <a href="index.php?controller=aimodels">
                             <i class="fa-solid fa-user-astronaut"></i> AI Models
+                        </a>
+                    </li>
+                    <li class="<?php echo in_array($currentController, ['video_generator', 'videogenerator']) ? 'active' : ''; ?>">
+                        <a href="index.php?controller=video_generator">
+                            <i class="fa-solid fa-video"></i> Video Generator
                         </a>
                     </li>
                 </ul>

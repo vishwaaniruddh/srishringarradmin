@@ -30,7 +30,9 @@ $controllerMap = [
     'aimodels' => 'Aimodels',
     'aiplayground' => 'AiPlayground',
     'categoryimage' => 'CategoryImage',
-    'allinonewriter' => 'AllInOneWriter'
+    'allinonewriter' => 'AllInOneWriter',
+    'video_generator' => 'VideoGenerator',
+    'videogenerator' => 'VideoGenerator'
 ];
 $rawController = strtolower(trim($_GET['controller'] ?? 'dashboard'));
 $controllerName = $controllerMap[$rawController] ?? (isset($_GET['controller']) ? ucfirst($_GET['controller']) : 'Dashboard');

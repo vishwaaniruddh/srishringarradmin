@@ -885,6 +885,9 @@
                         </td>
                         <td style="text-align: center;">
                             <div style="display: flex; align-items: center; justify-content: center; gap: 8px;">
+                                <a href="index.php?controller=video_generator&sku=${encodeURIComponent(p.code || '')}" title="Generate 10-20s Video Motion" style="color: #475569; font-size: 13px; padding: 4px; text-decoration: none; transition: color 0.12s;" onmouseover="this.style.color='#0f172a'" onmouseout="this.style.color='#475569'">
+                                    <i class="fa-solid fa-video"></i>
+                                </a>
                                 <a href="index.php?controller=product&action=view_details&id=${p.id}&type=${p.type}" title="Edit / View" style="color: #71717a; font-size: 13px; padding: 4px; text-decoration: none; transition: color 0.12s;">
                                     <i class="fa-regular fa-pen-to-square"></i>
                                 </a>
