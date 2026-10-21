@@ -908,26 +908,29 @@ class ProductSyncService {
                 } elseif (str_starts_with($cleanSku, 'EAR')) {
                     $cat = 17; // Earrings
                     $sub = 59; // EARRINGS
+                } elseif (str_starts_with($cleanSku, 'RING') || str_starts_with($cleanSku, 'R')) {
+                    $cat = 18; // Ring
+                    $sub = 60; // Ring
                 } elseif (str_starts_with($cleanSku, 'BR')) {
                     $cat = 22; // Bracelet
                 } elseif (str_starts_with($cleanSku, 'JU') || str_starts_with($cleanSku, 'KAMAR')) {
                     $cat = 15; // Kamar Patta / Baju Bandh
                 } elseif (str_starts_with($cleanSku, 'BANG')) {
-                    $cat = 18; // Bangles
+                    $cat = 21; // Bangles
                 } elseif (str_starts_with($cleanSku, 'DAM') || str_starts_with($cleanSku, 'MATH')) {
-                    $cat = 19; // Damini / Mathapatti
+                    $cat = 14; // Damini / Mathapatti
                 } elseif (str_starts_with($cleanSku, 'TIK')) {
-                    $cat = 20; // Tikka
+                    $cat = 19; // Tikka
                 } elseif (str_starts_with($cleanSku, 'HATH')) {
-                    $cat = 21; // Hath Phool
+                    $cat = 23; // Hath Phool
                 } elseif (str_starts_with($cleanSku, 'PAY') || str_starts_with($cleanSku, 'PAG')) {
-                    $cat = 23; // Payal / Pag Pan
+                    $cat = 20; // Payal / Pag Pan
                 } elseif (str_starts_with($cleanSku, 'PEND')) {
                     $cat = 24; // Pendant Set
                 } elseif (str_starts_with($cleanSku, 'MALA')) {
-                    $cat = 25; // Mala
+                    $cat = 26; // Mala
                 } elseif (str_starts_with($cleanSku, 'BOR')) {
-                    $cat = 26; // Borlas
+                    $cat = 11; // Borlas
                 } else {
                     $cat = 1; // Default Necklace Sets
                     $sub = 3; // Kundan
@@ -962,10 +965,11 @@ class ProductSyncService {
         // Map category_id to human-readable name for child DB
         $catNames = [
             // Jewellery
-            1 => 'Necklace Sets', 17 => 'Earrings', 22 => 'Bracelet',
-            15 => 'Kamar Patta', 18 => 'Bangles', 19 => 'Damini / Mathapatti',
-            20 => 'Tikka', 21 => 'Hath Phool', 23 => 'Payal / Pag Pan',
-            24 => 'Pendant Set', 25 => 'Mala', 26 => 'Borlas',
+            1 => 'Necklace Sets', 11 => 'Borlas', 14 => 'Damini / Mathapatti',
+            15 => 'Kamar Patta', 17 => 'Earrings', 18 => 'Ring', 19 => 'Tikka',
+            20 => 'Payal / Pag Pan', 21 => 'Bangles', 22 => 'Bracelet',
+            23 => 'Hath Phool', 24 => 'Pendant Set', 25 => 'Baju Bandh',
+            26 => 'Mala', 27 => 'Hair Accessories', 29 => 'Bridal Jewellery',
             // Outfit
             10 => 'Lehenga Choli', 28 => 'Indo Western Outfits',
             29 => 'Anarkalis / Kurtis', 30 => 'Sarees'

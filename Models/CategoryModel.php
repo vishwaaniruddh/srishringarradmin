@@ -147,6 +147,13 @@ class CategoryModel extends Model {
             $res = mysqli_query($this->db, $sql);
             if ($row = mysqli_fetch_assoc($res)) return (int)$row['id'];
 
+            // Also check plural/singular variations (e.g. Ring <-> Rings)
+            $altName = str_ends_with(strtolower($escName), 's') ? substr($escName, 0, -1) : $escName . 's';
+            $escAlt = mysqli_real_escape_string($this->db, $altName);
+            $sqlAlt = "SELECT subcat_id as id FROM jewel_subcat WHERE categories_name = '$escAlt' OR LOWER(TRIM(categories_name)) = LOWER('$escAlt') LIMIT 1";
+            $resAlt = mysqli_query($this->db, $sqlAlt);
+            if ($rowAlt = mysqli_fetch_assoc($resAlt)) return (int)$rowAlt['id'];
+
             // Check Subcategories (subcat1)
             $sql = "SELECT subcat_id as id FROM subcat1 WHERE name = '$escName' OR LOWER(TRIM(name)) = LOWER('$escName') LIMIT 1";
             $res = mysqli_query($this->db, $sql);

@@ -300,7 +300,7 @@ class SyncController extends Controller {
                 if ($catId <= 0 || empty($catName)) {
                     $inferred = ProductSyncService::inferCategoryFromSku($r['sku'], 'jewellery', $catId, 0);
                     $catId = $inferred['category_id'];
-                    $catName = ($catId == 1 ? 'Necklace Sets' : ($catId == 22 ? 'Bracelet' : ($catId == 15 ? 'Kamar Patta' : ($catId == 17 ? 'Earrings' : 'Jewellery'))));
+                    $catName = ($catId == 1 ? 'Necklace Sets' : ($catId == 18 ? 'Ring' : ($catId == 22 ? 'Bracelet' : ($catId == 15 ? 'Kamar Patta' : ($catId == 17 ? 'Earrings' : 'Jewellery')))));
                 }
                 $items[] = [
                     'id' => (int)$r['id'],
@@ -356,6 +356,7 @@ class SyncController extends Controller {
                         if ($r['type'] === 'jewellery') {
                             if ($catId == 1 && $subId == 2) $catName = "Necklace Sets (American Diamond)";
                             elseif ($catId == 1 && $subId == 3) $catName = "Necklace Sets (Kundan)";
+                            elseif ($catId == 18) $catName = "Ring";
                             elseif ($catId == 22) $catName = "Bracelet";
                             elseif ($catId == 15) $catName = "Kamar Patta";
                             elseif ($catId == 17) $catName = "Earrings";
