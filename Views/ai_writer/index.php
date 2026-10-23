@@ -1300,6 +1300,13 @@
                                         ${typeBadge}
                                     </span>
                                     
+                                    <!-- Category Selector Dropdown -->
+                                    <select onchange="changeProductCategory(${index}, this.value)" class="text-[11px] font-semibold bg-white border border-slate-200 rounded px-2 py-0.5 text-slate-800 outline-none hover:border-slate-400 focus:border-slate-800 cursor-pointer shadow-2xs" title="Change Category or Anatomy Placement">
+                                        ${Object.keys(categoryOptions).map(ck => `
+                                            <option value="${ck}" ${ck === item.category_key ? 'selected' : ''}>${escapeHtml(categoryOptions[ck].name)}</option>
+                                        `).join('')}
+                                    </select>
+
                                     <span id="cat_hint_${item.id}" class="shadcn-badge font-mono text-[10px] text-amber-800 bg-amber-50 border-amber-200">
                                         <i class="fa-solid fa-crosshairs"></i> ${placementHint}
                                     </span>
@@ -1534,6 +1541,8 @@
                 case 'necklace_set': return 'Worn around Neck & Collarbone';
                 case 'earrings': return 'Worn on Earlobes';
                 case 'damini_mathapatti': return 'Worn on Forehead & Hairline';
+                case 'borla_with_sari': return 'Borla on Forehead + Side Chains to Ears';
+                case 'borla': return 'Borla on Forehead (No Side Chains)';
                 case 'nath': return 'Worn on Nose';
                 case 'hath_phool': return 'Worn on Back of Hand & Wrist';
                 case 'bangles_bracelets': return 'Worn around Wrist / Forearm';

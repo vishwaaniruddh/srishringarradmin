@@ -47,10 +47,28 @@ class AllInOneWriterController extends Controller
                 'studio_instruction' => "CRITICAL STILL-LIFE DISPLAY: Both earrings rest side-by-side at a dynamic complementary angle on the plush micro-velvet jewelry cushion, with studs and dangling jhumka domes / drops angled towards the light.",
                 'copy_context' => "Indian Bridal Earrings, Jhumkas & Chandbalis"
             ],
+            'borla_with_sari' => [
+                'name' => 'Borla with Sari (Head Chain)',
+                'type' => 'jewellery',
+                'keywords' => ['borla with sari', 'borla with chain', 'borla with stones chain', 'borla chain', 'borla damini', 'borla mathapatti', 'borla head chain', 'borla sari', 'borla saari'],
+                'sku_prefixes' => ['BO', 'B'],
+                'model_instruction' => "CRITICAL ANATOMICAL PLACEMENT & STYLING RULE: This product is an authentic traditional Rajasthani BORLA WITH SARI (Forehead Dome with Side Head Chains / Sheeshphool). The round spherical/dome-shaped floral Borla ornament sits prominently right at the center of the upper forehead at the hairline. The 'sari' (or 'sar') refers STRICTLY to the ornate, symmetrical gold/pearl/beaded hair chains that extend from both sides of the central Borla, framing the hairline across the temples to just above each ear, where they hook or pin into the hair. IMPORTANT NEGATIVE CONSTRAINT: 'Sari' here is HEAD CHAIN JEWELRY, ABSOLUTELY NOT a saree dress, cloth, fabric drape, or head covering veil! Do NOT wrap cloth around the head. The camera framing must be a high-end beauty portrait / close-up of the model's face, forehead, and hair. Model's hair is neatly styled in an elegant festive updo or center-parted bridal hairstyle, clearly and crisply showcasing both the central round Borla on the forehead and the side head chains running over the temples to above the ears.",
+                'studio_instruction' => "CRITICAL STILL-LIFE DISPLAY: The Borla with Sari rests on the plush royal micro-velvet jewelry cushion. The round central spherical Borla dome lies prominent in the center, with its dangling pearl drop pointing forward. The two symmetrical decorative side hair chains ('sari' / mathapatti chains) are arranged in an elegant crescent arc spreading outwards across the velvet to the left and right, and the central anchoring chain trails upwards along the cushion. STRICTLY pure jewelry still-life, NO human model, NO clothing or saree fabric drape.",
+                'copy_context' => "Traditional Rajasthani Borla with Sari (Bridal Forehead Dome with Side Head Chains)"
+            ],
+            'borla' => [
+                'name' => 'Borla (Without Sari / Standalone)',
+                'type' => 'jewellery',
+                'keywords' => ['borla', 'borlas', 'rajputi borla', 'marwari borla', 'kundan borla', 'vilandi borla', 'borla tikka'],
+                'sku_prefixes' => ['BO', 'B'],
+                'model_instruction' => "CRITICAL ANATOMICAL PLACEMENT & STYLING RULE: This product is a standalone traditional Rajasthani BORLA (WITHOUT SARI / WITHOUT SIDE CHAINS). It is a single circular spherical/dome-shaped floral forehead ornament. It sits right at the center of the upper forehead at the hairline, secured solely by a single delicate center chain running straight back into the maang (central hair parting) and pinned into the hair. STRICT NEGATIVE CONSTRAINT: STRICTLY NO side chains, NO mathapatti side bands, NO temple chains, NO ear-to-ear strings! It is a pure standalone Borla with ONLY the single center parting chain. The camera framing must be a frontal beauty close-up portrait of the model's face with hair neatly parted down the center, highlighting the spherical Borla resting at the forehead hairline.",
+                'studio_instruction' => "CRITICAL STILL-LIFE DISPLAY: The standalone round Borla dome rests centered on the plush royal micro-velvet jewelry cushion, with its single delicate center chain trailing straight upwards along the cushion's pile. The 3D spherical dome is angled towards the camera to showcase the central gemstone, surrounding Kundan/pearl petals, and hanging bead. STRICTLY NO side chains or side straps. Pure product-only still life.",
+                'copy_context' => "Traditional Rajasthani Standalone Borla (Bridal Forehead Dome Ornament without Side Chains)"
+            ],
             'damini_mathapatti' => [
                 'name' => 'Damini / Mathapatti / Maang Tikka',
                 'type' => 'jewellery',
-                'keywords' => ['damini', 'mathapatti', 'matha', 'tikka', 'tikkas', 'borla', 'borlas', 'hair'],
+                'keywords' => ['damini', 'mathapatti', 'matha', 'tikka', 'tikkas', 'hair'],
                 'sku_prefixes' => ['DP', 'T', 'TI'],
                 'model_instruction' => "CRITICAL ANATOMICAL PLACEMENT: Worn on the model's forehead and along the central hairline / hair parting (maang). Face close-up portrait highlighting the forehead jewelry.",
                 'studio_instruction' => "CRITICAL STILL-LIFE DISPLAY: The Tikka / Mathapatti rests centered on the plush royal micro-velvet jewelry cushion. The ornate central pendant lies flat and prominent on the velvet, while the delicate hanging chain trails gracefully upwards along the cushion's crest, catching warm directional specular highlights.",
@@ -196,7 +214,19 @@ class AllInOneWriterController extends Controller
         $subcatName = strtolower($product['subcategory_name'] ?? '');
         $type = $product['type'] ?? 'jewellery';
 
-        // 1. Check SKU prefixes
+        $catId = (int)($product['category_id'] ?? ($product['categories_id'] ?? 0));
+        $subcatId = (int)($product['subcategory_id'] ?? ($product['subcat_id'] ?? 0));
+
+        // 1. Check Borla (Category 11 / Subcat 53, SKU BO, or Borla keywords)
+        $isBorla = ($catId === 11 || $subcatId === 53 || str_starts_with($code, 'BO') || str_contains($name, 'borla') || str_contains($catName, 'borla') || str_contains($subcatName, 'borla'));
+        if ($isBorla) {
+            if (str_contains($name, 'chain') || str_contains($name, 'sari') || str_contains($name, 'saari') || str_contains($name, 'sar') || str_contains($name, 'damini') || str_contains($name, 'mathapatti') || str_contains($name, 'sheeshphool') || str_contains($name, 'head chain') || str_contains($name, 'side')) {
+                return 'borla_with_sari';
+            }
+            return 'borla';
+        }
+
+        // 2. Check SKU prefixes
         if (str_starts_with($code, 'KP')) return 'kamar_patta';
         if (str_starts_with($code, 'NATH')) return 'nath';
         if (str_starts_with($code, 'HP')) return 'hath_phool';
@@ -206,7 +236,7 @@ class AllInOneWriterController extends Controller
         if (str_starts_with($code, 'YNL')) return 'lehenga_choli';
         if (str_starts_with($code, 'YNG') || str_starts_with($code, 'GOWN')) return 'evening_gowns';
 
-        // 2. Check Kamar Patta keywords
+        // 3. Check Kamar Patta keywords
         if (str_contains($catName, 'kamar') || str_contains($subcatName, 'kamar') || str_contains($name, 'kamar') || str_contains($name, 'waist belt')) {
             return 'kamar_patta';
         }
@@ -788,8 +818,25 @@ class AllInOneWriterController extends Controller
 
         // 1. Generate "With Model" with Category-Specific Anatomical Placement
         if ($mode === 'with_model' || $mode === 'both') {
+            $categoryExtraGuard = "";
+            if ($catKey === 'borla_with_sari') {
+                $categoryExtraGuard = "\nCRITICAL STRICT WEARING RULES & NEGATIVE CONSTRAINTS FOR BORLA WITH SARI:\n" .
+                                      "- The product is a traditional Rajasthani Borla with Sari (head chain).\n" .
+                                      "- 'Sari' (or 'sar') in this jewelry context refers EXCLUSIVELY to the decorative side hair chains (sheeshphool / mathapatti chains) running along the hairline from the central Borla across the temples to above both ears!\n" .
+                                      "- IT IS STRICTLY NOT A SAREE DRESS, CLOTH, VEIL, OR FABRIC DRAPE. DO NOT WRAP OR DRAPE ANY CLOTH OR SAREE OVER THE HEAD!\n" .
+                                      "- The model's forehead and hairline MUST remain completely bare and clearly visible so the central round Borla dome and the symmetrical side hair chains framing the head to above the ears are the unmistakable hero jewelry.\n" .
+                                      "- Hair must be neatly styled in an elegant festive updo or center-parted bridal hair, displaying the headpiece in razor-sharp focus.";
+            } elseif ($catKey === 'borla') {
+                $categoryExtraGuard = "\nCRITICAL STRICT WEARING RULES & NEGATIVE CONSTRAINTS FOR STANDALONE BORLA:\n" .
+                                      "- Standalone round Rajasthani Borla ONLY (WITHOUT sari / without side chains).\n" .
+                                      "- STRICTLY NO side chains, NO mathapatti side bands, NO temple chains, NO ear-to-ear strings.\n" .
+                                      "- The single spherical floral Borla dome sits right at the center of the upper forehead at the hairline, secured by a single central chain running straight back into the center hair parting.\n" .
+                                      "- Hair is parted cleanly down the center, highlighting only the single Borla.";
+            }
+
             $modelPrompt = "High-end commercial fashion magazine photography of a graceful, elegant Indian woman fashion model wearing this exact " . $catInfo['copy_context'] . " (" . $prodName . ", SKU: " . $prodCode . ").\n" .
                            $catInfo['model_instruction'] . "\n" .
+                           $categoryExtraGuard . "\n" .
                            "The model has elegant styled hair and flawless festive makeup. She is posed gracefully in a luxury Indian royal heritage palace corridor or warm festive studio setting with soft cinematic lighting.\n" .
                            "Ensure the product is shown in crisp, sharp detail and remains the central hero. Do not alter its colors, craftsmanship, or design motifs.\n" .
                            ($customNote ? " Note: " . $customNote : "");
@@ -1503,9 +1550,19 @@ class AllInOneWriterController extends Controller
                     'jewel' => "(categories_id = 17 OR subcat_id IN (59,74,75,76,77,78,79,80) OR product_name LIKE '%earring%' OR product_code LIKE 'ER%')",
                     'garment' => "1=0"
                 ];
+            case 'borla_with_sari':
+                return [
+                    'jewel' => "((categories_id = 11 OR subcat_id = 53 OR product_name LIKE '%borla%' OR product_code LIKE 'BO%') AND (product_name LIKE '%chain%' OR product_name LIKE '%sari%' OR product_name LIKE '%saari%' OR product_name LIKE '%sar%' OR product_name LIKE '%damini%' OR product_name LIKE '%mathapatti%' OR product_name LIKE '%sheeshphool%'))",
+                    'garment' => "1=0"
+                ];
+            case 'borla':
+                return [
+                    'jewel' => "((categories_id = 11 OR subcat_id = 53 OR product_name LIKE '%borla%' OR product_code LIKE 'BO%') AND (product_name NOT LIKE '%chain%' AND product_name NOT LIKE '%sari%' AND product_name NOT LIKE '%saari%' AND product_name NOT LIKE '%damini%' AND product_name NOT LIKE '%mathapatti%' AND product_name NOT LIKE '%sheeshphool%'))",
+                    'garment' => "1=0"
+                ];
             case 'damini_mathapatti':
                 return [
-                    'jewel' => "(categories_id IN (11,14,19,27) OR subcat_id IN (53,57,63,73) OR product_name LIKE '%damini%' OR product_name LIKE '%mathapatti%' OR product_name LIKE '%tikka%')",
+                    'jewel' => "(categories_id IN (14,19,27) OR subcat_id IN (57,63,73) OR product_name LIKE '%damini%' OR product_name LIKE '%mathapatti%' OR product_name LIKE '%tikka%') AND (categories_id != 11 AND subcat_id != 53 AND product_name NOT LIKE '%borla%' AND product_code NOT LIKE 'BO%')",
                     'garment' => "1=0"
                 ];
             case 'nath':
