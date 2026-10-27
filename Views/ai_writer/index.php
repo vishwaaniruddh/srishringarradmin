@@ -1719,8 +1719,8 @@
                 case 'necklace_set': return 'Worn around Neck & Collarbone';
                 case 'earrings': return 'Worn on Earlobes';
                 case 'damini_mathapatti': return 'Worn on Forehead & Hairline';
-                case 'borla_with_sari': return 'Borla on Forehead + Side Chains to Ears';
-                case 'borla': return 'Borla on Forehead (No Side Chains)';
+                case 'borla_with_sari': return '3D Elevated Dome at Hairline + Side Sari Chains (Not Flat Tikka)';
+                case 'borla': return '3D Elevated Dome at Hairline (Not Flat Tikka)';
                 case 'nath': return 'Worn on Nose';
                 case 'hath_phool': return 'Worn on Back of Hand & Wrist';
                 case 'bangles_bracelets': return 'Worn around Wrist / Forearm';
