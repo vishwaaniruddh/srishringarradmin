@@ -1039,7 +1039,10 @@ class AllInOneWriterController extends Controller
 
         $multiPhotoGuidance = "";
         if (count($productImageParts) > 1) {
-            $multiPhotoGuidance = "\nCRITICAL MULTI-IMAGE SYNTHESIS: Attached are " . count($productImageParts) . " authentic visual photographs of this exact product showing its different angles, details, clasp, stones, and craftsmanship. Carefully analyze all " . count($productImageParts) . " attached photos together to faithfully reproduce this exact item without altering its authentic craftsmanship, gemstone colors, or design motifs.\n";
+            $borlaNote = ($catKey === 'borla_with_sari' || $catKey === 'borla') 
+                ? " (IMPORTANT: In the attached flat reference photos, the Borla is laid flat on a surface from above. Synthesize it into its true physical THREE-DIMENSIONAL SPHERICAL DOME volume on the model's head — standing 20mm tall off the head — DO NOT flatten it into a 2D disc or brooch)" 
+                : "";
+            $multiPhotoGuidance = "\nCRITICAL MULTI-IMAGE SYNTHESIS: Attached are " . count($productImageParts) . " authentic visual photographs of this exact product showing its different angles, details, clasp, stones, and craftsmanship. Carefully analyze all " . count($productImageParts) . " attached photos together to faithfully reproduce this exact item{$borlaNote} without altering its authentic craftsmanship, gemstone colors, or design motifs.\n";
         }
 
         $results = [];
@@ -1048,8 +1051,20 @@ class AllInOneWriterController extends Controller
         // 1. Generate "With Model" with Category-Specific Anatomical Placement
         if ($mode === 'with_model' || $mode === 'both') {
             $isolationRule = self::getStrictJewelryIsolationRule($catKey);
+            $priorityHeader = "";
+            $negativeConstraints = "";
             $categoryExtraGuard = "";
+
             if ($catKey === 'borla_with_sari') {
+                $priorityHeader = "MANDATORY TOP PRIORITY — 3D SCULPTURAL ELEVATION OF BORLA (MUST NOT BE FLAT!):\n" .
+                    "The central forehead piece is an authentic traditional Rajasthani BORLA with Sari head chains.\n" .
+                    "IMPORTANT VISUAL DISTINCTION: In the attached product reference photos, the Borla is laid flat on a surface from a top-down angle, making it appear circular. On the living model, however, a Borla is fundamentally a THREE-DIMENSIONAL SPHERICAL DOME / BULBOUS CONVEX HALF-SPHERE (like a miniature 3D architectural dome, half-ball, or bell ornament standing ~18-20mm tall and projecting OUTWARD from the head into 3D space).\n" .
+                    "STRICT 3D PHYSICAL FORM REQUIREMENTS:\n" .
+                    "1. HIGH 3D RELIEF & BULBOUS VOLUME: The central circular Borla MUST NOT be drawn flush or flat on the hair like a flat hair brooch, flat coin, flat medallion, or sticker! It MUST stand prominently proud of the scalp ('thoda utha hua') with substantial 3D spherical dome thickness and outward convex curvature.\n" .
+                    "2. PRECISE HAIRLINE PERCH PLACEMENT: The 3D Borla dome sits perched right at the VERY FRONT APEX of the central hair parting (maang) at the top boundary of the forehead hairline, nestled into the roots of the hair (NOT placed flat halfway back on top of the hair like a hair barrette, and NOT pasted down on the bare skin of the forehead like a flat tikka).\n" .
+                    "3. 3D LIGHTING & CONTACT DROP-SHADOW: Directional studio lighting must create bright specular highlights on the curved dome apex and a distinct, dark 3D contact drop-shadow under the lower rim of the dome where it meets the hair roots, clearly demonstrating that the ornament is elevated and three-dimensional.\n" .
+                    "4. CAMERA PERSPECTIVE: 3/4 beauty portrait angle or gentle head tilt, clearly capturing the 3D outward profile, thickness, and elevation of the round dome.\n\n";
+
                 $categoryExtraGuard = "\n==================== CRITICAL ANATOMICAL & 3D STRUCTURE RULES FOR BORLA WITH SARI ====================\n" .
                                       "- HERO PRODUCT: Authentic traditional Rajasthani Borla with Sari (3D Forehead Dome with Side Head Chains / Sheeshphool).\n" .
                                       "- 3D SPHERICAL DOME ELEVATION (MUST BE RAISED / 'THODA UTHA HUA'):\n" .
@@ -1066,7 +1081,24 @@ class AllInOneWriterController extends Controller
                                       "  * ABSOLUTELY NO CLOTH SAREE OR VEIL OVER THE HEAD! 'Sari' here is head chain jewelry only.\n" .
                                       "- POSE & CAMERA ANGLE:\n" .
                                       "  * Pose the model at a subtle three-quarter (3/4) face angle or slight head tilt (15-20 degrees). This angle perfectly showcases the 3D outward convex volume of the elevated Borla dome protruding forward from the hairline and the side chains framing the hair.\n";
+
+                $negativeConstraints = "\nNEGATIVE PROMPT CONSTRAINTS:\n" .
+                    "- DO NOT draw a flat circular medallion, flat disk, flat coin, flat hair brooch, or flat sticker pressed flush against the hair.\n" .
+                    "- DO NOT draw any flat maang tikka pasted flat on forehead skin.\n" .
+                    "- DO NOT draw any necklace, choker, or neck jewelry (the model's neck and chest must be 100% completely bare skin).\n" .
+                    "- DO NOT draw any earrings on earlobes (ears must be 100% bare).\n" .
+                    "- The central Borla must be a prominent, elevated 3D spherical dome with obvious physical depth and drop shadow.\n";
+
             } elseif ($catKey === 'borla') {
+                $priorityHeader = "MANDATORY TOP PRIORITY — 3D SCULPTURAL ELEVATION OF STANDALONE BORLA (MUST NOT BE FLAT!):\n" .
+                    "The central forehead piece is a standalone traditional Rajasthani BORLA (without sari / without side chains).\n" .
+                    "IMPORTANT VISUAL DISTINCTION: While the attached reference photos show the Borla photographed lying flat on a surface from a top-down angle, on the actual living model's head a Borla is fundamentally a THREE-DIMENSIONAL SPHERICAL DOME / BULBOUS CONVEX HALF-SPHERE (standing ~18-20mm tall and protruding outward from the head into 3D space).\n" .
+                    "STRICT 3D PHYSICAL FORM REQUIREMENTS:\n" .
+                    "1. HIGH 3D RELIEF & BULBOUS VOLUME: The central circular Borla MUST NOT be drawn flush or flat on the hair like a flat brooch, coin, flat medallion, or sticker! It MUST stand prominently proud of the scalp ('thoda utha hua') with substantial 3D spherical dome thickness and outward convex curvature.\n" .
+                    "2. PRECISE HAIRLINE PERCH PLACEMENT: Perched right at the VERY FRONT APEX of the central hair parting (maang) at the forehead hairline roots.\n" .
+                    "3. 3D SHADING: Specular highlight on dome apex with a distinct contact drop-shadow under the lower rim.\n" .
+                    "4. STANDALONE ONLY: STRICTLY NO side chains, NO mathapatti bands, NO temple chains. Only the single center chain running back into the hair parting.\n\n";
+
                 $categoryExtraGuard = "\n==================== CRITICAL ANATOMICAL & 3D STRUCTURE RULES FOR STANDALONE BORLA ====================\n" .
                                       "- HERO PRODUCT: Standalone round Rajasthani Borla ONLY (WITHOUT sari / without side chains).\n" .
                                       "- 3D SPHERICAL DOME ELEVATION (MUST BE RAISED / 'THODA UTHA HUA'):\n" .
@@ -1079,15 +1111,23 @@ class AllInOneWriterController extends Controller
                                       "- The single spherical 3D Borla dome is secured solely by a single central chain running straight back into the center hair parting.\n" .
                                       "- Hair is parted cleanly down the center, highlighting only the elevated 3D Borla dome.\n" .
                                       "- Pose the model at a subtle three-quarter (3/4) face angle or slight head tilt showcasing the 3D dome's outward projection from the hairline.\n";
+
+                $negativeConstraints = "\nNEGATIVE PROMPT CONSTRAINTS:\n" .
+                    "- DO NOT draw a flat circular medallion, flat disk, flat coin, flat hair brooch, or flat sticker pressed flush against the hair.\n" .
+                    "- DO NOT draw any side chains or mathapatti bands.\n" .
+                    "- DO NOT draw any necklace or earrings (neck, ears, and chest must be 100% bare skin).\n" .
+                    "- The central Borla must be a prominent, elevated 3D spherical dome with obvious physical depth and drop shadow.\n";
             }
 
-            $modelPrompt = "High-end commercial fashion magazine catalog photography of an elegant Indian woman model displaying EXCLUSIVELY this single " . $catInfo['copy_context'] . " (" . $prodName . ", SKU: " . $prodCode . ").\n" .
+            $modelPrompt = $priorityHeader .
+                           "High-end commercial fashion magazine catalog photography of an elegant Indian woman model displaying EXCLUSIVELY this single " . $catInfo['copy_context'] . " (" . $prodName . ", SKU: " . $prodCode . ").\n" .
                            $isolationRule . "\n" .
                            $catInfo['model_instruction'] . "\n" .
                            $categoryExtraGuard . "\n" .
                            $multiPhotoGuidance . "\n" .
                            "The model has elegant styled hair and natural makeup. She is posed gracefully in a luxury Indian royal heritage palace corridor or warm festive studio setting with soft cinematic lighting.\n" .
                            "CRITICAL HERO PRODUCT FIDELITY: Ensure the single product is shown in crisp, sharp detail and is the EXCLUSIVE hero. Do not alter its colors, craftsmanship, or design motifs. ABSOLUTELY DO NOT generate or suggest any other jewelry pieces on the model.\n" .
+                           $negativeConstraints .
                            ($customNote ? " Note: " . $customNote : "");
 
             $parts = [['text' => $modelPrompt]];
