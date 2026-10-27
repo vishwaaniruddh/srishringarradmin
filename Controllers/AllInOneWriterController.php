@@ -260,6 +260,94 @@ class AllInOneWriterController extends Controller
     }
 
     /**
+     * Build strict e-commerce isolation rules to prevent AI from hallucinating unlisted jewelry items
+     * (e.g. preventing necklaces/earrings from appearing when selling a Borla, or vice versa).
+     */
+    public static function getStrictJewelryIsolationRule($catKey)
+    {
+        $header = "\n==================== CRITICAL STRICT HERO PRODUCT ISOLATION (ZERO EXTRA JEWELRY) ====================\n" .
+                  "STRICT E-COMMERCE CATALOG MANDATE: This listing is strictly to sell ONE SINGLE JEWELRY PRODUCT.\n" .
+                  "DO NOT GENERATE ANY ARTIFICIAL AI SUGGESTIONS, STYLED ACCESSORIES, OR UNLISTED JEWELRY PIECES ON THE MODEL!\n" .
+                  "THE MODEL MUST ONLY WEAR THE HERO PRODUCT PROVIDED IN THE ATTACHED PRODUCT PHOTOGRAPHS.\n";
+
+        switch ($catKey) {
+            case 'borla_with_sari':
+            case 'borla':
+                return $header .
+                    "- ZERO NECKLACE / ZERO CHOKER / BARE THROAT: The model's neck, throat, collarbones, and upper chest MUST BE 100% COMPLETELY BARE SKIN WITH ABSOLUTELY ZERO JEWELRY! STRICTLY NO necklace, NO choker, NO collar, NO haar, NO pendant, NO chains around the neck! Do NOT draw or suggest any jewelry on the neck!\n" .
+                    "- ZERO EARRINGS / BARE EARS: The model's ears and earlobes MUST BE 100% COMPLETELY BARE WITH ZERO JEWELRY! STRICTLY NO earrings, NO studs, NO jhumkas, NO chandbalis, NO danglers, NO ear cuffs! Do NOT draw any earrings on the ears!\n" .
+                    "- ZERO NOSE JEWELRY: The model's nose MUST BE 100% COMPLETELY BARE. STRICTLY NO nath, NO nose ring, NO nose pin.\n" .
+                    "- ZERO HAND/WRIST JEWELRY: STRICTLY NO bangles, NO bracelets, NO rings.\n" .
+                    "- THE ONLY JEWELRY ITEM ON THE ENTIRE MODEL MUST BE THE TARGET BORLA HEADPIECE (and its side sari hair chains if Borla with Sari). All other body parts (neck, ears, nose, wrists, fingers) MUST BE COMPLETELY BARE.\n";
+
+            case 'kamar_patta':
+                return $header .
+                    "- ZERO NECKLACE / ZERO CHOKER: The model's neck and chest MUST BE 100% COMPLETELY BARE. STRICTLY NO necklace, NO choker, NO collar!\n" .
+                    "- ZERO EARRINGS: The model's ears MUST BE 100% COMPLETELY BARE with ZERO earrings.\n" .
+                    "- ZERO FOREHEAD JEWELRY: STRICTLY NO maang tikka, NO mathapatti, NO borla.\n" .
+                    "- ZERO NOSE JEWELRY: STRICTLY NO nath.\n" .
+                    "- THE ONLY JEWELRY ITEM ON THE ENTIRE MODEL MUST BE THE KAMAR PATTA (WAIST BELT) worn around the waist and hips!\n";
+
+            case 'earrings':
+                return $header .
+                    "- ZERO NECKLACE / ZERO CHOKER / BARE NECK: The model's neck, throat, and collarbones MUST BE 100% COMPLETELY BARE SKIN with zero jewelry. STRICTLY NO necklace, NO choker, NO pendant!\n" .
+                    "- ZERO FOREHEAD JEWELRY: STRICTLY NO maang tikka, NO mathapatti, NO borla.\n" .
+                    "- ZERO NOSE JEWELRY: STRICTLY NO nath.\n" .
+                    "- THE ONLY JEWELRY ITEM ON THE ENTIRE MODEL MUST BE THE EARRINGS worn on the earlobes!\n";
+
+            case 'necklace_set':
+                return $header .
+                    "- ZERO FOREHEAD JEWELRY: STRICTLY NO maang tikka, NO mathapatti, NO borla.\n" .
+                    "- ZERO NOSE JEWELRY: STRICTLY NO nath.\n" .
+                    "- ZERO WAIST JEWELRY: STRICTLY NO kamar patta.\n" .
+                    "- Only the necklace around the neck (and matching earrings on earlobes IF and only if matching earrings are included in the product's reference photos).\n";
+
+            case 'damini_mathapatti':
+                return $header .
+                    "- ZERO NECKLACE / ZERO CHOKER: The model's neck and chest MUST BE 100% COMPLETELY BARE SKIN. STRICTLY NO necklace, NO choker, NO pendant.\n" .
+                    "- ZERO EARRINGS: The model's ears MUST BE 100% COMPLETELY BARE with zero earrings.\n" .
+                    "- ZERO NOSE JEWELRY: STRICTLY NO nath.\n" .
+                    "- THE ONLY JEWELRY ITEM ON THE ENTIRE MODEL MUST BE THE DAMINI / MATHAPATTI on the forehead and hairline!\n";
+
+            case 'nath':
+                return $header .
+                    "- ZERO NECKLACE: The model's neck MUST BE 100% COMPLETELY BARE SKIN with zero necklace.\n" .
+                    "- ZERO EARRINGS: The model's ears MUST BE 100% COMPLETELY BARE with zero earrings.\n" .
+                    "- ZERO HEAD/FOREHEAD JEWELRY: STRICTLY NO tikka, NO mathapatti, NO borla.\n" .
+                    "- THE ONLY JEWELRY ITEM ON THE ENTIRE MODEL MUST BE THE NATH on the nose!\n";
+
+            case 'hath_phool':
+                return $header .
+                    "- ZERO NECKLACE, ZERO EARRINGS, ZERO HEAD JEWELRY: The neck, ears, and forehead MUST BE 100% COMPLETELY BARE of jewelry.\n" .
+                    "- THE ONLY JEWELRY ITEM ON THE ENTIRE MODEL MUST BE THE HATH PHOOL on the back of the hand and wrist!\n";
+
+            case 'baju_bandh':
+                return $header .
+                    "- ZERO NECKLACE, ZERO EARRINGS, ZERO HEAD JEWELRY: The neck, ears, and forehead MUST BE 100% COMPLETELY BARE of jewelry.\n" .
+                    "- THE ONLY JEWELRY ITEM ON THE ENTIRE MODEL MUST BE THE BAJU BANDH on the upper arm!\n";
+
+            case 'bangles_bracelets':
+                return $header .
+                    "- ZERO NECKLACE, ZERO EARRINGS, ZERO HEAD JEWELRY: The neck, ears, and forehead MUST BE 100% COMPLETELY BARE of jewelry.\n" .
+                    "- THE ONLY JEWELRY ITEM ON THE ENTIRE MODEL MUST BE THE BANGLES / BRACELETS on the wrist!\n";
+
+            case 'payal_pagpan':
+                return $header .
+                    "- ZERO NECKLACE, ZERO EARRINGS, ZERO HEAD JEWELRY.\n" .
+                    "- THE ONLY JEWELRY ITEM ON THE ENTIRE MODEL MUST BE THE ANKLETS on the ankles and feet!\n";
+
+            case 'rings':
+                return $header .
+                    "- ZERO NECKLACE, ZERO EARRINGS, ZERO HEAD JEWELRY.\n" .
+                    "- THE ONLY JEWELRY ITEM ON THE ENTIRE MODEL MUST BE THE RING on the finger!\n";
+
+            default:
+                return $header .
+                    "- ONLY the exact target hero product from the reference photos is worn. All other areas of the body MUST be completely bare of unlisted jewelry items.\n";
+        }
+    }
+
+    /**
      * Auto-detect category key for a product
      */
     public function detectCategoryKey($product)
@@ -959,34 +1047,47 @@ class AllInOneWriterController extends Controller
 
         // 1. Generate "With Model" with Category-Specific Anatomical Placement
         if ($mode === 'with_model' || $mode === 'both') {
+            $isolationRule = self::getStrictJewelryIsolationRule($catKey);
             $categoryExtraGuard = "";
             if ($catKey === 'borla_with_sari') {
-                $categoryExtraGuard = "\nCRITICAL STRICT WEARING RULES & NEGATIVE CONSTRAINTS FOR BORLA WITH SARI:\n" .
-                                      "- The product is an authentic traditional Rajasthani Borla with Sari (head chain).\n" .
-                                      "- 3D SPHERICAL DOME ELEVATION (MUST BE RAISED / 'THODA UTHA HUA'): The central Borla ornament is a prominent THREE-DIMENSIONAL SPHERICAL / BELL-SHAPED HEMISPHERICAL DOME with substantial physical height and volume (~1.5 to 2 cm protruding outward in 3D depth from the hair), encrusted with stones on its rounded convex surface. It MUST be visibly elevated and projecting outward in 3D ('thoda utha hua'), with rounded dome curvature and a subtle natural cast shadow beneath its base.\n" .
-                                      "- STRICT PROHIBITION AGAINST FLAT MAANG TIKKA / NO FLAT FOREHEAD STICKER: The Borla is ABSOLUTELY NOT a flat Maang Tikka! It must NEVER be drawn flat or pasted flat against the model's bare forehead skin ('ek dum mathe se chipka hua bilkul nahi hona chahiye')! It must NOT resemble a flat dangling maang tikka pendant pasted onto the forehead.\n" .
-                                      "- PRECISE HAIRLINE PERCH PLACEMENT: The 3D spherical Borla dome rests perched right at the crest of the central hair parting (maang) at the TOP HAIRLINE (where the hair meets the forehead), nestled into the roots of the hair—NOT dangling low in the center of the bare forehead skin!\n" .
-                                      "- 'Sari' (or 'sar') in this jewelry context refers EXCLUSIVELY to the decorative side hair chains (sheeshphool / mathapatti chains) running along the hairline from the central elevated 3D Borla dome across the temples to above both ears where they pin into the hair!\n" .
-                                      "- IT IS STRICTLY NOT A SAREE DRESS, CLOTH, VEIL, OR FABRIC DRAPE. DO NOT WRAP OR DRAPE ANY CLOTH OR SAREE OVER THE HEAD!\n" .
-                                      "- The model's forehead and hairline MUST remain completely bare and clearly visible so the central 3D elevated Borla dome and symmetrical side hair chains framing the head to above the ears are the unmistakable hero jewelry.\n" .
-                                      "- Hair must be neatly styled in an elegant festive updo or center-parted bridal hair, displaying the 3D elevated headpiece in razor-sharp focus.";
+                $categoryExtraGuard = "\n==================== CRITICAL ANATOMICAL & 3D STRUCTURE RULES FOR BORLA WITH SARI ====================\n" .
+                                      "- HERO PRODUCT: Authentic traditional Rajasthani Borla with Sari (3D Forehead Dome with Side Head Chains / Sheeshphool).\n" .
+                                      "- 3D SPHERICAL DOME ELEVATION (MUST BE RAISED / 'THODA UTHA HUA'):\n" .
+                                      "  * The central Borla is a solid THREE-DIMENSIONAL SPHERICAL / BELL-SHAPED HEMISPHERICAL DOME (convex 3D half-sphere with ~1.5 to 2 cm physical height protruding OUTWARD from the hair), encrusted with stones on its rounded convex surface.\n" .
+                                      "  * IT IS ABSOLUTELY NOT A FLAT DISK, NOT A 2D CIRCLE, NOT A FLAT MEDALLION, AND NOT A STICKER!\n" .
+                                      "  * Under directional studio lighting, the 3D dome must exhibit realistic spherical convex curvature: bright specular highlights on the curved dome apex, rounded curvature along its perimeter, and a distinct 3D drop shadow beneath its lower curved rim where it meets the hairline.\n" .
+                                      "- STRICT PROHIBITION AGAINST FLAT MAANG TIKKA / NO FOREHEAD SKIN STICKER:\n" .
+                                      "  * The Borla must NEVER be painted flat against the model's bare forehead skin ('ek dum mathe se chipka hua bilkul nahi hona chahiye')!\n" .
+                                      "  * Do NOT place it down on the forehead like a flat maang tikka pendant. A maang tikka is flat; a Borla is a 3D raised spherical dome.\n" .
+                                      "- PRECISE HAIRLINE PERCH PLACEMENT:\n" .
+                                      "  * The 3D spherical Borla dome rests perched right at the crest of the central hair parting (maang) AT THE VERY TOP HAIRLINE (where the hair roots begin), nestled into the roots of the hair—NOT dangling low in the center of the bare forehead skin!\n" .
+                                      "- SARI SIDE CHAINS:\n" .
+                                      "  * 'Sari' (or 'sar') refers EXCLUSIVELY to the decorative side hair chains (sheeshphool / mathapatti chains) running along the hairline from the central elevated 3D Borla dome across the temples to above both ears where they pin into the hair!\n" .
+                                      "  * ABSOLUTELY NO CLOTH SAREE OR VEIL OVER THE HEAD! 'Sari' here is head chain jewelry only.\n" .
+                                      "- POSE & CAMERA ANGLE:\n" .
+                                      "  * Pose the model at a subtle three-quarter (3/4) face angle or slight head tilt (15-20 degrees). This angle perfectly showcases the 3D outward convex volume of the elevated Borla dome protruding forward from the hairline and the side chains framing the hair.\n";
             } elseif ($catKey === 'borla') {
-                $categoryExtraGuard = "\nCRITICAL STRICT WEARING RULES & NEGATIVE CONSTRAINTS FOR STANDALONE BORLA:\n" .
-                                      "- Standalone round Rajasthani Borla ONLY (WITHOUT sari / without side chains).\n" .
-                                      "- 3D SPHERICAL DOME ELEVATION (MUST BE RAISED / 'THODA UTHA HUA'): The Borla is a prominent THREE-DIMENSIONAL SPHERICAL / BELL-SHAPED HEMISPHERICAL DOME with substantial physical height and volume (~1.5 to 2 cm protruding outward in 3D depth from the hair), encrusted with stones on its rounded convex surface. It MUST be visibly elevated and projecting outward in 3D ('thoda utha hua'), with rounded dome curvature and a subtle natural cast shadow beneath its base.\n" .
-                                      "- STRICT PROHIBITION AGAINST FLAT MAANG TIKKA / NO FLAT FOREHEAD STICKER: The Borla is ABSOLUTELY NOT a flat Maang Tikka! It must NEVER be drawn flat or pasted flat against the model's bare forehead skin ('ek dum mathe se chipka hua bilkul nahi hona chahiye')! It must NOT resemble a flat dangling maang tikka pendant pasted onto the forehead.\n" .
-                                      "- PRECISE HAIRLINE PERCH PLACEMENT: The 3D spherical Borla dome rests perched right at the crest of the central hair parting (maang) at the TOP HAIRLINE (where the hair meets the forehead), nestled into the roots of the hair—NOT dangling low in the center of the bare forehead skin!\n" .
+                $categoryExtraGuard = "\n==================== CRITICAL ANATOMICAL & 3D STRUCTURE RULES FOR STANDALONE BORLA ====================\n" .
+                                      "- HERO PRODUCT: Standalone round Rajasthani Borla ONLY (WITHOUT sari / without side chains).\n" .
+                                      "- 3D SPHERICAL DOME ELEVATION (MUST BE RAISED / 'THODA UTHA HUA'):\n" .
+                                      "  * The Borla is a prominent THREE-DIMENSIONAL SPHERICAL / BELL-SHAPED HEMISPHERICAL DOME with substantial physical height and volume (~1.5 to 2 cm protruding outward in 3D depth from the hair), encrusted with stones on its rounded convex surface. It MUST be visibly elevated and projecting outward in 3D ('thoda utha hua'), with rounded dome curvature and a subtle natural cast shadow beneath its base.\n" .
+                                      "- STRICT PROHIBITION AGAINST FLAT MAANG TIKKA / NO FLAT FOREHEAD STICKER:\n" .
+                                      "  * The Borla must NEVER be drawn flat or pasted flat against the model's bare forehead skin ('ek dum mathe se chipka hua bilkul nahi hona chahiye')! It must NOT resemble a flat dangling maang tikka pendant pasted onto the forehead.\n" .
+                                      "- PRECISE HAIRLINE PERCH PLACEMENT:\n" .
+                                      "  * The 3D spherical Borla dome rests perched right at the crest of the central hair parting (maang) at the TOP HAIRLINE (where the hair meets the forehead), nestled into the roots of the hair—NOT dangling low in the center of the bare forehead skin!\n" .
                                       "- STRICTLY NO side chains, NO mathapatti side bands, NO temple chains, NO ear-to-ear strings.\n" .
                                       "- The single spherical 3D Borla dome is secured solely by a single central chain running straight back into the center hair parting.\n" .
-                                      "- Hair is parted cleanly down the center, highlighting only the elevated 3D Borla dome.";
+                                      "- Hair is parted cleanly down the center, highlighting only the elevated 3D Borla dome.\n" .
+                                      "- Pose the model at a subtle three-quarter (3/4) face angle or slight head tilt showcasing the 3D dome's outward projection from the hairline.\n";
             }
 
-            $modelPrompt = "High-end commercial fashion magazine photography of a graceful, elegant Indian woman fashion model wearing this exact " . $catInfo['copy_context'] . " (" . $prodName . ", SKU: " . $prodCode . ").\n" .
+            $modelPrompt = "High-end commercial fashion magazine catalog photography of an elegant Indian woman model displaying EXCLUSIVELY this single " . $catInfo['copy_context'] . " (" . $prodName . ", SKU: " . $prodCode . ").\n" .
+                           $isolationRule . "\n" .
                            $catInfo['model_instruction'] . "\n" .
                            $categoryExtraGuard . "\n" .
-                           $multiPhotoGuidance .
-                           "The model has elegant styled hair and flawless festive makeup. She is posed gracefully in a luxury Indian royal heritage palace corridor or warm festive studio setting with soft cinematic lighting.\n" .
-                           "Ensure the product is shown in crisp, sharp detail and remains the central hero. Do not alter its colors, craftsmanship, or design motifs.\n" .
+                           $multiPhotoGuidance . "\n" .
+                           "The model has elegant styled hair and natural makeup. She is posed gracefully in a luxury Indian royal heritage palace corridor or warm festive studio setting with soft cinematic lighting.\n" .
+                           "CRITICAL HERO PRODUCT FIDELITY: Ensure the single product is shown in crisp, sharp detail and is the EXCLUSIVE hero. Do not alter its colors, craftsmanship, or design motifs. ABSOLUTELY DO NOT generate or suggest any other jewelry pieces on the model.\n" .
                            ($customNote ? " Note: " . $customNote : "");
 
             $parts = [['text' => $modelPrompt]];
@@ -1139,6 +1240,7 @@ class AllInOneWriterController extends Controller
             "- STRICTLY NO human model, NO person, NO face, NO lips, NO ears, NO hands, NO fingers anywhere in the image. Pure product-only still-life photography.\n" .
             "- STRICTLY NO plastic mannequin heads, necks, or cheap acrylic showroom stands.\n" .
             "- The product piece is the absolute centerpiece hero. Do not alter its authentic design, colors, gemstones, or craftsmanship.\n" .
+            "- STRICT SINGLE PRODUCT RULE: The surface must ONLY feature this exact single item from the reference photos. STRICTLY NO extra matching necklaces, earrings, rings, or unlisted AI jewelry items.\n" .
             "- Aspect ratio: 2:3 vertical format.\n" .
             ($customNote ? "- Custom Styling Note: " . $customNote . "\n" : "");
 
