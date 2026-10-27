@@ -321,6 +321,166 @@
         #image-lightbox.open {
             display: flex;
         }
+
+        /* Product Gallery Modal Image Cards & Weight Inputs (matching Product Edit) */
+        .img-card-item {
+            background: #ffffff;
+            border: 1px solid var(--slate-200);
+            border-radius: 8px;
+            overflow: hidden;
+            position: relative;
+            transition: all 0.2s ease;
+        }
+        .img-card-item:hover {
+            border-color: var(--slate-400);
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+        }
+        .img-thumb {
+            aspect-ratio: 1;
+            position: relative;
+            width: 100%;
+            background: #f8fafc;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+        }
+        .img-thumb img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            transition: transform 0.2s ease;
+        }
+        .img-card-item:hover .img-thumb img {
+            transform: scale(1.03);
+        }
+        .img-thumb .img-overlay {
+            position: absolute;
+            inset: 0;
+            background: rgba(15, 23, 42, 0.35);
+            opacity: 0;
+            transition: opacity 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 8;
+        }
+        .img-thumb:hover .img-overlay {
+            opacity: 1;
+        }
+        .img-card-footer {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0.35rem 0.5rem;
+            background: #f8fafc;
+            border-top: 1px solid #e2e8f0;
+        }
+        .img-order-label {
+            font-size: 0.65rem;
+            font-weight: 600;
+            color: #64748b;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+            display: flex;
+            align-items: center;
+            gap: 0.3rem;
+        }
+        .img-order-input {
+            width: 44px;
+            height: 24px;
+            background: #ffffff;
+            border: 1px solid #cbd5e1;
+            border-radius: 4px;
+            color: #0f172a;
+            font-weight: 600;
+            font-size: 0.78rem;
+            text-align: center;
+            outline: none;
+            transition: all 0.15s;
+            -moz-appearance: textfield;
+        }
+        .img-order-input::-webkit-outer-spin-button,
+        .img-order-input::-webkit-inner-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
+        }
+        .img-order-input:focus {
+            border-color: #0f172a;
+            box-shadow: 0 0 0 2px rgba(15, 23, 42, 0.1);
+        }
+        .img-del-btn {
+            position: absolute;
+            top: 6px;
+            right: 6px;
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            background: #ef4444;
+            color: #ffffff;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.65rem;
+            cursor: pointer;
+            opacity: 0;
+            transition: all 0.15s;
+            z-index: 15;
+            border: none;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+        }
+        .img-card-item:hover .img-del-btn {
+            opacity: 1;
+        }
+        .img-set-main {
+            position: absolute;
+            top: 6px;
+            left: 32px;
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            background: #ffffff;
+            color: #475569;
+            border: 1px solid #e2e8f0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.65rem;
+            cursor: pointer;
+            opacity: 0;
+            transition: all 0.15s;
+            z-index: 15;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+        .img-card-item:hover .img-set-main {
+            opacity: 1;
+        }
+        .img-set-main:hover {
+            color: #d97706;
+            background: #fffbeb;
+            border-color: #fde68a;
+        }
+        .img-select-wrapper {
+            position: absolute;
+            top: 6px;
+            left: 6px;
+            z-index: 16;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 4px;
+            padding: 2px;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+        }
+        .img-select-checkbox {
+            width: 16px;
+            height: 16px;
+            accent-color: #ef4444;
+            cursor: pointer;
+            margin: 0;
+        }
     </style>
 </head>
 <body>
@@ -811,11 +971,11 @@
 
     <!-- Product Multi-Image Reference Gallery Modal -->
     <div id="product-gallery-modal" class="hidden fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[100000] flex items-center justify-center p-4" onclick="closeProductGalleryModal()">
-        <div class="bg-white border border-slate-200 rounded-xl shadow-2xl max-w-4xl w-full max-h-[90vh] flex flex-col overflow-hidden" onclick="event.stopPropagation()">
+        <div class="bg-white border border-slate-200 rounded-xl shadow-2xl max-w-5xl w-full max-h-[90vh] flex flex-col overflow-hidden" onclick="event.stopPropagation()">
             <!-- Modal Header -->
-            <div class="px-5 py-4 border-b border-slate-200 flex items-center justify-between bg-slate-50/70">
+            <div class="px-5 py-3.5 border-b border-slate-200 flex items-center justify-between bg-slate-50/80">
                 <div class="flex items-center gap-2.5">
-                    <div class="w-8 h-8 rounded-lg bg-slate-900 text-white flex items-center justify-center text-sm">
+                    <div class="w-8 h-8 rounded-lg bg-slate-900 text-white flex items-center justify-center text-sm shadow-2xs">
                         <i class="fa-solid fa-images"></i>
                     </div>
                     <div>
@@ -824,7 +984,7 @@
                             <span id="modal_gallery_sku_badge" class="text-[11px] font-mono font-bold text-slate-900 bg-slate-200/80 px-2 py-0.5 rounded">SKU</span>
                             <span id="modal_gallery_count_badge" class="text-[11px] font-semibold text-slate-700 bg-white border border-slate-200 px-2 py-0.5 rounded-full shadow-2xs">0 Photos</span>
                         </div>
-                        <p class="text-[11px] text-slate-500 mt-0.5" id="modal_gallery_product_title">All authentic photos recorded for this item. Click any image to view in high resolution.</p>
+                        <p class="text-[11px] text-slate-500 mt-0.5" id="modal_gallery_product_title">All authentic photos recorded for this item. Set image display weights, reorder, or delete in bulk selection.</p>
                     </div>
                 </div>
                 <button type="button" onclick="closeProductGalleryModal()" class="w-8 h-8 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 flex items-center justify-center text-sm transition-colors">
@@ -832,15 +992,27 @@
                 </button>
             </div>
 
-            <!-- Multi-Image AI Banner -->
-            <div class="px-5 py-2.5 bg-slate-50 border-b border-slate-200 text-xs text-slate-600 flex items-center justify-between flex-wrap gap-2">
+            <!-- Toolbar: Multi-Image AI Banner & Bulk Selection Controls -->
+            <div class="px-5 py-2.5 bg-slate-50 border-b border-slate-200 text-xs text-slate-600 flex items-center justify-between flex-wrap gap-2.5">
                 <div class="flex items-center gap-2">
                     <span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded bg-emerald-50 text-emerald-800 font-semibold text-[11px] border border-emerald-200">
                         <i class="fa-solid fa-layer-group text-emerald-600"></i> Multi-Image Synthesis Active
                     </span>
-                    <span class="text-slate-600">AI synthesizes up to 10 angles together (stones, clasps, motifs) for faithful reproduction.</span>
+                    <span class="text-slate-600 text-xs hidden sm:inline">AI synthesizes up to 10 angles together (stones, clasps, motifs).</span>
                 </div>
-                <span class="text-[11px] text-slate-400 font-medium">Click any photo to enlarge</span>
+
+                <!-- Bulk Selection Toolbar (Matching Product Edit) -->
+                <div class="flex items-center gap-2">
+                    <button type="button" onclick="selectGalleryAllImages(true)" class="inline-flex items-center gap-1 text-xs font-medium py-1 px-2.5 rounded-md border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 transition-colors shadow-2xs">
+                        <i class="fa-solid fa-check-square text-sky-600"></i> Select All
+                    </button>
+                    <button type="button" onclick="selectGalleryAllImages(false)" class="inline-flex items-center gap-1 text-xs font-medium py-1 px-2.5 rounded-md border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 transition-colors shadow-2xs">
+                        <i class="fa-regular fa-square text-slate-400"></i> Clear
+                    </button>
+                    <button type="button" id="modal_delete_selected_btn" onclick="deleteGallerySelectedImages()" class="inline-flex items-center gap-1.5 text-xs font-semibold py-1 px-3 rounded-md bg-rose-600 text-white hover:bg-rose-700 transition-all opacity-50 cursor-not-allowed shadow-2xs" disabled>
+                        <i class="fa-solid fa-trash-can"></i> Delete Selected (<span id="modal_gallery_selected_count">0</span>)
+                    </button>
+                </div>
             </div>
 
             <!-- Gallery Images Grid -->
@@ -1275,66 +1447,17 @@
         }
 
         // ==================== PRODUCT VISUAL PHOTOGRAPHS GALLERY MODAL ====================
+        let currentGalleryProductIndex = null;
+
         function openProductGalleryModal(index) {
+            currentGalleryProductIndex = index;
             const item = loadedProducts[index];
             if (!item) return;
 
             document.getElementById('modal_gallery_sku_badge').innerText = item.code || 'Item';
-            document.getElementById('modal_gallery_count_badge').innerText = `${item.images ? item.images.length : 0} Photos`;
             document.getElementById('modal_gallery_product_title').innerText = item.name || item.code;
 
-            const grid = document.getElementById('modal_gallery_grid');
-            if (!item.images || item.images.length === 0) {
-                grid.innerHTML = '<div class="p-8 text-center text-slate-400 text-xs">No photos found for this product.</div>';
-            } else {
-                let html = '<div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">';
-                item.images.forEach((img, i) => {
-                    const isMain = img.is_main || (i === 0);
-                    const isAi = img.is_ai;
-                    const isAnalyzed = i < 10; // Top 10 sent to Gemini multi-image vision
-
-                    html += `
-                        <div class="group relative rounded-lg border border-slate-200 bg-white overflow-hidden shadow-2xs hover:shadow-md hover:border-slate-400 transition-all cursor-pointer" onclick="openLightbox('${img.url}', '${escapeHtml(item.code)} - Photo #${i + 1}')">
-                            <div class="aspect-square bg-slate-100 overflow-hidden relative">
-                                <img src="${img.url}" alt="${escapeHtml(item.code)} #${i + 1}" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200" onerror="this.src='assets/placeholder.png'">
-                                
-                                <!-- Badges -->
-                                <div class="absolute top-1.5 left-1.5 flex flex-col gap-1 items-start z-10">
-                                    ${isMain ? `
-                                        <span class="bg-amber-500 text-slate-950 text-[9px] font-extrabold px-1.5 py-0.5 rounded shadow flex items-center gap-1 tracking-wider">
-                                            <i class="fa-solid fa-star text-[8px]"></i> MAIN
-                                        </span>
-                                    ` : ''}
-                                    ${isAnalyzed ? `
-                                        <span class="bg-slate-900/85 text-white text-[9px] font-semibold px-1.5 py-0.5 rounded backdrop-blur-xs flex items-center gap-1">
-                                            <i class="fa-solid fa-microchip text-[8px] text-emerald-400"></i> AI Analyzed
-                                        </span>
-                                    ` : ''}
-                                </div>
-
-                                ${isAi ? `
-                                    <span class="absolute bottom-1.5 right-1.5 bg-slate-800/80 text-white text-[9px] px-1.5 py-0.5 rounded backdrop-blur-xs">
-                                        AI Studio
-                                    </span>
-                                ` : `
-                                    <span class="absolute bottom-1.5 right-1.5 bg-white/95 text-slate-700 text-[9px] font-medium px-1.5 py-0.5 rounded border border-slate-200 shadow-2xs">
-                                        Original Photo
-                                    </span>
-                                `}
-                            </div>
-                            <div class="p-2 border-t border-slate-100 flex items-center justify-between text-[11px] bg-white">
-                                <span class="font-mono text-slate-700 font-bold truncate">Photo #${i + 1}</span>
-                                <span class="text-slate-400 text-[10px]"><i class="fa-solid fa-magnifying-glass-plus"></i> View</span>
-                            </div>
-                        </div>
-                    `;
-                });
-                html += '</div>';
-                grid.innerHTML = html;
-            }
-
-            const analyzedCount = Math.min(item.images ? item.images.length : 0, 10);
-            document.getElementById('modal_gallery_footer_info').innerText = `${analyzedCount} of ${item.images ? item.images.length : 0} photos are analyzed by Google Gemini Vision multi-image model.`;
+            renderGalleryGrid();
 
             const modal = document.getElementById('product-gallery-modal');
             if (modal) modal.classList.remove('hidden');
@@ -1343,6 +1466,383 @@
         function closeProductGalleryModal() {
             const modal = document.getElementById('product-gallery-modal');
             if (modal) modal.classList.add('hidden');
+            currentGalleryProductIndex = null;
+        }
+
+        function renderGalleryGrid() {
+            if (currentGalleryProductIndex === null) return;
+            const item = loadedProducts[currentGalleryProductIndex];
+            if (!item) return;
+
+            const grid = document.getElementById('modal_gallery_grid');
+            const totalCount = item.images ? item.images.length : 0;
+            document.getElementById('modal_gallery_count_badge').innerText = `${totalCount} Photos`;
+
+            if (!item.images || item.images.length === 0) {
+                grid.innerHTML = '<div class="p-12 text-center text-slate-400 text-xs">No photos found for this product.</div>';
+                document.getElementById('modal_gallery_footer_info').innerText = '0 photos recorded for this item.';
+                updateGallerySelectedCount();
+                return;
+            }
+
+            const analyzedCount = Math.min(totalCount, 10);
+            document.getElementById('modal_gallery_footer_info').innerText = `${analyzedCount} of ${totalCount} photos are analyzed by Google Gemini Vision multi-image model.`;
+
+            let html = '<div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3" id="modal_gallery_cards_container">';
+            item.images.forEach((img, i) => {
+                const isMain = img.is_main || (i === 0 && (!img.rank || img.rank === 0));
+                const isAi = img.is_ai;
+                const isAnalyzed = i < 10;
+                const currentWeight = (img.rank !== undefined && img.rank !== null && img.rank !== '') ? img.rank : i;
+
+                html += `
+                    <div class="img-card-item rounded-lg border border-slate-200 bg-white overflow-hidden shadow-2xs hover:shadow-md transition-all relative flex flex-col justify-between" data-image-id="${img.id}" onclick="handleGalleryCardClick(event, this)">
+                        <div class="img-thumb aspect-square bg-slate-100 overflow-hidden relative flex items-center justify-center">
+                            <!-- Selection Checkbox (Matching Product Edit) -->
+                            <label class="img-select-wrapper absolute top-2 left-2 z-20 cursor-pointer" onclick="event.stopPropagation()">
+                                <input type="checkbox" class="img-select-checkbox w-4 h-4 rounded text-rose-600 focus:ring-rose-500 cursor-pointer" value="${img.id}" onchange="updateGallerySelectedCount()">
+                            </label>
+
+                            <!-- Main Badge or Set Main Button -->
+                            ${isMain ? `
+                                <div class="absolute top-2 left-8 z-15 bg-amber-500 text-slate-950 text-[9px] font-extrabold px-1.5 py-0.5 rounded shadow flex items-center gap-1 tracking-wider" title="Main Image">
+                                    <i class="fa-solid fa-star text-[8px]"></i> MAIN
+                                </div>
+                            ` : `
+                                <button type="button" onclick="setGalleryMainImage(event, ${img.id}, ${i})" class="img-set-main absolute top-2 left-8 z-15 w-6 h-6 rounded-full bg-white/90 hover:bg-amber-50 hover:text-amber-600 text-slate-600 border border-slate-200 flex items-center justify-center text-[10px] transition-colors shadow-sm" title="Set as Main Image">
+                                    <i class="fa-regular fa-star"></i>
+                                </button>
+                            `}
+
+                            <!-- Single Delete Trash Button -->
+                            <button type="button" onclick="deleteGallerySingleImage(event, ${img.id}, ${i})" class="img-del-btn absolute top-2 right-2 z-20 w-6 h-6 rounded-full bg-slate-900/60 hover:bg-rose-600 text-white flex items-center justify-center text-[10px] transition-colors shadow-sm" title="Delete this image">
+                                <i class="fa-solid fa-trash-can"></i>
+                            </button>
+
+                            <!-- Image Photo Thumbnail -->
+                            <img src="${img.url}" alt="${escapeHtml(item.code)} #${i + 1}" class="w-full h-full object-cover" onerror="this.src='assets/placeholder.png'">
+
+                            <!-- Overlay on Hover -->
+                            <div class="img-overlay absolute inset-0 bg-slate-900/40 opacity-0 hover:opacity-100 transition-opacity flex items-center justify-center pointer-events-none">
+                                <span class="text-white text-[11px] font-semibold bg-slate-900/70 px-2 py-1 rounded backdrop-blur-xs flex items-center gap-1">
+                                    <i class="fa-solid fa-magnifying-glass-plus"></i> Click to Zoom
+                                </span>
+                            </div>
+
+                            <!-- Analyzed & Studio Badges -->
+                            <div class="absolute bottom-1.5 left-1.5 flex flex-col gap-1 items-start z-10 pointer-events-none">
+                                ${isAnalyzed ? `
+                                    <span class="bg-slate-900/85 text-white text-[9px] font-semibold px-1.5 py-0.5 rounded backdrop-blur-xs flex items-center gap-1">
+                                        <i class="fa-solid fa-microchip text-[8px] text-emerald-400"></i> AI Analyzed
+                                    </span>
+                                ` : ''}
+                            </div>
+
+                            <div class="absolute bottom-1.5 right-1.5 z-10 pointer-events-none">
+                                ${isAi ? `
+                                    <span class="bg-slate-800/85 text-white text-[9px] px-1.5 py-0.5 rounded backdrop-blur-xs">
+                                        AI Studio
+                                    </span>
+                                ` : `
+                                    <span class="bg-white/95 text-slate-700 text-[9px] font-medium px-1.5 py-0.5 rounded border border-slate-200 shadow-2xs">
+                                        Original
+                                    </span>
+                                `}
+                            </div>
+                        </div>
+
+                        <!-- Card Footer with Weight & View (Matching Product Edit) -->
+                        <div class="img-card-footer p-2 border-t border-slate-100 flex items-center justify-between text-[11px] bg-slate-50/70">
+                            <div class="flex items-center gap-1.5">
+                                <span class="img-order-label text-[10px] font-bold text-slate-500 uppercase tracking-wider flex items-center gap-1">
+                                    <i class="fa-solid fa-sort-numeric-down text-slate-400"></i> Order
+                                </span>
+                                <input type="number" min="0" value="${currentWeight}" class="img-order-input w-12 h-6 bg-white border border-slate-300 rounded text-center text-xs font-bold text-slate-800 focus:border-slate-900 focus:outline-none transition-colors" onchange="updateGalleryImageWeight(${img.id}, this, ${i})" onclick="event.stopPropagation()">
+                            </div>
+                            <button type="button" onclick="event.stopPropagation(); openLightbox('${img.url}', '${escapeHtml(item.code)} - Photo #${i + 1}')" class="text-slate-500 hover:text-slate-800 text-[10px] font-semibold flex items-center gap-1 py-0.5 px-1.5 rounded hover:bg-slate-200/60 transition-colors">
+                                <i class="fa-solid fa-expand"></i> View
+                            </button>
+                        </div>
+                    </div>
+                `;
+            });
+            html += '</div>';
+            grid.innerHTML = html;
+            updateGallerySelectedCount();
+        }
+
+        function handleGalleryCardClick(event, card) {
+            if (event.target.closest('.img-del-btn') || event.target.closest('.img-set-main') || event.target.closest('.img-order-input') || event.target.closest('button')) {
+                return;
+            }
+            const cb = card.querySelector('.img-select-checkbox');
+            if (cb && event.target !== cb) {
+                cb.checked = !cb.checked;
+                updateGallerySelectedCount();
+            }
+        }
+
+        function updateGallerySelectedCount() {
+            const checked = document.querySelectorAll('#modal_gallery_grid .img-select-checkbox:checked');
+            const count = checked.length;
+            const countSpan = document.getElementById('modal_gallery_selected_count');
+            const btn = document.getElementById('modal_delete_selected_btn');
+
+            if (countSpan) countSpan.textContent = count;
+
+            if (btn) {
+                if (count > 0) {
+                    btn.disabled = false;
+                    btn.classList.remove('opacity-50', 'cursor-not-allowed');
+                    btn.classList.add('hover:bg-rose-700', 'cursor-pointer');
+                } else {
+                    btn.disabled = true;
+                    btn.classList.add('opacity-50', 'cursor-not-allowed');
+                    btn.classList.remove('hover:bg-rose-700', 'cursor-pointer');
+                }
+            }
+
+            document.querySelectorAll('#modal_gallery_grid .img-card-item').forEach(card => {
+                const cb = card.querySelector('.img-select-checkbox');
+                if (cb && cb.checked) {
+                    card.style.outline = '2px solid #ef4444';
+                    card.style.borderColor = '#ef4444';
+                } else {
+                    card.style.outline = '';
+                    card.style.borderColor = '';
+                }
+            });
+        }
+
+        function selectGalleryAllImages(check) {
+            const checkboxes = document.querySelectorAll('#modal_gallery_grid .img-select-checkbox');
+            checkboxes.forEach(cb => {
+                cb.checked = check;
+            });
+            updateGallerySelectedCount();
+        }
+
+        async function deleteGallerySelectedImages() {
+            if (currentGalleryProductIndex === null) return;
+            const checked = document.querySelectorAll('#modal_gallery_grid .img-select-checkbox:checked');
+            const ids = Array.from(checked).map(cb => parseInt(cb.value, 10)).filter(id => id > 0);
+
+            if (ids.length === 0) return;
+
+            if (!confirm(`Are you sure you want to delete ${ids.length} selected image(s)? This cannot be undone.`)) return;
+
+            const btn = document.getElementById('modal_delete_selected_btn');
+            const origHtml = btn ? btn.innerHTML : '';
+            if (btn) {
+                btn.disabled = true;
+                btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Deleting...';
+            }
+
+            try {
+                const response = await fetch('index.php?controller=product&action=deleteImage', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ ids: ids })
+                });
+                const data = await response.json();
+                if (data.success) {
+                    const item = loadedProducts[currentGalleryProductIndex];
+                    if (item && item.images) {
+                        item.images = item.images.filter(img => !ids.includes(img.id));
+                        if (item.images.length > 0) {
+                            item.primary_image_url = item.images[0].url;
+                        } else {
+                            item.primary_image_url = '';
+                        }
+                    }
+                    renderGalleryGrid();
+                    refreshProductRowBadge(currentGalleryProductIndex);
+                    showToast(`Deleted ${ids.length} image(s) successfully!`);
+                } else {
+                    alert('Error deleting images: ' + (data.error || 'Unknown error'));
+                }
+            } catch (err) {
+                console.error(err);
+                alert('A network error occurred while deleting images.');
+            } finally {
+                if (btn) btn.innerHTML = origHtml;
+                updateGallerySelectedCount();
+            }
+        }
+
+        async function deleteGallerySingleImage(event, imgId, imgIndex) {
+            if (event) event.stopPropagation();
+            if (currentGalleryProductIndex === null) return;
+            if (!confirm('Are you sure you want to delete this image? This cannot be undone.')) return;
+
+            try {
+                const response = await fetch('index.php?controller=product&action=deleteImage', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ id: imgId })
+                });
+                const data = await response.json();
+                if (data.success) {
+                    const item = loadedProducts[currentGalleryProductIndex];
+                    if (item && item.images) {
+                        item.images = item.images.filter(img => img.id !== imgId);
+                        if (item.images.length > 0) {
+                            item.primary_image_url = item.images[0].url;
+                        } else {
+                            item.primary_image_url = '';
+                        }
+                    }
+                    renderGalleryGrid();
+                    refreshProductRowBadge(currentGalleryProductIndex);
+                    showToast('Image deleted successfully!');
+                } else {
+                    alert('Error deleting image: ' + (data.error || 'Unknown error'));
+                }
+            } catch (err) {
+                console.error(err);
+                alert('A network error occurred while deleting the image.');
+            }
+        }
+
+        async function updateGalleryImageWeight(imageId, inputElem, imgIndex) {
+            const val = parseInt(inputElem.value, 10);
+            const weightInputs = document.querySelectorAll('#modal_gallery_grid .img-order-input');
+
+            // Duplicate check
+            let duplicateCount = 0;
+            weightInputs.forEach(inp => {
+                inp.style.borderColor = '';
+                if (parseInt(inp.value, 10) === val) {
+                    duplicateCount++;
+                }
+            });
+
+            if (duplicateCount > 1) {
+                inputElem.style.borderColor = '#ef4444';
+                alert(`Validation Error: Order Weight ${val} is already assigned to another image! Each image should have a unique order weight.`);
+                return;
+            }
+
+            inputElem.style.borderColor = '#3b82f6';
+            try {
+                const response = await fetch('index.php?controller=product&action=updateImageWeight', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ image_id: imageId, weight: val })
+                });
+                const data = await response.json();
+                if (data.success) {
+                    inputElem.style.borderColor = '#10b981';
+                    inputElem.style.color = '#10b981';
+                    if (currentGalleryProductIndex !== null && loadedProducts[currentGalleryProductIndex]?.images) {
+                        const targetImg = loadedProducts[currentGalleryProductIndex].images.find(img => img.id === imageId);
+                        if (targetImg) targetImg.rank = val;
+                        // If weight set to 0, it becomes the main image in DB
+                        if (val === 0) {
+                            loadedProducts[currentGalleryProductIndex].images.forEach(img => {
+                                img.is_main = (img.id === imageId);
+                            });
+                            if (targetImg) {
+                                loadedProducts[currentGalleryProductIndex].primary_image_url = targetImg.url;
+                            }
+                            renderGalleryGrid();
+                            refreshProductRowBadge(currentGalleryProductIndex);
+                        }
+                    }
+                    setTimeout(() => {
+                        inputElem.style.borderColor = '';
+                        inputElem.style.color = '';
+                    }, 1000);
+                    showToast('Image weight updated!');
+                } else {
+                    alert('Error updating image weight: ' + (data.error || 'Unknown error'));
+                    inputElem.style.borderColor = '#ef4444';
+                }
+            } catch (err) {
+                console.error(err);
+                alert('Network error while updating image weight.');
+                inputElem.style.borderColor = '#ef4444';
+            }
+        }
+
+        async function setGalleryMainImage(event, imageId, imgIndex) {
+            if (event) event.stopPropagation();
+            if (currentGalleryProductIndex === null) return;
+            const item = loadedProducts[currentGalleryProductIndex];
+            if (!item) return;
+
+            try {
+                const response = await fetch('index.php?controller=product&action=setMainImage', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        image_id: imageId,
+                        product_id: parseInt(item.id, 10),
+                        type: item.type === 'jewellery' ? 'jewellery' : 'garments'
+                    })
+                });
+                const data = await response.json();
+                if (data.success) {
+                    item.images.forEach(img => {
+                        img.is_main = (img.id === imageId);
+                    });
+                    const mainImg = item.images.find(img => img.id === imageId);
+                    if (mainImg) {
+                        item.primary_image_url = mainImg.url;
+                    }
+                    renderGalleryGrid();
+                    refreshProductRowBadge(currentGalleryProductIndex);
+                    showToast('Main product image updated successfully!');
+                } else {
+                    alert('Error updating main image: ' + (data.error || 'Unknown error'));
+                }
+            } catch (err) {
+                console.error(err);
+                alert('Network error while updating main image.');
+            }
+        }
+
+        function refreshProductRowBadge(productIndex) {
+            const item = loadedProducts[productIndex];
+            if (!item) return;
+            const card = document.getElementById(`card_prod_${item.id}`);
+            if (!card) return;
+
+            // Update thumbnail image
+            const thumbImg = card.querySelector('.product-item-header img');
+            if (thumbImg && item.primary_image_url) {
+                thumbImg.src = item.primary_image_url;
+            }
+
+            // Update or remove +count button
+            const otherCount = (item.images && item.images.length > 1) ? (item.images.length - 1) : 0;
+            let countBtn = card.querySelector(`button[onclick*="openProductGalleryModal(${productIndex})"]`);
+            
+            if (otherCount > 0) {
+                if (countBtn) {
+                    const span = countBtn.querySelector('span');
+                    if (span) span.innerText = `+${otherCount}`;
+                    countBtn.title = `Click to view all ${item.images.length} photos (${otherCount} additional photos analyzed by AI)`;
+                } else {
+                    const thumbWrapper = card.querySelector('.product-item-header .w-12.h-12');
+                    if (thumbWrapper) {
+                        const newBtn = document.createElement('button');
+                        newBtn.type = 'button';
+                        newBtn.setAttribute('onclick', `openProductGalleryModal(${productIndex})`);
+                        newBtn.className = 'h-8 px-2.5 rounded-md bg-slate-100 hover:bg-slate-200 border border-slate-200 hover:border-slate-300 text-slate-800 inline-flex items-center gap-1.5 transition-colors cursor-pointer shadow-2xs flex-shrink-0';
+                        newBtn.title = `Click to view all ${item.images.length} photos (${otherCount} additional photos analyzed by AI)`;
+                        newBtn.innerHTML = `
+                            <i class="fa-solid fa-images text-[11px] text-slate-500"></i>
+                            <span class="font-mono font-bold text-xs text-slate-900">+${otherCount}</span>
+                        `;
+                        thumbWrapper.insertAdjacentElement('afterend', newBtn);
+                    }
+                }
+            } else {
+                if (countBtn) {
+                    countBtn.remove();
+                }
+            }
         }
 
         // ==================== LOOKUP PRODUCTS ====================
@@ -1452,8 +1952,8 @@
                     <!-- Card Header -->
                     <div class="product-item-header">
                         <div class="flex items-center gap-2.5 flex-wrap flex-1 min-w-0">
-                            <!-- Image Thumbnail (with hover zoom) -->
-                            <div class="w-12 h-12 rounded-md border border-slate-200 overflow-hidden bg-slate-100 flex-shrink-0 cursor-pointer hover:border-slate-400 transition-colors" onclick="openLightbox('${thumb}', '${escapeHtml(item.name || item.code)}')">
+                            <!-- Image Thumbnail (with hover zoom & click to open gallery modal) -->
+                            <div class="w-12 h-12 rounded-md border border-slate-200 overflow-hidden bg-slate-100 flex-shrink-0 cursor-pointer hover:border-slate-400 transition-colors" onclick="openProductGalleryModal(${index})" title="Click to view photos, set weights, or delete in bulk">
                                 <img src="${thumb}" alt="${escapeHtml(item.code)}" class="w-full h-full object-cover" onerror="this.src='assets/placeholder.png'">
                             </div>
 

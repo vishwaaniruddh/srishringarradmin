@@ -1618,6 +1618,69 @@ class AllInOneWriterController extends Controller
     }
 
     /**
+     * Delete image or bulk delete images (compatible with ProductController)
+     */
+    public function deleteImage()
+    {
+        $input = json_decode(file_get_contents('php://input'), true) ?: $_POST;
+        $ids = $input['ids'] ?? null;
+        $id = (int)($input['id'] ?? 0);
+
+        $productModel = new ProductModel();
+        try {
+            if (is_array($ids) && count($ids) > 0) {
+                $successCount = 0;
+                foreach ($ids as $imgId) {
+                    if ($productModel->deleteImage((int)$imgId)) {
+                        $successCount++;
+                    }
+                }
+                $this->json(['success' => true, 'deleted_count' => $successCount]);
+                return;
+            }
+
+            if (!$id) {
+                $this->json(['error' => 'Missing image ID'], 400);
+                return;
+            }
+
+            if ($productModel->deleteImage($id)) {
+                $this->json(['success' => true]);
+            } else {
+                $this->json(['error' => 'Failed to delete image from database'], 500);
+            }
+        } catch (\Exception $e) {
+            $this->json(['error' => $e->getMessage()], 500);
+        }
+    }
+
+    /**
+     * Update image display weight / order (compatible with ProductController)
+     */
+    public function updateImageWeight()
+    {
+        $input = json_decode(file_get_contents('php://input'), true) ?: $_POST;
+        $imageId = (int)($input['image_id'] ?? 0);
+        $weight = (int)($input['weight'] ?? 0);
+
+        if (!$imageId) {
+            $this->json(['error' => 'Image ID is required'], 400);
+            return;
+        }
+
+        $productModel = new ProductModel();
+        try {
+            if ($productModel->updateImageWeight($imageId, $weight)) {
+                $this->json(['success' => true, 'message' => 'Image weight updated successfully']);
+            } else {
+                $this->json(['error' => 'Failed to update image weight'], 500);
+            }
+        } catch (\Exception $e) {
+            $this->json(['error' => $e->getMessage()], 500);
+        }
+    }
+
+    /**
      * Call Gemini image generation API (supports gemini-2.5-flash-image and fallback)
      */
     private function callGeminiImageGen($apiKey, $parts)
@@ -1853,11 +1916,12 @@ class AllInOneWriterController extends Controller
             $isAi = (strpos($raw, '_ai_with_model_') !== false || strpos($raw, '_ai_without_model_') !== false || strpos($raw, '_ai_') !== false);
 
             $resolved[] = [
-                'id' => $img['id'] ?? 0,
+                'id' => (int)($img['id'] ?? 0),
                 'raw_name' => $raw,
                 'url' => $url,
                 'is_main' => ($raw === $mainImg),
-                'is_ai' => $isAi
+                'is_ai' => $isAi,
+                'rank' => (int)($img['rank'] ?? 0)
             ];
         }
 
