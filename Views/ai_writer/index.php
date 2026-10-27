@@ -367,6 +367,14 @@
                                 <i class="fa-solid fa-user-astronaut text-slate-400"></i>
                                 <?php echo count($availableModels); ?> Models Active
                             </span>
+                            <?php 
+                            $currMode = $aiWriterSettings['image_analysis_mode'] ?? 'default';
+                            $currMax = (int)($aiWriterSettings['max_images'] ?? 10);
+                            ?>
+                            <a href="index.php?controller=setting&action=aiwriter" class="shadcn-badge hover:border-slate-400 transition-colors cursor-pointer text-slate-700" title="Click to view/change Image Analysis Settings (Default vs Multi-Image)">
+                                <i class="fa-solid fa-sliders text-slate-500"></i>
+                                <span>Analysis: <strong><?php echo ($currMode === 'multi') ? "Multi-Image ($currMax Max)" : "Default (Single Image)"; ?></strong></span>
+                            </a>
                         </div>
                     </div>
 
@@ -378,9 +386,6 @@
                                 <span class="font-semibold text-xs text-slate-900 uppercase tracking-wider">SKU Queue &amp; Category Filters</span>
                             </div>
                             <div class="flex items-center gap-2">
-                                <button type="button" onclick="openSaturdayModal()" class="shadcn-btn shadcn-btn-sm text-slate-800 bg-slate-100 hover:bg-slate-200 border-slate-300 font-medium" title="Browse and load products uploaded on Saturday (Oct 10, 2026)">
-                                    <i class="fa-solid fa-calendar-day text-slate-600"></i> Saturday's Uploads (Oct 10) <span class="bg-slate-900 text-white text-[10px] px-1.5 py-0.5 rounded-full ml-1 font-semibold">664</span>
-                                </button>
                                 <button type="button" onclick="insertSampleSkus()" class="shadcn-btn shadcn-btn-sm text-slate-600">
                                     <i class="fa-solid fa-lightbulb"></i> Load Sample SKUs
                                 </button>
@@ -402,16 +407,15 @@
                                     </div>
                                 </div>
 
-                                <!-- Configuration Toggles & Toolbar -->
-                                <div class="pt-3 border-t border-slate-100 flex flex-wrap items-center justify-between gap-4">
-                                    <div class="flex flex-wrap items-center gap-3">
-                                        
+                                <!-- Clean Search & Action Bar -->
+                                <div class="pt-3 border-t border-slate-100 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
+                                    <div class="flex items-center gap-2 flex-wrap">
                                         <!-- Category Filter -->
-                                        <div class="flex items-center gap-2 bg-slate-50 border border-slate-200 px-2.5 py-1 rounded-md">
-                                            <span class="text-[11px] font-semibold text-slate-500 uppercase tracking-wider">
+                                        <div class="flex items-center gap-2 bg-white border border-slate-200 px-2.5 py-1 rounded-md shadow-2xs">
+                                            <span class="text-[11px] font-semibold text-slate-500 uppercase tracking-wider flex items-center gap-1">
                                                 <i class="fa-solid fa-filter text-slate-400"></i> Category:
                                             </span>
-                                            <select id="config_category_filter" class="bg-transparent text-xs font-medium text-slate-800 outline-none cursor-pointer max-w-[280px]">
+                                            <select id="config_category_filter" class="bg-transparent text-xs font-semibold text-slate-900 outline-none cursor-pointer max-w-[240px]">
                                                 <option value="">All Categories</option>
                                                 <?php if (!empty($categories)): ?>
                                                     <?php foreach ($categories as $parent => $data): ?>
@@ -427,10 +431,35 @@
                                             </select>
                                         </div>
 
+                                        <!-- Search / Load Button -->
+                                        <button type="button" id="btn_lookup_skus" onclick="lookupProducts()" class="shadcn-btn shadcn-btn-primary">
+                                            <i class="fa-solid fa-magnifying-glass"></i>
+                                            <span>Search &amp; Load Products</span>
+                                        </button>
+
+                                        <!-- Toggle Advanced Options Button -->
+                                        <button type="button" onclick="toggleAdvancedOptions()" id="btn_toggle_options" class="shadcn-btn text-xs text-slate-700 font-medium" title="Show or hide AI Model, Concurrency, and Studio Backdrop customization">
+                                            <i class="fa-solid fa-sliders text-slate-500"></i>
+                                            <span>Studio &amp; Options</span>
+                                            <i id="icon_options_chevron" class="fa-solid fa-chevron-down text-[10px] text-slate-400"></i>
+                                        </button>
+                                    </div>
+
+                                    <!-- Active Options Summary Chip -->
+                                    <div id="active_options_summary" class="hidden sm:inline-flex items-center gap-1.5 text-[11px] text-slate-600 font-medium bg-slate-50 border border-slate-200 px-2.5 py-1 rounded-md">
+                                        <i class="fa-solid fa-circle-check text-emerald-600 text-[10px]"></i>
+                                        <span>Gemini Vision • Multi-Image (10 Max) • Dark Marble • 3 Parallel</span>
+                                    </div>
+                                </div>
+
+                                <!-- Collapsible Secondary Options & Studio Panel (Collapsed by default to keep UI clean) -->
+                                <div id="advanced_options_panel" class="hidden pt-3.5 border-t border-slate-200/80 mt-3 space-y-4 bg-slate-50/70 -mx-4 -mb-4 p-4 rounded-b-lg">
+                                    <!-- Options Row 1: AI Provider, Model Face, Concurrency, Main Image, Auto-Save -->
+                                    <div class="flex flex-wrap items-center gap-3">
                                         <!-- AI Provider -->
-                                        <div class="flex items-center gap-2 bg-slate-50 border border-slate-200 px-2.5 py-1 rounded-md">
+                                        <div class="flex items-center gap-2 bg-white border border-slate-200 px-2.5 py-1 rounded-md shadow-2xs">
                                             <span class="text-[11px] font-semibold text-slate-500 uppercase tracking-wider">AI Model:</span>
-                                            <select id="config_provider" class="bg-transparent text-xs font-medium text-slate-800 outline-none cursor-pointer">
+                                            <select id="config_provider" onchange="updateActiveOptionsSummary()" class="bg-transparent text-xs font-medium text-slate-800 outline-none cursor-pointer">
                                                 <?php if (!empty($hasGemini)): ?>
                                                     <option value="gemini" selected>Google Gemini (Flash Vision)</option>
                                                 <?php endif; ?>
@@ -444,7 +473,7 @@
                                         </div>
 
                                         <!-- Face Reference Selector -->
-                                        <div class="flex items-center gap-2 bg-slate-50 border border-slate-200 px-2.5 py-1 rounded-md">
+                                        <div class="flex items-center gap-2 bg-white border border-slate-200 px-2.5 py-1 rounded-md shadow-2xs">
                                             <span class="text-[11px] font-semibold text-slate-500 uppercase tracking-wider">Model Face:</span>
                                             <select id="config_face_model" class="bg-transparent text-xs font-medium text-slate-800 outline-none cursor-pointer">
                                                 <option value="" selected>Default Indian Fashion Model</option>
@@ -457,11 +486,11 @@
                                         </div>
 
                                         <!-- Studio Backdrop Theme (Without Model) -->
-                                        <div class="flex items-center gap-2 bg-slate-50 border border-slate-200 px-2.5 py-1 rounded-md" title="Display Surface & Backdrop preset for Photo 2">
+                                        <div class="flex items-center gap-2 bg-white border border-slate-200 px-2.5 py-1 rounded-md shadow-2xs" title="Display Surface & Backdrop preset for Photo 2">
                                             <span class="text-[11px] font-semibold text-slate-500 uppercase tracking-wider">
                                                 <i class="fa-solid fa-gem text-slate-400"></i> Studio Surface:
                                             </span>
-                                            <select id="config_studio_theme" onchange="syncStudioSurfaceFromSelect(this.value)" class="bg-transparent text-xs font-medium text-slate-800 outline-none cursor-pointer">
+                                            <select id="config_studio_theme" onchange="syncStudioSurfaceFromSelect(this.value); updateActiveOptionsSummary();" class="bg-transparent text-xs font-medium text-slate-800 outline-none cursor-pointer">
                                                 <option value="dark_marble" selected>Dark Marble (Luxury Studio)</option>
                                                 <option value="velvet_cushion">Velvet Cushion (Royal Warmth)</option>
                                                 <option value="wooden_stand">Wooden Stand (Minimalist)</option>
@@ -476,28 +505,10 @@
                                             </select>
                                         </div>
 
-                                        <!-- Generation Checkboxes -->
-                                        <div class="flex items-center gap-3 text-xs text-slate-700 bg-slate-50 border border-slate-200 px-3 py-1.5 rounded-md">
-                                            <label class="flex items-center gap-1.5 cursor-pointer">
-                                                <input type="checkbox" id="gen_opt_copy" checked class="rounded border-slate-300 text-slate-900 focus:ring-0">
-                                                <span>Title &amp; Descriptions</span>
-                                            </label>
-                                            <span class="text-slate-300">|</span>
-                                            <label class="flex items-center gap-1.5 cursor-pointer">
-                                                <input type="checkbox" id="gen_opt_model" checked class="rounded border-slate-300 text-slate-900 focus:ring-0">
-                                                <span>Photo With Model</span>
-                                            </label>
-                                            <span class="text-slate-300">|</span>
-                                            <label class="flex items-center gap-1.5 cursor-pointer">
-                                                <input type="checkbox" id="gen_opt_studio" checked class="rounded border-slate-300 text-slate-900 focus:ring-0">
-                                                <span>Photo Without Model</span>
-                                            </label>
-                                        </div>
-
-                                        <!-- Main Product Image Selector (Applies to all products) -->
-                                        <div class="flex items-center gap-2 bg-amber-50/70 border border-amber-200/90 px-2.5 py-1 rounded-md" title="Select which photo will be set as the Main Product Image across all items">
-                                            <span class="text-[11px] font-bold text-amber-950 uppercase tracking-wider flex items-center gap-1.5">
-                                                <i class="fa-solid fa-star text-amber-500 text-xs"></i> Set as Main Image:
+                                        <!-- Main Product Image Selector -->
+                                        <div class="flex items-center gap-2 bg-white border border-slate-200 px-2.5 py-1 rounded-md shadow-2xs" title="Select which photo will be set as the Main Product Image across all items">
+                                            <span class="text-[11px] font-bold text-slate-700 uppercase tracking-wider flex items-center gap-1.5">
+                                                <i class="fa-solid fa-star text-amber-500 text-xs"></i> Main Image:
                                             </span>
                                             <select id="config_main_image_choice" onchange="onGlobalMainImageChange(this.value)" class="bg-transparent text-xs font-semibold text-slate-900 outline-none cursor-pointer">
                                                 <option value="without_model" selected>Photo Without Model (Still Life)</option>
@@ -507,11 +518,11 @@
                                         </div>
 
                                         <!-- Parallel Concurrency Selector -->
-                                        <div class="flex items-center gap-1.5 bg-slate-50 border border-slate-200 px-2.5 py-1 rounded-md" title="Number of products generated concurrently in parallel">
+                                        <div class="flex items-center gap-1.5 bg-white border border-slate-200 px-2.5 py-1 rounded-md shadow-2xs" title="Number of products generated concurrently in parallel">
                                             <span class="text-[11px] font-semibold text-slate-500 uppercase tracking-wider flex items-center gap-1">
                                                 <i class="fa-solid fa-gauge-high text-slate-400"></i> Speed:
                                             </span>
-                                            <select id="config_concurrency" onchange="syncConcurrency(this.value)" class="bg-transparent text-xs font-semibold text-slate-900 outline-none cursor-pointer">
+                                            <select id="config_concurrency" onchange="syncConcurrency(this.value); updateActiveOptionsSummary();" class="bg-transparent text-xs font-semibold text-slate-900 outline-none cursor-pointer">
                                                 <option value="2">2 Parallel</option>
                                                 <option value="3" selected>3 Parallel (Fast)</option>
                                                 <option value="4">4 Parallel (Turbo)</option>
@@ -520,73 +531,76 @@
                                         </div>
 
                                         <!-- Auto-Save to DB Toggle -->
-                                        <label class="flex items-center gap-1.5 cursor-pointer bg-emerald-50/80 border border-emerald-200 px-2.5 py-1 rounded-md text-xs font-semibold text-emerald-950" title="Automatically save generated title, descriptions, and photos directly to database upon generation">
-                                            <input type="checkbox" id="config_auto_save" checked onchange="syncAutoSave(this.checked)" class="rounded border-emerald-400 text-emerald-700 focus:ring-0">
+                                        <label class="flex items-center gap-1.5 cursor-pointer bg-white border border-slate-200 px-2.5 py-1 rounded-md text-xs font-semibold text-slate-800 shadow-2xs" title="Automatically save generated title, descriptions, and photos directly to database upon generation">
+                                            <input type="checkbox" id="config_auto_save" checked onchange="syncAutoSave(this.checked)" class="rounded border-slate-300 text-slate-900 focus:ring-0">
                                             <span class="flex items-center gap-1">
                                                 <i class="fa-solid fa-bolt text-emerald-600 text-[11px]"></i> Auto-Save to DB
                                             </span>
                                         </label>
                                     </div>
 
-                                    <!-- Search / Load Buttons -->
-                                    <div class="flex items-center gap-2">
-                                        <button type="button" id="btn_lookup_skus" onclick="lookupProducts()" class="shadcn-btn shadcn-btn-primary">
-                                            <i class="fa-solid fa-magnifying-glass"></i>
-                                            <span>Search &amp; Load Products</span>
-                                        </button>
+                                    <!-- Options Row 2: Target Checkboxes -->
+                                    <div class="flex items-center gap-3 text-xs text-slate-700 bg-white border border-slate-200 px-3 py-1.5 rounded-md shadow-2xs inline-flex flex-wrap">
+                                        <span class="text-[11px] font-semibold text-slate-500 uppercase tracking-wider mr-1">Generate:</span>
+                                        <label class="flex items-center gap-1.5 cursor-pointer">
+                                            <input type="checkbox" id="gen_opt_copy" checked class="rounded border-slate-300 text-slate-900 focus:ring-0">
+                                            <span>Title &amp; Descriptions</span>
+                                        </label>
+                                        <span class="text-slate-200">|</span>
+                                        <label class="flex items-center gap-1.5 cursor-pointer">
+                                            <input type="checkbox" id="gen_opt_model" checked class="rounded border-slate-300 text-slate-900 focus:ring-0">
+                                            <span>Photo With Model</span>
+                                        </label>
+                                        <span class="text-slate-200">|</span>
+                                        <label class="flex items-center gap-1.5 cursor-pointer">
+                                            <input type="checkbox" id="gen_opt_studio" checked class="rounded border-slate-300 text-slate-900 focus:ring-0">
+                                            <span>Photo Without Model</span>
+                                        </label>
                                     </div>
-                                </div>
 
-                                <!-- ==================== AI STUDIO PHOTO (WITHOUT MODEL) SETTINGS PANEL ==================== -->
-                                <div id="studio_settings_panel" class="pt-3.5 border-t border-slate-100 bg-slate-50/60 -mx-4 -mb-4 p-4 rounded-b-lg">
-                                    <div class="flex items-center justify-between mb-2.5 flex-wrap gap-2">
-                                        <div class="flex items-center gap-2">
-                                            <span class="w-6 h-6 rounded bg-slate-900 text-white flex items-center justify-center text-[11px]">
-                                                <i class="fa-solid fa-camera-retro"></i>
+                                    <!-- Options Row 3: Studio Surface Backdrops & Shot Types -->
+                                    <div class="pt-3 border-t border-slate-200/80">
+                                        <div class="flex items-center justify-between mb-2 flex-wrap gap-2">
+                                            <span class="text-xs font-bold text-slate-900 uppercase tracking-wider flex items-center gap-1.5">
+                                                <i class="fa-solid fa-camera-retro text-slate-600"></i> AI Studio &mdash; Still Life Surface &amp; Angle
                                             </span>
-                                            <span class="text-xs font-bold text-slate-900 uppercase tracking-wider">AI Image Studio &mdash; Photo Without Model Settings</span>
-                                            <span class="shadcn-badge font-semibold text-[10px] bg-white border border-slate-200 text-slate-700">Product Edit Standard</span>
+                                            <span class="text-[11px] text-slate-500">
+                                                Controls surface backdrop &amp; shot angle for Photo 2 &amp; Batch Still Life
+                                            </span>
                                         </div>
-                                        <span class="text-[11px] text-slate-500">
-                                            Controls surface backdrop &amp; shot angle for Photo 2 &amp; Batch Still Life
-                                        </span>
-                                    </div>
 
-                                    <div class="grid grid-cols-1 lg:grid-cols-12 gap-4 items-start">
-                                        <!-- DISPLAY SURFACE / BACKDROP (8 cols) -->
-                                        <div class="lg:col-span-7 xl:col-span-8 space-y-2">
-                                            <div class="flex items-center justify-between">
+                                        <div class="grid grid-cols-1 lg:grid-cols-12 gap-4 items-start">
+                                            <div class="lg:col-span-7 xl:col-span-8 space-y-2">
+                                                <div class="flex items-center justify-between">
+                                                    <label class="text-[11px] font-bold text-slate-700 uppercase tracking-wider flex items-center gap-1.5">
+                                                        <i class="fa-solid fa-gem text-slate-400"></i> Display Surface Presets
+                                                    </label>
+                                                    <span class="text-[10px] text-slate-400">Click a preset or customize prompt</span>
+                                                </div>
+                                                <div class="flex flex-wrap gap-1.5" id="studio_surface_pills"></div>
+                                                <div class="relative">
+                                                    <input type="text" id="config_studio_bg_custom" class="field-input text-xs font-medium text-slate-800 bg-white" value="luxury black marble surface with soft warm directional studio spotlighting" placeholder="Describe the background, display surface, or props..." oninput="onCustomBgInputChanged(this.value)">
+                                                </div>
+                                            </div>
+
+                                            <div class="lg:col-span-5 xl:col-span-4 space-y-2">
                                                 <label class="text-[11px] font-bold text-slate-700 uppercase tracking-wider flex items-center gap-1.5">
-                                                    <i class="fa-solid fa-gem text-slate-400"></i> Display Surface / Backdrop
+                                                    <i class="fa-solid fa-crosshairs text-slate-400"></i> Shot Type
                                                 </label>
-                                                <span class="text-[10px] text-slate-400">Click a preset or customize prompt</span>
-                                            </div>
-                                            <!-- Preset buttons matching product edit page -->
-                                            <div class="flex flex-wrap gap-1.5" id="studio_surface_pills"></div>
-                                            <!-- Editable Custom Surface Input -->
-                                            <div class="relative">
-                                                <input type="text" id="config_studio_bg_custom" class="field-input text-xs font-medium text-slate-800" value="luxury black marble surface with soft warm directional studio spotlighting" placeholder="Describe the background, display surface, or props..." oninput="onCustomBgInputChanged(this.value)">
+                                                <div class="space-y-1.5" id="studio_shot_type_radios"></div>
                                             </div>
                                         </div>
 
-                                        <!-- SHOT TYPE (4 cols) -->
-                                        <div class="lg:col-span-5 xl:col-span-4 space-y-2">
-                                            <label class="text-[11px] font-bold text-slate-700 uppercase tracking-wider flex items-center gap-1.5">
-                                                <i class="fa-solid fa-crosshairs text-slate-400"></i> Shot Type
-                                            </label>
-                                            <div class="space-y-1.5" id="studio_shot_type_radios"></div>
+                                        <!-- Live Prompt Preview -->
+                                        <div class="mt-3 pt-2.5 border-t border-slate-200/70 flex flex-col gap-1">
+                                            <div class="flex items-center justify-between text-[11px] text-slate-500">
+                                                <span class="font-semibold text-slate-700 flex items-center gap-1.5">
+                                                    <i class="fa-solid fa-terminal text-slate-400 text-[10px]"></i> Live Studio Prompt Preview:
+                                                </span>
+                                                <span id="prompt_preview_chars" class="font-mono text-[10px] text-slate-400">0 chars</span>
+                                            </div>
+                                            <textarea id="studio_live_prompt_preview" rows="2" class="field-textarea font-mono text-[11px] text-slate-600 bg-white" readonly></textarea>
                                         </div>
-                                    </div>
-
-                                    <!-- Live Prompt Preview -->
-                                    <div class="mt-3 pt-2.5 border-t border-slate-200/70 flex flex-col gap-1">
-                                        <div class="flex items-center justify-between text-[11px] text-slate-500">
-                                            <span class="font-semibold text-slate-700 flex items-center gap-1.5">
-                                                <i class="fa-solid fa-terminal text-slate-400 text-[10px]"></i> Live Studio Prompt Preview:
-                                            </span>
-                                            <span id="prompt_preview_chars" class="font-mono text-[10px] text-slate-400">0 chars</span>
-                                        </div>
-                                        <textarea id="studio_live_prompt_preview" rows="2" class="field-textarea font-mono text-[11px] text-slate-600 bg-white" readonly></textarea>
                                     </div>
                                 </div>
                             </div>
@@ -608,9 +622,14 @@
                                 </div>
                             </div>
                             <div class="flex items-center gap-2 flex-wrap">
-                                <!-- Synchronized Main Image Switcher on Queue Bar -->
-                                <div class="flex items-center gap-1.5 bg-amber-50/80 border border-amber-200 px-2 py-1 rounded text-xs">
-                                    <span class="text-[10.5px] font-bold text-amber-950 uppercase tracking-wider flex items-center gap-1">
+                                <!-- Multi-Image Active Badge -->
+                                <span class="shadcn-badge font-semibold text-[11px] bg-emerald-50 text-emerald-800 border-emerald-200">
+                                    <i class="fa-solid fa-layer-group text-emerald-600 text-[10px]"></i> Multi-Image Synthesis (10 Max)
+                                </span>
+
+                                <!-- Quick Main Image Switcher -->
+                                <div class="flex items-center gap-1.5 bg-white border border-slate-200 px-2 py-1 rounded text-xs shadow-2xs">
+                                    <span class="text-[10.5px] font-bold text-slate-700 uppercase tracking-wider flex items-center gap-1">
                                         <i class="fa-solid fa-star text-amber-500 text-[10px]"></i> Main:
                                     </span>
                                     <select id="queue_main_image_choice" onchange="onGlobalMainImageChange(this.value)" class="bg-transparent text-xs font-semibold text-slate-900 outline-none cursor-pointer">
@@ -620,10 +639,10 @@
                                     </select>
                                 </div>
 
-                                <!-- Parallel Concurrency Quick Switcher -->
-                                <div class="flex items-center gap-1.5 bg-slate-100 border border-slate-200 px-2 py-1 rounded text-xs">
+                                <!-- Concurrency Switcher -->
+                                <div class="flex items-center gap-1.5 bg-white border border-slate-200 px-2 py-1 rounded text-xs shadow-2xs">
                                     <span class="text-[10.5px] font-bold text-slate-600 uppercase tracking-wider flex items-center gap-1">
-                                        <i class="fa-solid fa-gauge-high text-slate-500 text-[10px]"></i> Speed:
+                                        <i class="fa-solid fa-gauge-high text-slate-400 text-[10px]"></i> Speed:
                                     </span>
                                     <select id="queue_concurrency" onchange="syncConcurrency(this.value)" class="bg-transparent text-xs font-semibold text-slate-900 outline-none cursor-pointer">
                                         <option value="2">2 Parallel</option>
@@ -633,9 +652,9 @@
                                     </select>
                                 </div>
 
-                                <!-- Auto-Save Toggle on Queue Bar -->
-                                <label class="flex items-center gap-1.5 cursor-pointer bg-emerald-50 border border-emerald-200 px-2 py-1 rounded text-xs font-semibold text-emerald-950" title="Auto-save to database upon generation">
-                                    <input type="checkbox" id="queue_auto_save" checked onchange="syncAutoSave(this.checked)" class="rounded border-emerald-400 text-emerald-700 focus:ring-0">
+                                <!-- Auto-Save Toggle -->
+                                <label class="flex items-center gap-1.5 cursor-pointer bg-white border border-slate-200 px-2 py-1 rounded text-xs font-semibold text-slate-800 shadow-2xs" title="Auto-save to database upon generation">
+                                    <input type="checkbox" id="queue_auto_save" checked onchange="syncAutoSave(this.checked)" class="rounded border-slate-300 text-slate-900 focus:ring-0">
                                     <span><i class="fa-solid fa-bolt text-emerald-600 text-[10px]"></i> Auto-Save</span>
                                 </label>
 
@@ -786,6 +805,55 @@
                         <i class="fa-solid fa-wand-magic-sparkles"></i> Generate Studio Photo Now
                     </button>
                 </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Product Multi-Image Reference Gallery Modal -->
+    <div id="product-gallery-modal" class="hidden fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[100000] flex items-center justify-center p-4" onclick="closeProductGalleryModal()">
+        <div class="bg-white border border-slate-200 rounded-xl shadow-2xl max-w-4xl w-full max-h-[90vh] flex flex-col overflow-hidden" onclick="event.stopPropagation()">
+            <!-- Modal Header -->
+            <div class="px-5 py-4 border-b border-slate-200 flex items-center justify-between bg-slate-50/70">
+                <div class="flex items-center gap-2.5">
+                    <div class="w-8 h-8 rounded-lg bg-slate-900 text-white flex items-center justify-center text-sm">
+                        <i class="fa-solid fa-images"></i>
+                    </div>
+                    <div>
+                        <div class="flex items-center gap-2">
+                            <h2 class="text-sm font-bold text-slate-900">Product Visual Photographs &amp; Reference Angles</h2>
+                            <span id="modal_gallery_sku_badge" class="text-[11px] font-mono font-bold text-slate-900 bg-slate-200/80 px-2 py-0.5 rounded">SKU</span>
+                            <span id="modal_gallery_count_badge" class="text-[11px] font-semibold text-slate-700 bg-white border border-slate-200 px-2 py-0.5 rounded-full shadow-2xs">0 Photos</span>
+                        </div>
+                        <p class="text-[11px] text-slate-500 mt-0.5" id="modal_gallery_product_title">All authentic photos recorded for this item. Click any image to view in high resolution.</p>
+                    </div>
+                </div>
+                <button type="button" onclick="closeProductGalleryModal()" class="w-8 h-8 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 flex items-center justify-center text-sm transition-colors">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+
+            <!-- Multi-Image AI Banner -->
+            <div class="px-5 py-2.5 bg-slate-50 border-b border-slate-200 text-xs text-slate-600 flex items-center justify-between flex-wrap gap-2">
+                <div class="flex items-center gap-2">
+                    <span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded bg-emerald-50 text-emerald-800 font-semibold text-[11px] border border-emerald-200">
+                        <i class="fa-solid fa-layer-group text-emerald-600"></i> Multi-Image Synthesis Active
+                    </span>
+                    <span class="text-slate-600">AI synthesizes up to 10 angles together (stones, clasps, motifs) for faithful reproduction.</span>
+                </div>
+                <span class="text-[11px] text-slate-400 font-medium">Click any photo to enlarge</span>
+            </div>
+
+            <!-- Gallery Images Grid -->
+            <div class="flex-1 overflow-y-auto p-5 bg-slate-50/30" id="modal_gallery_grid" style="max-height: 58vh;">
+                <!-- Dynamically populated -->
+            </div>
+
+            <!-- Modal Footer -->
+            <div class="px-5 py-3 border-t border-slate-200 bg-white flex items-center justify-between">
+                <span id="modal_gallery_footer_info" class="text-xs text-slate-500"></span>
+                <button type="button" onclick="closeProductGalleryModal()" class="shadcn-btn shadcn-btn-sm text-slate-700">
+                    Close Gallery
+                </button>
             </div>
         </div>
     </div>
@@ -1182,6 +1250,101 @@
             renderProducts();
         }
 
+        // ==================== ADVANCED OPTIONS PANEL TOGGLE ====================
+        function toggleAdvancedOptions() {
+            const panel = document.getElementById('advanced_options_panel');
+            const icon = document.getElementById('icon_options_chevron');
+            if (!panel) return;
+            const isHidden = panel.classList.contains('hidden');
+            if (isHidden) {
+                panel.classList.remove('hidden');
+                if (icon) icon.className = 'fa-solid fa-chevron-up text-[10px] text-slate-400';
+            } else {
+                panel.classList.add('hidden');
+                if (icon) icon.className = 'fa-solid fa-chevron-down text-[10px] text-slate-400';
+            }
+        }
+
+        function updateActiveOptionsSummary() {
+            const summary = document.getElementById('active_options_summary');
+            if (!summary) return;
+            const provider = document.getElementById('config_provider')?.value === 'openai' ? 'OpenAI GPT-4o' : 'Gemini Vision';
+            const surface = getActiveStudioSurfaceLabel();
+            const speed = document.getElementById('config_concurrency')?.value || '3';
+            summary.innerHTML = `<i class="fa-solid fa-circle-check text-emerald-600 text-[10px]"></i> ${provider} • Multi-Image (10 Max) • ${surface} • ${speed} Parallel`;
+        }
+
+        // ==================== PRODUCT VISUAL PHOTOGRAPHS GALLERY MODAL ====================
+        function openProductGalleryModal(index) {
+            const item = loadedProducts[index];
+            if (!item) return;
+
+            document.getElementById('modal_gallery_sku_badge').innerText = item.code || 'Item';
+            document.getElementById('modal_gallery_count_badge').innerText = `${item.images ? item.images.length : 0} Photos`;
+            document.getElementById('modal_gallery_product_title').innerText = item.name || item.code;
+
+            const grid = document.getElementById('modal_gallery_grid');
+            if (!item.images || item.images.length === 0) {
+                grid.innerHTML = '<div class="p-8 text-center text-slate-400 text-xs">No photos found for this product.</div>';
+            } else {
+                let html = '<div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">';
+                item.images.forEach((img, i) => {
+                    const isMain = img.is_main || (i === 0);
+                    const isAi = img.is_ai;
+                    const isAnalyzed = i < 10; // Top 10 sent to Gemini multi-image vision
+
+                    html += `
+                        <div class="group relative rounded-lg border border-slate-200 bg-white overflow-hidden shadow-2xs hover:shadow-md hover:border-slate-400 transition-all cursor-pointer" onclick="openLightbox('${img.url}', '${escapeHtml(item.code)} - Photo #${i + 1}')">
+                            <div class="aspect-square bg-slate-100 overflow-hidden relative">
+                                <img src="${img.url}" alt="${escapeHtml(item.code)} #${i + 1}" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200" onerror="this.src='assets/placeholder.png'">
+                                
+                                <!-- Badges -->
+                                <div class="absolute top-1.5 left-1.5 flex flex-col gap-1 items-start z-10">
+                                    ${isMain ? `
+                                        <span class="bg-amber-500 text-slate-950 text-[9px] font-extrabold px-1.5 py-0.5 rounded shadow flex items-center gap-1 tracking-wider">
+                                            <i class="fa-solid fa-star text-[8px]"></i> MAIN
+                                        </span>
+                                    ` : ''}
+                                    ${isAnalyzed ? `
+                                        <span class="bg-slate-900/85 text-white text-[9px] font-semibold px-1.5 py-0.5 rounded backdrop-blur-xs flex items-center gap-1">
+                                            <i class="fa-solid fa-microchip text-[8px] text-emerald-400"></i> AI Analyzed
+                                        </span>
+                                    ` : ''}
+                                </div>
+
+                                ${isAi ? `
+                                    <span class="absolute bottom-1.5 right-1.5 bg-slate-800/80 text-white text-[9px] px-1.5 py-0.5 rounded backdrop-blur-xs">
+                                        AI Studio
+                                    </span>
+                                ` : `
+                                    <span class="absolute bottom-1.5 right-1.5 bg-white/95 text-slate-700 text-[9px] font-medium px-1.5 py-0.5 rounded border border-slate-200 shadow-2xs">
+                                        Original Photo
+                                    </span>
+                                `}
+                            </div>
+                            <div class="p-2 border-t border-slate-100 flex items-center justify-between text-[11px] bg-white">
+                                <span class="font-mono text-slate-700 font-bold truncate">Photo #${i + 1}</span>
+                                <span class="text-slate-400 text-[10px]"><i class="fa-solid fa-magnifying-glass-plus"></i> View</span>
+                            </div>
+                        </div>
+                    `;
+                });
+                html += '</div>';
+                grid.innerHTML = html;
+            }
+
+            const analyzedCount = Math.min(item.images ? item.images.length : 0, 10);
+            document.getElementById('modal_gallery_footer_info').innerText = `${analyzedCount} of ${item.images ? item.images.length : 0} photos are analyzed by Google Gemini Vision multi-image model.`;
+
+            const modal = document.getElementById('product-gallery-modal');
+            if (modal) modal.classList.remove('hidden');
+        }
+
+        function closeProductGalleryModal() {
+            const modal = document.getElementById('product-gallery-modal');
+            if (modal) modal.classList.add('hidden');
+        }
+
         // ==================== LOOKUP PRODUCTS ====================
         async function lookupProducts() {
             const raw = document.getElementById('sku_input').value.trim();
@@ -1279,6 +1442,7 @@
             loadedProducts.forEach((item, index) => {
                 const thumb = item.primary_image_url || 'assets/placeholder.png';
                 const typeBadge = item.type === 'jewellery' ? 'Jewellery' : 'Apparel';
+                const otherCount = (item.images && item.images.length > 1) ? (item.images.length - 1) : 0;
                 
                 // Placement badge text
                 const placementHint = getPlacementHint(item.category_key);
@@ -1287,17 +1451,24 @@
                 <div class="product-item-card" id="card_prod_${item.id}">
                     <!-- Card Header -->
                     <div class="product-item-header">
-                        <div class="flex items-center gap-3">
-                            <div class="w-12 h-12 rounded-md border border-slate-200 overflow-hidden bg-slate-100 flex-shrink-0 cursor-pointer" onclick="openLightbox('${thumb}', '${escapeHtml(item.name || item.code)}')">
+                        <div class="flex items-center gap-2.5 flex-wrap flex-1 min-w-0">
+                            <!-- Image Thumbnail (with hover zoom) -->
+                            <div class="w-12 h-12 rounded-md border border-slate-200 overflow-hidden bg-slate-100 flex-shrink-0 cursor-pointer hover:border-slate-400 transition-colors" onclick="openLightbox('${thumb}', '${escapeHtml(item.name || item.code)}')">
                                 <img src="${thumb}" alt="${escapeHtml(item.code)}" class="w-full h-full object-cover" onerror="this.src='assets/placeholder.png'">
                             </div>
-                            <div>
+
+                            <!-- OTHER IMAGES AS +COUNT BADGE RIGHT AFTER IMAGE AND BEFORE SKU -->
+                            ${otherCount > 0 ? `
+                                <button type="button" onclick="openProductGalleryModal(${index})" class="h-8 px-2.5 rounded-md bg-slate-100 hover:bg-slate-200 border border-slate-200 hover:border-slate-300 text-slate-800 inline-flex items-center gap-1.5 transition-colors cursor-pointer shadow-2xs flex-shrink-0" title="Click to view all ${item.images.length} photos (${otherCount} additional photos analyzed by AI)">
+                                    <i class="fa-solid fa-images text-[11px] text-slate-500"></i>
+                                    <span class="font-mono font-bold text-xs text-slate-900">+${otherCount}</span>
+                                </button>
+                            ` : ''}
+
+                            <div class="min-w-0">
                                 <div class="flex items-center gap-2 flex-wrap">
                                     <span class="font-mono font-bold text-xs text-slate-900 bg-slate-100 border border-slate-200 px-2 py-0.5 rounded">
                                         ${escapeHtml(item.code)}
-                                    </span>
-                                    <span class="shadcn-badge font-semibold text-[10.5px]">
-                                        ${typeBadge}
                                     </span>
                                     
                                     <!-- Category Selector Dropdown -->
@@ -1307,8 +1478,9 @@
                                         `).join('')}
                                     </select>
 
-                                    <span id="cat_hint_${item.id}" class="shadcn-badge font-mono text-[10px] text-amber-800 bg-amber-50 border-amber-200">
-                                        <i class="fa-solid fa-crosshairs"></i> ${placementHint}
+                                    <!-- Subtle Placement Hint Badge -->
+                                    <span id="cat_hint_${item.id}" class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10.5px] font-medium text-slate-600 bg-slate-100 border border-slate-200" title="${placementHint}">
+                                        <i class="fa-solid fa-crosshairs text-slate-400 text-[10px]"></i> ${placementHint}
                                     </span>
                                 </div>
                                 <div class="text-[11px] text-slate-500 mt-1 flex items-center gap-2">
@@ -1316,14 +1488,20 @@
                                         <span class="status-dot"></span>
                                         ${item.status_text || 'Ready'}
                                     </span>
-                                    <span class="text-slate-400">|</span>
-                                    <span>${escapeHtml(item.category_name || '')}</span>
+                                    <span class="text-slate-300">•</span>
+                                    <span class="truncate">${escapeHtml(item.category_name || '')}</span>
+                                    ${otherCount > 0 ? `
+                                        <span class="text-slate-300">•</span>
+                                        <span class="text-emerald-700 text-[10px] font-medium flex items-center gap-1">
+                                            <i class="fa-solid fa-microchip text-[9px]"></i> ${Math.min(item.images.length, 10)} angles analyzed
+                                        </span>
+                                    ` : ''}
                                 </div>
                             </div>
                         </div>
 
                         <!-- Card Action Buttons -->
-                        <div class="flex items-center gap-2">
+                        <div class="flex items-center gap-2 flex-shrink-0">
                             <button type="button" id="btn_run_single_${item.id}" onclick="generateSingleAllInOne(${index})" class="shadcn-btn shadcn-btn-sm shadcn-btn-primary" title="Generate copy & photos in parallel and auto-save directly to Database">
                                 <i class="fa-solid fa-bolt text-amber-300"></i> Generate &amp; Save
                             </button>
@@ -1609,7 +1787,9 @@
                                     id: item.id,
                                     type: item.type,
                                     provider: provider,
-                                    category_key: currentCatKey
+                                    category_key: currentCatKey,
+                                    analysis_mode: 'multi',
+                                    max_images: 10
                                 })
                             });
                             const cData = await cRes.json();
@@ -1650,7 +1830,9 @@
                                     mode: 'with_model',
                                     face_reference: faceModel,
                                     studio_theme: studioTheme,
-                                    category_key: currentCatKey
+                                    category_key: currentCatKey,
+                                    analysis_mode: 'multi',
+                                    max_images: 10
                                 })
                             });
                             const pData = await pRes.json();
@@ -1684,7 +1866,9 @@
                                     studio_bg_custom: item.custom_studio_bg || getSelectedStudioCustomBg(),
                                     studio_shot_type: item.custom_studio_shot_type || getSelectedStudioShotType(),
                                     custom_studio_prompt: item.custom_studio_prompt || '',
-                                    category_key: currentCatKey
+                                    category_key: currentCatKey,
+                                    analysis_mode: 'multi',
+                                    max_images: 10
                                 })
                             });
                             const pData = await pRes.json();
@@ -1709,17 +1893,19 @@
                     ? autoSave 
                     : (document.getElementById('config_auto_save')?.checked || document.getElementById('queue_auto_save')?.checked);
 
+                const angleCount = item.images && item.images.length > 1 ? ` (${Math.min(item.images.length, 10)} angles)` : '';
+
                 if (shouldAutoSave) {
                     if (pill) pill.innerHTML = '<span class="status-dot active"></span> Auto-Saving to DB...';
                     const saveOk = await saveSingleProduct(index, true);
                     if (saveOk) {
-                        if (pill) pill.innerHTML = '<span class="status-dot active"></span> Generated &amp; Saved';
+                        if (pill) pill.innerHTML = `<span class="status-dot active"></span> Saved${angleCount}`;
                         showToast(`Generated &amp; Saved ${item.code} to catalog!`);
                     } else {
                         if (pill) pill.innerHTML = '<span class="status-dot"></span> Generated (Save Issue)';
                     }
                 } else {
-                    if (pill) pill.innerHTML = '<span class="status-dot active"></span> Generated (Ready to Save)';
+                    if (pill) pill.innerHTML = `<span class="status-dot active"></span> Generated${angleCount}`;
                     showToast(`Generated All in One for ${item.code}!`);
                 }
 
@@ -1756,7 +1942,9 @@
                         id: item.id, 
                         type: item.type, 
                         provider: provider,
-                        category_key: item.category_key 
+                        category_key: item.category_key,
+                        analysis_mode: 'multi',
+                        max_images: 10
                     })
                 });
                 const data = await res.json();
@@ -1804,7 +1992,9 @@
                         mode: 'with_model',
                         face_reference: faceModel,
                         studio_theme: studioTheme,
-                        category_key: item.category_key
+                        category_key: item.category_key,
+                        analysis_mode: 'multi',
+                        max_images: 10
                     })
                 }).then(r => r.json());
 
@@ -1821,7 +2011,9 @@
                         studio_bg_custom: studioCustomBg,
                         studio_shot_type: studioShotType,
                         custom_studio_prompt: studioPrompt,
-                        category_key: item.category_key
+                        category_key: item.category_key,
+                        analysis_mode: 'multi',
+                        max_images: 10
                     })
                 }).then(r => r.json());
 
@@ -1879,7 +2071,9 @@
                         studio_bg_custom: studioCustomBg,
                         studio_shot_type: studioShotType,
                         custom_studio_prompt: studioPrompt,
-                        category_key: item.category_key
+                        category_key: item.category_key,
+                        analysis_mode: 'multi',
+                        max_images: 10
                     })
                 });
                 const data = await res.json();

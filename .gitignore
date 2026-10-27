@@ -26,6 +26,8 @@ C:/
 20[0-9][0-9]/
 202*/
 
-# Dynamic / uploaded AI model images
+# Dynamic / uploaded AI model images & previews
 assets/models/*
 !assets/models/.gitkeep
+assets/ai_preview/*
+!assets/ai_preview/.gitkeep

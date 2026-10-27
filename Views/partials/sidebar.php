@@ -21,7 +21,7 @@ $isAiActive = in_array($currentController, ['aianalytics', 'aimodels', 'allinone
               ($currentController === 'product' && in_array($currentAction, ['bulkaiwriter', 'desccorrector']));
 
 $isMarketingActive = ($currentController === 'newsletter');
-$isSystemActive = false;
+$isSystemActive = in_array($currentController, ['setting', 'settings']) || ($currentController === 'chatbot' && $currentAction === 'settings');
 
 $admin_name = $_SESSION['admin_username'] ?? 'Admin';
 $admin_initials = strtoupper(substr($admin_name, 0, 2));
@@ -613,6 +613,29 @@ $admin_initials = strtoupper(substr($admin_name, 0, 2));
                     <i class="fa-solid fa-envelope-open-text item-icon"></i>
                     <span class="item-text">Newsletters</span>
                 </a>
+            </li>
+
+            <!-- ==================== SYSTEM & SETTINGS ==================== -->
+            <li class="menu-section-label">Settings</li>
+
+            <li class="menu-item has-submenu <?php echo $isSystemActive ? 'open active-parent' : ''; ?>">
+                <a href="javascript:void(0);" class="submenu-toggle">
+                    <i class="fa-solid fa-gear item-icon"></i>
+                    <span class="item-text">Settings</span>
+                    <i class="fa-solid fa-chevron-right submenu-arrow"></i>
+                </a>
+                <ul class="submenu">
+                    <li class="<?php echo (in_array($currentController, ['setting', 'settings']) && in_array($currentAction, ['aiwriter', 'index', ''])) ? 'active' : ''; ?>">
+                        <a href="index.php?controller=setting&action=aiwriter">
+                            <i class="fa-solid fa-wand-magic-sparkles"></i> AI Writer Settings
+                        </a>
+                    </li>
+                    <li class="<?php echo ($currentController === 'chatbot' && $currentAction === 'settings') ? 'active' : ''; ?>">
+                        <a href="index.php?controller=chatbot&action=settings">
+                            <i class="fa-solid fa-robot"></i> Chatbot Settings
+                        </a>
+                    </li>
+                </ul>
             </li>
         </ul>
     </div>

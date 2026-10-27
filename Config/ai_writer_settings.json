@@ -1,0 +1,6 @@
+{
+    "image_analysis_mode": "multi",
+    "max_images": 10,
+    "include_content_analysis": true,
+    "updated_at": "2026-10-26 12:28:26"
+}

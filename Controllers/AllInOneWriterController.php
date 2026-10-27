@@ -15,6 +15,51 @@ class AllInOneWriterController extends Controller
     }
 
     /**
+     * Get AI Writer image analysis settings (default vs multi-image)
+     */
+    public static function getAiWriterSettings()
+    {
+        $file = __DIR__ . '/../Config/ai_writer_settings.json';
+        $defaults = [
+            'image_analysis_mode' => 'default', // 'default' (single image) or 'multi' (multiple images up to 10)
+            'max_images' => 10,
+            'include_content_analysis' => true,
+            'updated_at' => null
+        ];
+        if (file_exists($file)) {
+            $data = json_decode(file_get_contents($file), true);
+            if (is_array($data)) {
+                return array_merge($defaults, $data);
+            }
+        }
+        return $defaults;
+    }
+
+    /**
+     * Persist AI Writer image analysis settings
+     */
+    public static function saveAiWriterSettings($data)
+    {
+        $file = __DIR__ . '/../Config/ai_writer_settings.json';
+        $current = self::getAiWriterSettings();
+        $merged = array_merge($current, $data);
+        $merged['max_images'] = max(1, min(10, (int)($merged['max_images'] ?? 10)));
+        if (!in_array($merged['image_analysis_mode'] ?? '', ['default', 'multi'])) {
+            $merged['image_analysis_mode'] = 'default';
+        }
+        $merged['include_content_analysis'] = !empty($merged['include_content_analysis']);
+        $merged['updated_at'] = date('Y-m-d H:i:s');
+
+        $dir = dirname($file);
+        if (!is_dir($dir)) {
+            @mkdir($dir, 0755, true);
+        }
+
+        $res = @file_put_contents($file, json_encode($merged, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES));
+        return $res !== false ? $merged : false;
+    }
+
+    /**
      * Category definitions with specialized anatomical placement and photoshoot styling rules
      */
     public static function getCategoryDefinitions()
@@ -288,6 +333,7 @@ class AllInOneWriterController extends Controller
         $productModel = new ProductModel();
         $categories = $productModel->getCategories();
         $categoryDefinitions = self::getCategoryDefinitions();
+        $aiWriterSettings = self::getAiWriterSettings();
 
         $this->view('ai_writer/index', [
             'hasApiKey' => $hasApiKey,
@@ -295,7 +341,8 @@ class AllInOneWriterController extends Controller
             'hasOpenAi' => $hasOpenAi,
             'availableModels' => $availableModels,
             'categories' => $categories,
-            'categoryDefinitions' => $categoryDefinitions
+            'categoryDefinitions' => $categoryDefinitions,
+            'aiWriterSettings' => $aiWriterSettings
         ]);
     }
 
@@ -508,21 +555,69 @@ class AllInOneWriterController extends Controller
         $code = $product['code'] ?? ($product['product_code'] ?? ($product['gproduct_code'] ?? ''));
         $currentName = $product['name'] ?? ($product['product_name'] ?? ($product['gproduct_name'] ?? ''));
 
-        // Load image binary for Vision analysis
+        // Load image binary for Vision analysis (honoring AI Writer Settings)
         $images = $productModel->getProductImages($id, $type);
-        $imgBinary = null;
-        $mimeType = 'image/jpeg';
+        $aiSettings = self::getAiWriterSettings();
+        $analysisMode = $rawInput['analysis_mode'] ?? ($_GET['analysis_mode'] ?? ($aiSettings['image_analysis_mode'] ?? 'default'));
+        $maxImages = (int)($rawInput['max_images'] ?? ($_GET['max_images'] ?? ($aiSettings['max_images'] ?? 10)));
+        $maxImages = max(1, min(10, $maxImages));
+        $includeContentMulti = !empty($aiSettings['include_content_analysis']);
 
-        if (!empty($images[0]['img_name'])) {
-            $imgBinary = $this->loadBinaryImage($images[0]['img_name'], $mimeType);
+        $productImageParts = [];
+        if ($analysisMode === 'multi' && $includeContentMulti) {
+            // Prioritize authentic real product photos over previous AI generated images
+            usort($images, function($a, $b) {
+                $aAi = (strpos($a['img_name'] ?? '', '_ai_') !== false);
+                $bAi = (strpos($b['img_name'] ?? '', '_ai_') !== false);
+                if ($aAi === $bAi) return 0;
+                return $aAi ? 1 : -1;
+            });
+
+            $loadedCount = 0;
+            foreach ($images as $img) {
+                if (empty($img['img_name'])) continue;
+                if ($loadedCount >= $maxImages) break;
+
+                $mType = 'image/jpeg';
+                $bin = $this->loadBinaryImage($img['img_name'], $mType);
+                if (!empty($bin)) {
+                    $bin = $this->optimizeImageBinary($bin, $mType);
+                    $productImageParts[] = [
+                        'inlineData' => [
+                            'mimeType' => $mType,
+                            'data' => base64_encode($bin)
+                        ]
+                    ];
+                    $loadedCount++;
+                }
+            }
+        } else {
+            $imgBinary = null;
+            $mimeType = 'image/jpeg';
+            if (!empty($images[0]['img_name'])) {
+                $imgBinary = $this->loadBinaryImage($images[0]['img_name'], $mimeType);
+            }
+            if (!empty($imgBinary)) {
+                $productImageParts[] = [
+                    'inlineData' => [
+                        'mimeType' => $mimeType,
+                        'data' => base64_encode($imgBinary)
+                    ]
+                ];
+            }
         }
 
-        $hasImage = !empty($imgBinary);
-        $base64Image = $hasImage ? base64_encode($imgBinary) : '';
+        $hasImage = !empty($productImageParts);
+        $photoNotice = "";
+        if (count($productImageParts) > 1) {
+            $photoNotice = " and the " . count($productImageParts) . " attached visual product photographs showing different angles and craftsmanship details";
+        } elseif ($hasImage) {
+            $photoNotice = " and attached visual photograph";
+        }
 
         // Crafted prompt adhering strictly to character boundaries & specific category
         $prompt = "You are an expert luxury Indian fashion and bridal jewellery copywriter for Srishringarr Fashion Studio, Mumbai.\n" .
-                  "Analyze the product details" . ($hasImage ? " and attached visual photograph" : "") . ".\n\n" .
+                  "Analyze the product details" . $photoNotice . ".\n\n" .
                   "Exact Category & Type: " . $catInfo['copy_context'] . "\n" .
                   "SKU Code: " . $code . "\n" .
                   "Current Working Title: " . $currentName . "\n\n" .
@@ -539,11 +634,11 @@ class AllInOneWriterController extends Controller
 
         if ($provider === 'openai') {
             $userContent = [['type' => 'text', 'text' => $prompt]];
-            if ($hasImage) {
+            foreach ($productImageParts as $pPart) {
                 $userContent[] = [
                     'type' => 'image_url',
                     'image_url' => [
-                        'url' => "data:$mimeType;base64,$base64Image",
+                        'url' => "data:{$pPart['inlineData']['mimeType']};base64,{$pPart['inlineData']['data']}",
                         'detail' => 'low'
                     ]
                 ];
@@ -599,13 +694,8 @@ class AllInOneWriterController extends Controller
         } else {
             // Google Gemini (with zero-latency thinkingBudget: 0 and 4096 output tokens)
             $parts = [['text' => $prompt]];
-            if ($hasImage) {
-                $parts[] = [
-                    'inlineData' => [
-                        'mimeType' => $mimeType,
-                        'data' => $base64Image
-                    ]
-                ];
+            foreach ($productImageParts as $pPart) {
+                $parts[] = $pPart;
             }
 
             $models = ['gemini-flash-latest', 'gemini-2.5-flash'];
@@ -735,6 +825,8 @@ class AllInOneWriterController extends Controller
             'name' => $generatedName,
             'short_description' => $generatedShort,
             'description' => $generatedDesc,
+            'analysis_mode' => $analysisMode,
+            'images_analyzed_count' => count($productImageParts),
             'tokens' => $totalTokens
         ]);
     }
@@ -779,22 +871,55 @@ class AllInOneWriterController extends Controller
         $prodName = $product['name'] ?? ($product['product_name'] ?? ($product['gproduct_name'] ?? ''));
         $prodCode = $product['code'] ?? ($product['product_code'] ?? ($product['gproduct_code'] ?? ''));
 
-        // Load reference product photo
-        $imgBinary = null;
-        $mimeType = 'image/jpeg';
-        if (!empty($images[0]['img_name'])) {
-            $imgBinary = $this->loadBinaryImage($images[0]['img_name'], $mimeType);
-        }
+        // Load reference product photo(s) based on AI Writer settings
+        $aiSettings = self::getAiWriterSettings();
+        $analysisMode = $rawInput['analysis_mode'] ?? ($_GET['analysis_mode'] ?? ($aiSettings['image_analysis_mode'] ?? 'default'));
+        $maxImages = (int)($rawInput['max_images'] ?? ($_GET['max_images'] ?? ($aiSettings['max_images'] ?? 10)));
+        $maxImages = max(1, min(10, $maxImages));
 
-        $hasImage = !empty($imgBinary);
-        $productImagePart = null;
-        if ($hasImage) {
-            $productImagePart = [
-                'inlineData' => [
-                    'mimeType' => $mimeType,
-                    'data' => base64_encode($imgBinary)
-                ]
-            ];
+        $productImageParts = [];
+        if ($analysisMode === 'multi') {
+            // Option 2: Multiple images analysis (prioritize authentic photos over previous AI images)
+            usort($images, function($a, $b) {
+                $aAi = (strpos($a['img_name'] ?? '', '_ai_') !== false);
+                $bAi = (strpos($b['img_name'] ?? '', '_ai_') !== false);
+                if ($aAi === $bAi) return 0;
+                return $aAi ? 1 : -1;
+            });
+
+            $loadedCount = 0;
+            foreach ($images as $img) {
+                if (empty($img['img_name'])) continue;
+                if ($loadedCount >= $maxImages) break;
+
+                $mType = 'image/jpeg';
+                $bin = $this->loadBinaryImage($img['img_name'], $mType);
+                if (!empty($bin)) {
+                    $bin = $this->optimizeImageBinary($bin, $mType);
+                    $productImageParts[] = [
+                        'inlineData' => [
+                            'mimeType' => $mType,
+                            'data' => base64_encode($bin)
+                        ]
+                    ];
+                    $loadedCount++;
+                }
+            }
+        } else {
+            // Option 1 (Default): Single image analysis (use the default we have)
+            $imgBinary = null;
+            $mimeType = 'image/jpeg';
+            if (!empty($images[0]['img_name'])) {
+                $imgBinary = $this->loadBinaryImage($images[0]['img_name'], $mimeType);
+            }
+            if (!empty($imgBinary)) {
+                $productImageParts[] = [
+                    'inlineData' => [
+                        'mimeType' => $mimeType,
+                        'data' => base64_encode($imgBinary)
+                    ]
+                ];
+            }
         }
 
         // Face Reference Model
@@ -811,6 +936,11 @@ class AllInOneWriterController extends Controller
                     ]
                 ];
             }
+        }
+
+        $multiPhotoGuidance = "";
+        if (count($productImageParts) > 1) {
+            $multiPhotoGuidance = "\nCRITICAL MULTI-IMAGE SYNTHESIS: Attached are " . count($productImageParts) . " authentic visual photographs of this exact product showing its different angles, details, clasp, stones, and craftsmanship. Carefully analyze all " . count($productImageParts) . " attached photos together to faithfully reproduce this exact item without altering its authentic craftsmanship, gemstone colors, or design motifs.\n";
         }
 
         $results = [];
@@ -837,12 +967,15 @@ class AllInOneWriterController extends Controller
             $modelPrompt = "High-end commercial fashion magazine photography of a graceful, elegant Indian woman fashion model wearing this exact " . $catInfo['copy_context'] . " (" . $prodName . ", SKU: " . $prodCode . ").\n" .
                            $catInfo['model_instruction'] . "\n" .
                            $categoryExtraGuard . "\n" .
+                           $multiPhotoGuidance .
                            "The model has elegant styled hair and flawless festive makeup. She is posed gracefully in a luxury Indian royal heritage palace corridor or warm festive studio setting with soft cinematic lighting.\n" .
                            "Ensure the product is shown in crisp, sharp detail and remains the central hero. Do not alter its colors, craftsmanship, or design motifs.\n" .
                            ($customNote ? " Note: " . $customNote : "");
 
             $parts = [['text' => $modelPrompt]];
-            if ($productImagePart) $parts[] = $productImagePart;
+            foreach ($productImageParts as $pPart) {
+                $parts[] = $pPart;
+            }
             if ($facePart) $parts[] = $facePart;
 
             $withModelRes = $this->callGeminiImageGen($apiKey, $parts);
@@ -877,8 +1010,14 @@ class AllInOneWriterController extends Controller
                 $customStudioPrompt
             );
 
+            if (!empty($multiPhotoGuidance)) {
+                $studioPrompt = $multiPhotoGuidance . $studioPrompt;
+            }
+
             $parts = [['text' => $studioPrompt]];
-            if ($productImagePart) $parts[] = $productImagePart;
+            foreach ($productImageParts as $pPart) {
+                $parts[] = $pPart;
+            }
 
             $withoutModelRes = $this->callGeminiImageGen($apiKey, $parts);
             if (!empty($withoutModelRes['success'])) {
@@ -905,7 +1044,10 @@ class AllInOneWriterController extends Controller
             $costEstimate = $count * 0.03 * 86; // ~₹2.58 per image
             $opType = 'all_in_one_image';
             $genOutput = "$count photoshoot image(s) generated";
-            $promptLog = ($mode === 'both') ? "Generated both With & Without Model ({$catInfo['name']})" : "Generated $mode ({$catInfo['name']})";
+            $numRefImages = count($productImageParts);
+            $promptLog = ($mode === 'both') 
+                ? "Generated both With & Without Model ({$catInfo['name']}, Mode: $analysisMode, $numRefImages images analyzed)" 
+                : "Generated $mode ({$catInfo['name']}, Mode: $analysisMode, $numRefImages images analyzed)";
             $website = 'srishringarr';
 
             $stmt = $this->db->prepare("INSERT INTO ai_analytics (product_id, product_type, operation_type, prompt_text, generated_output, num_images, prompt_tokens, candidate_tokens, total_tokens, cost_estimate, website) VALUES (?, ?, ?, ?, ?, ?, 0, 0, 0, ?, ?)");
@@ -922,6 +1064,9 @@ class AllInOneWriterController extends Controller
             'type' => $type,
             'category_key' => $catKey,
             'category_label' => $catInfo['name'],
+            'analysis_mode' => $analysisMode,
+            'images_analyzed_count' => count($productImageParts),
+            'max_allowed' => $maxImages,
             'images' => $results,
             'errors' => $errors
         ]);
@@ -1446,6 +1591,56 @@ class AllInOneWriterController extends Controller
     }
 
     /**
+     * Safely optimize/resize image binary for Gemini API payload efficiency
+     */
+    private function optimizeImageBinary($binary, &$mimeType)
+    {
+        if (empty($binary) || !extension_loaded('gd')) {
+            return $binary;
+        }
+
+        // If under 450KB, keep original
+        if (strlen($binary) <= 450 * 1024) {
+            return $binary;
+        }
+
+        $srcImg = @imagecreatefromstring($binary);
+        if (!$srcImg) {
+            return $binary;
+        }
+
+        $origW = imagesx($srcImg);
+        $origH = imagesy($srcImg);
+
+        $maxDim = 1024;
+        if ($origW <= $maxDim && $origH <= $maxDim && strlen($binary) < 800 * 1024) {
+            imagedestroy($srcImg);
+            return $binary;
+        }
+
+        $ratio = min($maxDim / max($origW, 1), $maxDim / max($origH, 1));
+        $newW = max(1, (int)round($origW * $ratio));
+        $newH = max(1, (int)round($origH * $ratio));
+
+        $dstImg = imagecreatetruecolor($newW, $newH);
+        imagecopyresampled($dstImg, $srcImg, 0, 0, 0, 0, $newW, $newH, $origW, $origH);
+
+        ob_start();
+        imagejpeg($dstImg, null, 82);
+        $compressed = ob_get_clean();
+
+        imagedestroy($srcImg);
+        imagedestroy($dstImg);
+
+        if (!empty($compressed) && strlen($compressed) < strlen($binary)) {
+            $mimeType = 'image/jpeg';
+            return $compressed;
+        }
+
+        return $binary;
+    }
+
+    /**
      * Resolve category hierarchy display name
      */
     private function resolveCategoryName($type, $catId, $subcatId)
@@ -1496,11 +1691,14 @@ class AllInOneWriterController extends Controller
                 }
             }
 
+            $isAi = (strpos($raw, '_ai_with_model_') !== false || strpos($raw, '_ai_without_model_') !== false || strpos($raw, '_ai_') !== false);
+
             $resolved[] = [
                 'id' => $img['id'] ?? 0,
                 'raw_name' => $raw,
                 'url' => $url,
-                'is_main' => ($raw === $mainImg)
+                'is_main' => ($raw === $mainImg),
+                'is_ai' => $isAi
             ];
         }
 
