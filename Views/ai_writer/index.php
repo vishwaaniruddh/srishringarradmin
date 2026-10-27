@@ -992,27 +992,61 @@
                 </button>
             </div>
 
-            <!-- Toolbar: Multi-Image AI Banner & Bulk Selection Controls -->
+            <!-- Toolbar: Multi-Image AI Banner, Selection Counter, & Action Buttons -->
             <div class="px-5 py-2.5 bg-slate-50 border-b border-slate-200 text-xs text-slate-600 flex items-center justify-between flex-wrap gap-2.5">
                 <div class="flex items-center gap-2">
                     <span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded bg-emerald-50 text-emerald-800 font-semibold text-[11px] border border-emerald-200">
-                        <i class="fa-solid fa-layer-group text-emerald-600"></i> Multi-Image Synthesis Active
+                        <i class="fa-solid fa-microchip text-emerald-600"></i> AI Vision Angles:
                     </span>
-                    <span class="text-slate-600 text-xs hidden sm:inline">AI synthesizes up to 10 angles together (stones, clasps, motifs).</span>
+                    <span class="text-xs text-slate-700 font-medium">
+                        <strong id="modal_ai_selected_count" class="text-slate-900 font-bold font-mono">0</strong> of <strong class="text-slate-900 font-bold font-mono">10</strong> Max Selected for Analysis
+                    </span>
                 </div>
 
-                <!-- Bulk Selection Toolbar (Matching Product Edit) -->
-                <div class="flex items-center gap-2">
-                    <button type="button" onclick="selectGalleryAllImages(true)" class="inline-flex items-center gap-1 text-xs font-medium py-1 px-2.5 rounded-md border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 transition-colors shadow-2xs">
-                        <i class="fa-solid fa-check-square text-sky-600"></i> Select All
+                <!-- Action Buttons: Select Top 10, Clear, Bulk Delete, and Generate Result Images -->
+                <div class="flex items-center gap-2 flex-wrap">
+                    <button type="button" onclick="selectGalleryTopImages(10)" class="inline-flex items-center gap-1 text-xs font-medium py-1 px-2.5 rounded-md border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 transition-colors shadow-2xs" title="Select the first 10 photos as reference angles">
+                        <i class="fa-solid fa-check-double text-sky-600"></i> Top 10
                     </button>
                     <button type="button" onclick="selectGalleryAllImages(false)" class="inline-flex items-center gap-1 text-xs font-medium py-1 px-2.5 rounded-md border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 transition-colors shadow-2xs">
                         <i class="fa-regular fa-square text-slate-400"></i> Clear
                     </button>
-                    <button type="button" id="modal_delete_selected_btn" onclick="deleteGallerySelectedImages()" class="inline-flex items-center gap-1.5 text-xs font-semibold py-1 px-3 rounded-md bg-rose-600 text-white hover:bg-rose-700 transition-all opacity-50 cursor-not-allowed shadow-2xs" disabled>
-                        <i class="fa-solid fa-trash-can"></i> Delete Selected (<span id="modal_gallery_selected_count">0</span>)
+                    <button type="button" id="modal_delete_selected_btn" onclick="deleteGallerySelectedImages()" class="inline-flex items-center gap-1.5 text-xs font-semibold py-1 px-2.5 rounded-md bg-rose-600 text-white hover:bg-rose-700 transition-all opacity-50 cursor-not-allowed shadow-2xs" disabled title="Delete selected photos from database">
+                        <i class="fa-solid fa-trash-can"></i> Delete (<span id="modal_gallery_selected_count">0</span>)
                     </button>
+
+                    <!-- GENERATE RESULT IMAGE BUTTON (With Model + Without Model Options) -->
+                    <div class="relative inline-flex" id="modal_gen_btn_group">
+                        <button type="button" id="modal_generate_result_btn" onclick="generateResultImagesFromModal('both')" class="inline-flex items-center gap-1.5 text-xs font-semibold py-1 px-3 rounded-l-md bg-slate-900 hover:bg-slate-800 text-white transition-all shadow-2xs cursor-pointer" title="Generate AI photos using the selected reference angles">
+                            <i class="fa-solid fa-wand-magic-sparkles text-amber-300"></i> Generate Result Image (<span id="modal_gen_btn_count">0</span>)
+                        </button>
+                        <button type="button" onclick="toggleModalGenDropdown(event)" class="inline-flex items-center px-1.5 py-1 text-xs font-semibold rounded-r-md bg-slate-800 hover:bg-slate-700 text-white border-l border-slate-700 transition-all shadow-2xs cursor-pointer" title="Choose generation mode">
+                            <i class="fa-solid fa-chevron-down text-[10px]"></i>
+                        </button>
+
+                        <!-- Dropdown Menu -->
+                        <div id="modal_gen_dropdown" class="hidden absolute right-0 top-full mt-1 w-56 bg-white border border-slate-200 rounded-lg shadow-xl py-1.5 z-50 text-xs">
+                            <button type="button" onclick="generateResultImagesFromModal('both')" class="w-full text-left px-3 py-1.5 hover:bg-slate-50 flex items-center gap-2 text-slate-800 font-semibold cursor-pointer">
+                                <i class="fa-solid fa-layer-group text-slate-600 w-4"></i> Both Photos (Model + Still Life)
+                            </button>
+                            <button type="button" onclick="generateResultImagesFromModal('with_model')" class="w-full text-left px-3 py-1.5 hover:bg-slate-50 flex items-center gap-2 text-slate-700 cursor-pointer">
+                                <i class="fa-solid fa-user text-slate-500 w-4"></i> Photo With Model Only
+                            </button>
+                            <button type="button" onclick="generateResultImagesFromModal('without_model')" class="w-full text-left px-3 py-1.5 hover:bg-slate-50 flex items-center gap-2 text-slate-700 cursor-pointer">
+                                <i class="fa-solid fa-gem text-slate-500 w-4"></i> Still Life (No Model) Only
+                            </button>
+                        </div>
+                    </div>
                 </div>
+            </div>
+
+            <!-- In-Modal Generation Progress Banner -->
+            <div id="modal_gen_indicator" class="hidden px-5 py-2.5 bg-slate-900 text-white text-xs flex items-center justify-between transition-all">
+                <div class="flex items-center gap-2">
+                    <i class="fa-solid fa-spinner fa-spin text-amber-300 text-sm"></i>
+                    <span id="modal_gen_indicator_text">Synthesizing selected angles with Gemini Vision...</span>
+                </div>
+                <span class="text-[11px] text-slate-400 font-mono">10-15s average</span>
             </div>
 
             <!-- Gallery Images Grid -->
@@ -1021,11 +1055,18 @@
             </div>
 
             <!-- Modal Footer -->
-            <div class="px-5 py-3 border-t border-slate-200 bg-white flex items-center justify-between">
-                <span id="modal_gallery_footer_info" class="text-xs text-slate-500"></span>
-                <button type="button" onclick="closeProductGalleryModal()" class="shadcn-btn shadcn-btn-sm text-slate-700">
-                    Close Gallery
-                </button>
+            <div class="px-5 py-3 border-t border-slate-200 bg-white flex items-center justify-between flex-wrap gap-2">
+                <div class="flex items-center gap-2">
+                    <span id="modal_gallery_footer_info" class="text-xs text-slate-500"></span>
+                </div>
+                <div class="flex items-center gap-2">
+                    <button type="button" onclick="saveGallerySelectionAndClose()" class="inline-flex items-center gap-1.5 text-xs font-semibold py-1.5 px-3 rounded-md bg-emerald-600 hover:bg-emerald-700 text-white transition-colors shadow-2xs cursor-pointer">
+                        <i class="fa-solid fa-check"></i> Apply Selection to Product
+                    </button>
+                    <button type="button" onclick="closeProductGalleryModal()" class="shadcn-btn shadcn-btn-sm text-slate-700">
+                        Close
+                    </button>
+                </div>
             </div>
         </div>
     </div>
@@ -1454,6 +1495,11 @@
             const item = loadedProducts[index];
             if (!item) return;
 
+            // If item has no custom selection yet, initialize with first 10 images (or all if < 10)
+            if (!item.selected_image_ids && item.images) {
+                item.selected_image_ids = item.images.slice(0, 10).map(img => img.id);
+            }
+
             document.getElementById('modal_gallery_sku_badge').innerText = item.code || 'Item';
             document.getElementById('modal_gallery_product_title').innerText = item.name || item.code;
 
@@ -1466,13 +1512,35 @@
         function closeProductGalleryModal() {
             const modal = document.getElementById('product-gallery-modal');
             if (modal) modal.classList.add('hidden');
+            const dd = document.getElementById('modal_gen_dropdown');
+            if (dd) dd.classList.add('hidden');
             currentGalleryProductIndex = null;
         }
+
+        function toggleModalGenDropdown(event) {
+            if (event) event.stopPropagation();
+            const dd = document.getElementById('modal_gen_dropdown');
+            if (dd) dd.classList.toggle('hidden');
+        }
+
+        // Close dropdown when clicking anywhere outside
+        document.addEventListener('click', function(e) {
+            const group = document.getElementById('modal_gen_btn_group');
+            const dd = document.getElementById('modal_gen_dropdown');
+            if (dd && !dd.classList.contains('hidden') && group && !group.contains(e.target)) {
+                dd.classList.add('hidden');
+            }
+        });
 
         function renderGalleryGrid() {
             if (currentGalleryProductIndex === null) return;
             const item = loadedProducts[currentGalleryProductIndex];
             if (!item) return;
+
+            // Ensure selection array exists
+            if (!item.selected_image_ids && item.images) {
+                item.selected_image_ids = item.images.slice(0, 10).map(img => img.id);
+            }
 
             const grid = document.getElementById('modal_gallery_grid');
             const totalCount = item.images ? item.images.length : 0;
@@ -1485,22 +1553,20 @@
                 return;
             }
 
-            const analyzedCount = Math.min(totalCount, 10);
-            document.getElementById('modal_gallery_footer_info').innerText = `${analyzedCount} of ${totalCount} photos are analyzed by Google Gemini Vision multi-image model.`;
-
             let html = '<div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3" id="modal_gallery_cards_container">';
             item.images.forEach((img, i) => {
                 const isMain = img.is_main || (i === 0 && (!img.rank || img.rank === 0));
                 const isAi = img.is_ai;
-                const isAnalyzed = i < 10;
+                const isSelected = item.selected_image_ids && item.selected_image_ids.includes(img.id);
+                const selectionIndex = isSelected ? (item.selected_image_ids.indexOf(img.id) + 1) : 0;
                 const currentWeight = (img.rank !== undefined && img.rank !== null && img.rank !== '') ? img.rank : i;
 
                 html += `
-                    <div class="img-card-item rounded-lg border border-slate-200 bg-white overflow-hidden shadow-2xs hover:shadow-md transition-all relative flex flex-col justify-between" data-image-id="${img.id}" onclick="handleGalleryCardClick(event, this)">
+                    <div class="img-card-item rounded-lg border ${isSelected ? 'border-slate-800 ring-2 ring-slate-900/15' : 'border-slate-200'} bg-white overflow-hidden shadow-2xs hover:shadow-md transition-all relative flex flex-col justify-between" data-image-id="${img.id}" onclick="handleGalleryCardClick(event, this)">
                         <div class="img-thumb aspect-square bg-slate-100 overflow-hidden relative flex items-center justify-center">
-                            <!-- Selection Checkbox (Matching Product Edit) -->
+                            <!-- Selection Checkbox -->
                             <label class="img-select-wrapper absolute top-2 left-2 z-20 cursor-pointer" onclick="event.stopPropagation()">
-                                <input type="checkbox" class="img-select-checkbox w-4 h-4 rounded text-rose-600 focus:ring-rose-500 cursor-pointer" value="${img.id}" onchange="updateGallerySelectedCount()">
+                                <input type="checkbox" class="img-select-checkbox w-4 h-4 rounded text-slate-900 focus:ring-slate-800 cursor-pointer" value="${img.id}" ${isSelected ? 'checked' : ''} onchange="toggleGalleryImageSelection(${img.id}, this)">
                             </label>
 
                             <!-- Main Badge or Set Main Button -->
@@ -1509,13 +1575,13 @@
                                     <i class="fa-solid fa-star text-[8px]"></i> MAIN
                                 </div>
                             ` : `
-                                <button type="button" onclick="setGalleryMainImage(event, ${img.id}, ${i})" class="img-set-main absolute top-2 left-8 z-15 w-6 h-6 rounded-full bg-white/90 hover:bg-amber-50 hover:text-amber-600 text-slate-600 border border-slate-200 flex items-center justify-center text-[10px] transition-colors shadow-sm" title="Set as Main Image">
+                                <button type="button" onclick="setGalleryMainImage(event, ${img.id}, ${i})" class="img-set-main absolute top-2 left-8 z-15 w-6 h-6 rounded-full bg-white/90 hover:bg-amber-50 hover:text-amber-600 text-slate-600 border border-slate-200 flex items-center justify-center text-[10px] transition-colors shadow-sm cursor-pointer" title="Set as Main Image">
                                     <i class="fa-regular fa-star"></i>
                                 </button>
                             `}
 
                             <!-- Single Delete Trash Button -->
-                            <button type="button" onclick="deleteGallerySingleImage(event, ${img.id}, ${i})" class="img-del-btn absolute top-2 right-2 z-20 w-6 h-6 rounded-full bg-slate-900/60 hover:bg-rose-600 text-white flex items-center justify-center text-[10px] transition-colors shadow-sm" title="Delete this image">
+                            <button type="button" onclick="deleteGallerySingleImage(event, ${img.id}, ${i})" class="img-del-btn absolute top-2 right-2 z-20 w-6 h-6 rounded-full bg-slate-900/60 hover:bg-rose-600 text-white flex items-center justify-center text-[10px] transition-colors shadow-sm cursor-pointer" title="Delete this image">
                                 <i class="fa-solid fa-trash-can"></i>
                             </button>
 
@@ -1529,11 +1595,11 @@
                                 </span>
                             </div>
 
-                            <!-- Analyzed & Studio Badges -->
+                            <!-- AI Analyzed Badge (Shows on chosen reference photos) -->
                             <div class="absolute bottom-1.5 left-1.5 flex flex-col gap-1 items-start z-10 pointer-events-none">
-                                ${isAnalyzed ? `
-                                    <span class="bg-slate-900/85 text-white text-[9px] font-semibold px-1.5 py-0.5 rounded backdrop-blur-xs flex items-center gap-1">
-                                        <i class="fa-solid fa-microchip text-[8px] text-emerald-400"></i> AI Analyzed
+                                ${isSelected ? `
+                                    <span class="bg-slate-900/90 text-white text-[9px] font-semibold px-1.5 py-0.5 rounded backdrop-blur-xs flex items-center gap-1 shadow-xs border border-emerald-500/30">
+                                        <i class="fa-solid fa-microchip text-[8px] text-emerald-400"></i> AI Analyzed #${selectionIndex}
                                     </span>
                                 ` : ''}
                             </div>
@@ -1551,7 +1617,7 @@
                             </div>
                         </div>
 
-                        <!-- Card Footer with Weight & View (Matching Product Edit) -->
+                        <!-- Card Footer with Weight & View -->
                         <div class="img-card-footer p-2 border-t border-slate-100 flex items-center justify-between text-[11px] bg-slate-50/70">
                             <div class="flex items-center gap-1.5">
                                 <span class="img-order-label text-[10px] font-bold text-slate-500 uppercase tracking-wider flex items-center gap-1">
@@ -1559,7 +1625,7 @@
                                 </span>
                                 <input type="number" min="0" value="${currentWeight}" class="img-order-input w-12 h-6 bg-white border border-slate-300 rounded text-center text-xs font-bold text-slate-800 focus:border-slate-900 focus:outline-none transition-colors" onchange="updateGalleryImageWeight(${img.id}, this, ${i})" onclick="event.stopPropagation()">
                             </div>
-                            <button type="button" onclick="event.stopPropagation(); openLightbox('${img.url}', '${escapeHtml(item.code)} - Photo #${i + 1}')" class="text-slate-500 hover:text-slate-800 text-[10px] font-semibold flex items-center gap-1 py-0.5 px-1.5 rounded hover:bg-slate-200/60 transition-colors">
+                            <button type="button" onclick="event.stopPropagation(); openLightbox('${img.url}', '${escapeHtml(item.code)} - Photo #${i + 1}')" class="text-slate-500 hover:text-slate-800 text-[10px] font-semibold flex items-center gap-1 py-0.5 px-1.5 rounded hover:bg-slate-200/60 transition-colors cursor-pointer">
                                 <i class="fa-solid fa-expand"></i> View
                             </button>
                         </div>
@@ -1571,55 +1637,241 @@
             updateGallerySelectedCount();
         }
 
+        function toggleGalleryImageSelection(imgId, checkboxElem) {
+            if (currentGalleryProductIndex === null) return;
+            const item = loadedProducts[currentGalleryProductIndex];
+            if (!item) return;
+
+            if (!item.selected_image_ids) {
+                item.selected_image_ids = (item.images || []).slice(0, 10).map(img => img.id);
+            }
+
+            const isChecked = checkboxElem.checked;
+            if (isChecked) {
+                if (item.selected_image_ids.length >= 10) {
+                    checkboxElem.checked = false;
+                    showToast('Maximum 10 reference images can be selected for AI Vision Analysis.', 'warning');
+                    return;
+                }
+                if (!item.selected_image_ids.includes(imgId)) {
+                    item.selected_image_ids.push(imgId);
+                }
+            } else {
+                item.selected_image_ids = item.selected_image_ids.filter(id => id !== imgId);
+            }
+
+            renderGalleryGrid();
+            refreshProductRowBadge(currentGalleryProductIndex);
+        }
+
         function handleGalleryCardClick(event, card) {
             if (event.target.closest('.img-del-btn') || event.target.closest('.img-set-main') || event.target.closest('.img-order-input') || event.target.closest('button')) {
                 return;
             }
             const cb = card.querySelector('.img-select-checkbox');
-            if (cb && event.target !== cb) {
+            const imgId = parseInt(card.dataset.imageId, 10);
+            if (cb && event.target !== cb && imgId > 0) {
                 cb.checked = !cb.checked;
-                updateGallerySelectedCount();
+                toggleGalleryImageSelection(imgId, cb);
             }
         }
 
         function updateGallerySelectedCount() {
-            const checked = document.querySelectorAll('#modal_gallery_grid .img-select-checkbox:checked');
-            const count = checked.length;
-            const countSpan = document.getElementById('modal_gallery_selected_count');
-            const btn = document.getElementById('modal_delete_selected_btn');
+            if (currentGalleryProductIndex === null) return;
+            const item = loadedProducts[currentGalleryProductIndex];
+            const count = item && item.selected_image_ids ? item.selected_image_ids.length : 0;
 
-            if (countSpan) countSpan.textContent = count;
+            const aiCountElem = document.getElementById('modal_ai_selected_count');
+            const btnGenCount = document.getElementById('modal_gen_btn_count');
+            const btnDelCount = document.getElementById('modal_gallery_selected_count');
+            const btnGen = document.getElementById('modal_generate_result_btn');
+            const btnDel = document.getElementById('modal_delete_selected_btn');
 
-            if (btn) {
+            if (aiCountElem) aiCountElem.textContent = count;
+            if (btnGenCount) btnGenCount.textContent = count;
+            if (btnDelCount) btnDelCount.textContent = count;
+
+            if (btnGen) {
                 if (count > 0) {
-                    btn.disabled = false;
-                    btn.classList.remove('opacity-50', 'cursor-not-allowed');
-                    btn.classList.add('hover:bg-rose-700', 'cursor-pointer');
+                    btnGen.disabled = false;
+                    btnGen.classList.remove('opacity-50', 'cursor-not-allowed');
                 } else {
-                    btn.disabled = true;
-                    btn.classList.add('opacity-50', 'cursor-not-allowed');
-                    btn.classList.remove('hover:bg-rose-700', 'cursor-pointer');
+                    btnGen.disabled = true;
+                    btnGen.classList.add('opacity-50', 'cursor-not-allowed');
                 }
             }
 
-            document.querySelectorAll('#modal_gallery_grid .img-card-item').forEach(card => {
-                const cb = card.querySelector('.img-select-checkbox');
-                if (cb && cb.checked) {
-                    card.style.outline = '2px solid #ef4444';
-                    card.style.borderColor = '#ef4444';
+            if (btnDel) {
+                if (count > 0) {
+                    btnDel.disabled = false;
+                    btnDel.classList.remove('opacity-50', 'cursor-not-allowed');
+                    btnDel.classList.add('hover:bg-rose-700', 'cursor-pointer');
                 } else {
-                    card.style.outline = '';
-                    card.style.borderColor = '';
+                    btnDel.disabled = true;
+                    btnDel.classList.add('opacity-50', 'cursor-not-allowed');
+                    btnDel.classList.remove('hover:bg-rose-700', 'cursor-pointer');
                 }
-            });
+            }
+
+            const totalCount = item && item.images ? item.images.length : 0;
+            const footerInfo = document.getElementById('modal_gallery_footer_info');
+            if (footerInfo) {
+                footerInfo.innerHTML = `<span class="font-semibold text-slate-800">${count}</span> of <span class="font-semibold text-slate-800">${totalCount}</span> photos selected as active reference angles for Google Gemini Vision multi-image model.`;
+            }
+        }
+
+        function selectGalleryTopImages(count = 10) {
+            if (currentGalleryProductIndex === null) return;
+            const item = loadedProducts[currentGalleryProductIndex];
+            if (!item || !item.images) return;
+
+            item.selected_image_ids = item.images.slice(0, count).map(img => img.id);
+            renderGalleryGrid();
+            refreshProductRowBadge(currentGalleryProductIndex);
+            showToast(`Selected top ${item.selected_image_ids.length} images for AI Vision!`);
         }
 
         function selectGalleryAllImages(check) {
-            const checkboxes = document.querySelectorAll('#modal_gallery_grid .img-select-checkbox');
-            checkboxes.forEach(cb => {
-                cb.checked = check;
-            });
-            updateGallerySelectedCount();
+            if (currentGalleryProductIndex === null) return;
+            const item = loadedProducts[currentGalleryProductIndex];
+            if (!item || !item.images) return;
+
+            if (check) {
+                item.selected_image_ids = item.images.slice(0, 10).map(img => img.id);
+                if (item.images.length > 10) {
+                    showToast('Selected top 10 images (maximum model analysis limit).', 'info');
+                }
+            } else {
+                item.selected_image_ids = [];
+            }
+            renderGalleryGrid();
+            refreshProductRowBadge(currentGalleryProductIndex);
+        }
+
+        async function generateResultImagesFromModal(mode = 'both') {
+            const dd = document.getElementById('modal_gen_dropdown');
+            if (dd) dd.classList.add('hidden');
+
+            if (currentGalleryProductIndex === null) return;
+            const item = loadedProducts[currentGalleryProductIndex];
+            if (!item) return;
+
+            const selectedCount = item.selected_image_ids ? item.selected_image_ids.length : 0;
+            if (selectedCount === 0) {
+                showToast('Please select at least 1 image for AI Vision Analysis.', 'error');
+                return;
+            }
+
+            const indicator = document.getElementById('modal_gen_indicator');
+            const indicatorText = document.getElementById('modal_gen_indicator_text');
+            const genBtn = document.getElementById('modal_generate_result_btn');
+
+            if (indicator) {
+                indicator.classList.remove('hidden');
+                const modeLabel = mode === 'both' ? 'Both Model & Still Life Photos' : (mode === 'with_model' ? 'Photo With Model' : 'Still Life Photo');
+                indicatorText.innerText = `Synthesizing ${selectedCount} selected angles with Gemini Vision (${modeLabel})...`;
+            }
+            if (genBtn) {
+                genBtn.disabled = true;
+                genBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin text-amber-300"></i> Generating...';
+            }
+
+            const faceModel = document.getElementById('config_face_model').value;
+            const studioTheme = item.custom_studio_surface || getSelectedStudioSurface();
+            const studioCustomBg = item.custom_studio_bg || getSelectedStudioCustomBg();
+            const studioShotType = item.custom_studio_shot_type || getSelectedStudioShotType();
+            const studioPrompt = item.custom_studio_prompt || '';
+
+            try {
+                const tasks = [];
+
+                if (mode === 'both' || mode === 'with_model') {
+                    tasks.push(
+                        fetch('index.php?controller=allinonewriter&action=generateImage', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                id: item.id,
+                                type: item.type,
+                                mode: 'with_model',
+                                face_reference: faceModel,
+                                studio_theme: studioTheme,
+                                category_key: item.category_key,
+                                analysis_mode: 'multi',
+                                selected_image_ids: item.selected_image_ids,
+                                max_images: item.selected_image_ids.length
+                            })
+                        }).then(r => r.json()).then(data => ({ mode: 'with_model', data }))
+                    );
+                }
+
+                if (mode === 'both' || mode === 'without_model') {
+                    tasks.push(
+                        fetch('index.php?controller=allinonewriter&action=generateImage', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                id: item.id,
+                                type: item.type,
+                                mode: 'without_model',
+                                face_reference: faceModel,
+                                studio_theme: studioTheme,
+                                studio_surface: studioTheme,
+                                studio_bg_custom: studioCustomBg,
+                                studio_shot_type: studioShotType,
+                                custom_studio_prompt: studioPrompt,
+                                category_key: item.category_key,
+                                analysis_mode: 'multi',
+                                selected_image_ids: item.selected_image_ids,
+                                max_images: item.selected_image_ids.length
+                            })
+                        }).then(r => r.json()).then(data => ({ mode: 'without_model', data }))
+                    );
+                }
+
+                const results = await Promise.all(tasks);
+                let anySuccess = false;
+
+                results.forEach(res => {
+                    if (res.data && res.data.success && res.data.images) {
+                        anySuccess = true;
+                        if (res.mode === 'with_model' && res.data.images.with_model) {
+                            item.photo_with_model = res.data.images.with_model;
+                            updatePhotoCard(item.id, 'with_model', res.data.images.with_model.url, currentGalleryProductIndex);
+                        }
+                        if (res.mode === 'without_model' && res.data.images.without_model) {
+                            item.photo_without_model = res.data.images.without_model;
+                            updatePhotoCard(item.id, 'without_model', res.data.images.without_model.url, currentGalleryProductIndex);
+                        }
+                    } else if (res.data && res.data.error) {
+                        showToast(`Error: ${res.data.error}`, 'error');
+                    }
+                });
+
+                if (anySuccess) {
+                    showToast(`✨ Generated result image(s) using ${selectedCount} selected angles!`, 'success');
+                }
+            } catch (err) {
+                console.error(err);
+                showToast('Failed to generate result images: ' + err.message, 'error');
+            } finally {
+                if (indicator) indicator.classList.add('hidden');
+                if (genBtn) {
+                    genBtn.disabled = false;
+                    genBtn.innerHTML = `<i class="fa-solid fa-wand-magic-sparkles text-amber-300"></i> Generate Result Image (<span id="modal_gen_btn_count">${item.selected_image_ids ? item.selected_image_ids.length : 0}</span>)`;
+                }
+                refreshProductRowBadge(currentGalleryProductIndex);
+            }
+        }
+
+        function saveGallerySelectionAndClose() {
+            if (currentGalleryProductIndex !== null) {
+                refreshProductRowBadge(currentGalleryProductIndex);
+                const item = loadedProducts[currentGalleryProductIndex];
+                const count = item && item.selected_image_ids ? item.selected_image_ids.length : 0;
+                showToast(`Applied ${count} selected angles for AI analysis!`);
+            }
+            closeProductGalleryModal();
         }
 
         async function deleteGallerySelectedImages() {
@@ -1649,6 +1901,9 @@
                     const item = loadedProducts[currentGalleryProductIndex];
                     if (item && item.images) {
                         item.images = item.images.filter(img => !ids.includes(img.id));
+                        if (item.selected_image_ids) {
+                            item.selected_image_ids = item.selected_image_ids.filter(id => !ids.includes(id));
+                        }
                         if (item.images.length > 0) {
                             item.primary_image_url = item.images[0].url;
                         } else {
@@ -1686,6 +1941,9 @@
                     const item = loadedProducts[currentGalleryProductIndex];
                     if (item && item.images) {
                         item.images = item.images.filter(img => img.id !== imgId);
+                        if (item.selected_image_ids) {
+                            item.selected_image_ids = item.selected_image_ids.filter(id => id !== imgId);
+                        }
                         if (item.images.length > 0) {
                             item.primary_image_url = item.images[0].url;
                         } else {
@@ -1822,7 +2080,7 @@
                 if (countBtn) {
                     const span = countBtn.querySelector('span');
                     if (span) span.innerText = `+${otherCount}`;
-                    countBtn.title = `Click to view all ${item.images.length} photos (${otherCount} additional photos analyzed by AI)`;
+                    countBtn.title = `Click to view all ${item.images.length} photos (${otherCount} additional photos)`;
                 } else {
                     const thumbWrapper = card.querySelector('.product-item-header .w-12.h-12');
                     if (thumbWrapper) {
@@ -1830,7 +2088,7 @@
                         newBtn.type = 'button';
                         newBtn.setAttribute('onclick', `openProductGalleryModal(${productIndex})`);
                         newBtn.className = 'h-8 px-2.5 rounded-md bg-slate-100 hover:bg-slate-200 border border-slate-200 hover:border-slate-300 text-slate-800 inline-flex items-center gap-1.5 transition-colors cursor-pointer shadow-2xs flex-shrink-0';
-                        newBtn.title = `Click to view all ${item.images.length} photos (${otherCount} additional photos analyzed by AI)`;
+                        newBtn.title = `Click to view all ${item.images.length} photos (${otherCount} additional photos)`;
                         newBtn.innerHTML = `
                             <i class="fa-solid fa-images text-[11px] text-slate-500"></i>
                             <span class="font-mono font-bold text-xs text-slate-900">+${otherCount}</span>
@@ -1842,6 +2100,28 @@
                 if (countBtn) {
                     countBtn.remove();
                 }
+            }
+
+            // Update or add custom angles badge
+            const selectedCount = item.selected_image_ids ? item.selected_image_ids.length : 0;
+            let angleBadge = card.querySelector('.ai-selected-angles-badge');
+            if (selectedCount > 0) {
+                if (!angleBadge) {
+                    angleBadge = document.createElement('span');
+                    angleBadge.className = 'ai-selected-angles-badge text-[10px] font-semibold text-emerald-800 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full inline-flex items-center gap-1 shadow-2xs cursor-pointer flex-shrink-0';
+                    angleBadge.setAttribute('onclick', `openProductGalleryModal(${productIndex})`);
+                    const countBtnElem = card.querySelector(`button[onclick*="openProductGalleryModal(${productIndex})"]`);
+                    if (countBtnElem) {
+                        countBtnElem.insertAdjacentElement('afterend', angleBadge);
+                    } else {
+                        const thumbWrapper = card.querySelector('.product-item-header .w-12.h-12');
+                        if (thumbWrapper) thumbWrapper.insertAdjacentElement('afterend', angleBadge);
+                    }
+                }
+                angleBadge.title = `Click to view / modify the ${selectedCount} selected reference angles`;
+                angleBadge.innerHTML = `<i class="fa-solid fa-microchip text-[9px] text-emerald-600"></i> ${selectedCount} Angles for AI`;
+            } else if (angleBadge) {
+                angleBadge.remove();
             }
         }
 
@@ -2289,7 +2569,8 @@
                                     provider: provider,
                                     category_key: currentCatKey,
                                     analysis_mode: 'multi',
-                                    max_images: 10
+                                    max_images: (item.selected_image_ids && item.selected_image_ids.length > 0) ? item.selected_image_ids.length : 10,
+                                    selected_image_ids: item.selected_image_ids || []
                                 })
                             });
                             const cData = await cRes.json();
@@ -2332,7 +2613,8 @@
                                     studio_theme: studioTheme,
                                     category_key: currentCatKey,
                                     analysis_mode: 'multi',
-                                    max_images: 10
+                                    max_images: (item.selected_image_ids && item.selected_image_ids.length > 0) ? item.selected_image_ids.length : 10,
+                                    selected_image_ids: item.selected_image_ids || []
                                 })
                             });
                             const pData = await pRes.json();
@@ -2368,7 +2650,8 @@
                                     custom_studio_prompt: item.custom_studio_prompt || '',
                                     category_key: currentCatKey,
                                     analysis_mode: 'multi',
-                                    max_images: 10
+                                    max_images: (item.selected_image_ids && item.selected_image_ids.length > 0) ? item.selected_image_ids.length : 10,
+                                    selected_image_ids: item.selected_image_ids || []
                                 })
                             });
                             const pData = await pRes.json();
@@ -2393,7 +2676,10 @@
                     ? autoSave 
                     : (document.getElementById('config_auto_save')?.checked || document.getElementById('queue_auto_save')?.checked);
 
-                const angleCount = item.images && item.images.length > 1 ? ` (${Math.min(item.images.length, 10)} angles)` : '';
+                const countAngles = (item.selected_image_ids && item.selected_image_ids.length > 0) 
+                    ? item.selected_image_ids.length 
+                    : (item.images ? Math.min(item.images.length, 10) : 0);
+                const angleCount = countAngles > 1 ? ` (${countAngles} angles)` : '';
 
                 if (shouldAutoSave) {
                     if (pill) pill.innerHTML = '<span class="status-dot active"></span> Auto-Saving to DB...';
@@ -2444,7 +2730,8 @@
                         provider: provider,
                         category_key: item.category_key,
                         analysis_mode: 'multi',
-                        max_images: 10
+                        max_images: (item.selected_image_ids && item.selected_image_ids.length > 0) ? item.selected_image_ids.length : 10,
+                        selected_image_ids: item.selected_image_ids || []
                     })
                 });
                 const data = await res.json();
@@ -2494,7 +2781,8 @@
                         studio_theme: studioTheme,
                         category_key: item.category_key,
                         analysis_mode: 'multi',
-                        max_images: 10
+                        max_images: (item.selected_image_ids && item.selected_image_ids.length > 0) ? item.selected_image_ids.length : 10,
+                        selected_image_ids: item.selected_image_ids || []
                     })
                 }).then(r => r.json());
 
@@ -2513,7 +2801,8 @@
                         custom_studio_prompt: studioPrompt,
                         category_key: item.category_key,
                         analysis_mode: 'multi',
-                        max_images: 10
+                        max_images: (item.selected_image_ids && item.selected_image_ids.length > 0) ? item.selected_image_ids.length : 10,
+                        selected_image_ids: item.selected_image_ids || []
                     })
                 }).then(r => r.json());
 
@@ -2573,7 +2862,8 @@
                         custom_studio_prompt: studioPrompt,
                         category_key: item.category_key,
                         analysis_mode: 'multi',
-                        max_images: 10
+                        max_images: (item.selected_image_ids && item.selected_image_ids.length > 0) ? item.selected_image_ids.length : 10,
+                        selected_image_ids: item.selected_image_ids || []
                     })
                 });
                 const data = await res.json();

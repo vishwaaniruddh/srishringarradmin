@@ -662,15 +662,44 @@ class AllInOneWriterController extends Controller
         $maxImages = max(1, min(10, $maxImages));
         $includeContentMulti = !empty($aiSettings['include_content_analysis']);
 
+        // Check if user selected specific reference images from the gallery modal
+        $selectedImageIds = $rawInput['selected_image_ids'] ?? [];
+        $hasCustomSelection = false;
+        if (!empty($selectedImageIds) && is_array($selectedImageIds)) {
+            $idMap = [];
+            foreach ($images as $img) {
+                $imgId = (int)($img['id'] ?? 0);
+                if ($imgId > 0) {
+                    $idMap[$imgId] = $img;
+                }
+            }
+            $chosen = [];
+            foreach ($selectedImageIds as $sId) {
+                $sId = (int)$sId;
+                if (isset($idMap[$sId]) && count($chosen) < 10) {
+                    $chosen[] = $idMap[$sId];
+                }
+            }
+            if (!empty($chosen)) {
+                $images = $chosen;
+                $analysisMode = 'multi';
+                $includeContentMulti = true;
+                $maxImages = count($chosen);
+                $hasCustomSelection = true;
+            }
+        }
+
         $productImageParts = [];
         if ($analysisMode === 'multi' && $includeContentMulti) {
-            // Prioritize authentic real product photos over previous AI generated images
-            usort($images, function($a, $b) {
-                $aAi = (strpos($a['img_name'] ?? '', '_ai_') !== false);
-                $bAi = (strpos($b['img_name'] ?? '', '_ai_') !== false);
-                if ($aAi === $bAi) return 0;
-                return $aAi ? 1 : -1;
-            });
+            if (!$hasCustomSelection) {
+                // Prioritize authentic real product photos over previous AI generated images
+                usort($images, function($a, $b) {
+                    $aAi = (strpos($a['img_name'] ?? '', '_ai_') !== false);
+                    $bAi = (strpos($b['img_name'] ?? '', '_ai_') !== false);
+                    if ($aAi === $bAi) return 0;
+                    return $aAi ? 1 : -1;
+                });
+            }
 
             $loadedCount = 0;
             foreach ($images as $img) {
@@ -976,15 +1005,43 @@ class AllInOneWriterController extends Controller
         $maxImages = (int)($rawInput['max_images'] ?? ($_GET['max_images'] ?? ($aiSettings['max_images'] ?? 10)));
         $maxImages = max(1, min(10, $maxImages));
 
+        // Check if user selected specific reference images from the gallery modal
+        $selectedImageIds = $rawInput['selected_image_ids'] ?? [];
+        $hasCustomSelection = false;
+        if (!empty($selectedImageIds) && is_array($selectedImageIds)) {
+            $idMap = [];
+            foreach ($images as $img) {
+                $imgId = (int)($img['id'] ?? 0);
+                if ($imgId > 0) {
+                    $idMap[$imgId] = $img;
+                }
+            }
+            $chosen = [];
+            foreach ($selectedImageIds as $sId) {
+                $sId = (int)$sId;
+                if (isset($idMap[$sId]) && count($chosen) < 10) {
+                    $chosen[] = $idMap[$sId];
+                }
+            }
+            if (!empty($chosen)) {
+                $images = $chosen;
+                $analysisMode = 'multi';
+                $maxImages = count($chosen);
+                $hasCustomSelection = true;
+            }
+        }
+
         $productImageParts = [];
         if ($analysisMode === 'multi') {
-            // Option 2: Multiple images analysis (prioritize authentic photos over previous AI images)
-            usort($images, function($a, $b) {
-                $aAi = (strpos($a['img_name'] ?? '', '_ai_') !== false);
-                $bAi = (strpos($b['img_name'] ?? '', '_ai_') !== false);
-                if ($aAi === $bAi) return 0;
-                return $aAi ? 1 : -1;
-            });
+            if (!$hasCustomSelection) {
+                // Option 2: Multiple images analysis (prioritize authentic photos over previous AI images)
+                usort($images, function($a, $b) {
+                    $aAi = (strpos($a['img_name'] ?? '', '_ai_') !== false);
+                    $bAi = (strpos($b['img_name'] ?? '', '_ai_') !== false);
+                    if ($aAi === $bAi) return 0;
+                    return $aAi ? 1 : -1;
+                });
+            }
 
             $loadedCount = 0;
             foreach ($images as $img) {
