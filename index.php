@@ -34,7 +34,9 @@ $controllerMap = [
     'video_generator' => 'VideoGenerator',
     'videogenerator' => 'VideoGenerator',
     'setting' => 'Setting',
-    'settings' => 'Setting'
+    'settings' => 'Setting',
+    'imageoptimizer' => 'ImageOptimizer',
+    'optimizer' => 'ImageOptimizer'
 ];
 $rawController = strtolower(trim($_GET['controller'] ?? 'dashboard'));
 $controllerName = $controllerMap[$rawController] ?? (isset($_GET['controller']) ? ucfirst($_GET['controller']) : 'Dashboard');

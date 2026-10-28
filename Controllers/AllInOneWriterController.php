@@ -1448,6 +1448,13 @@ class AllInOneWriterController extends Controller
             return;
         }
 
+        // Auto-generate responsive variants (Large, Tab, Mobile)
+        try {
+            \Core\ImageOptimizerService::generateResponsiveVariants($fullPath);
+        } catch (\Throwable $e) {
+            error_log("Failed to generate responsive variants for {$filename}: " . $e->getMessage());
+        }
+
         $relativePath = "/{$year}/{$month}/{$filename}";
         $dateAdded = date('Y-m-d H:i:s');
         $imgField = ($type === 'jewellery') ? 'product_id' : 'gproduct_id';
@@ -1578,6 +1585,13 @@ class AllInOneWriterController extends Controller
         $fullPath = $uploadDir . '/' . $filename;
 
         if (file_put_contents($fullPath, $imgBinary) === false) return null;
+
+        // Auto-generate responsive variants (Large, Tab, Mobile)
+        try {
+            \Core\ImageOptimizerService::generateResponsiveVariants($fullPath);
+        } catch (\Throwable $e) {
+            error_log("Failed to generate responsive variants for {$filename}: " . $e->getMessage());
+        }
 
         $relativePath = "/{$year}/{$month}/{$filename}";
         $dateAdded = date('Y-m-d H:i:s');

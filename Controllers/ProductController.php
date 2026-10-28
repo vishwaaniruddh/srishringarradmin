@@ -1420,6 +1420,12 @@ class ProductController extends Controller {
                     
                     if (move_uploaded_file($tmp_name, $upload_path . $new_filename)) {
                         $uploadedImages[] = $current_year . '/' . $current_month . '/' . $new_filename;
+                        // Auto-generate 3-4 responsive variants (Original, Large, Tabs, Mobile)
+                        try {
+                            \Core\ImageOptimizerService::generateResponsiveVariants($upload_path . $new_filename);
+                        } catch (\Throwable $e) {
+                            error_log("Failed to generate responsive variants for {$new_filename}: " . $e->getMessage());
+                        }
                     }
                 }
             }
@@ -2952,6 +2958,12 @@ class ProductController extends Controller {
 
             if (move_uploaded_file($files['tmp_name'][$i], $full_upload_path . $filename)) {
                 $uploadedPaths[] = $upload_path . $filename;
+                // Auto-generate 3-4 responsive variants (Original, Large, Tabs, Mobile)
+                try {
+                    \Core\ImageOptimizerService::generateResponsiveVariants($full_upload_path . $filename);
+                } catch (\Throwable $e) {
+                    error_log("Failed to generate responsive variants for {$filename}: " . $e->getMessage());
+                }
             }
         }
 

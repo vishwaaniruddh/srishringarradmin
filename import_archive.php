@@ -525,6 +525,12 @@ if (isset($_GET['action']) && $_GET['action'] === 'process_row') {
                             $newFilename = preg_replace('/[^a-zA-Z0-9_-]/', '_', $code) . '_' . time() . '_' . uniqid() . '.' . $ext;
                             if (@copy($filePath, $full_upload_path . $newFilename)) {
                                 $downloadedImages[] = $upload_path . $newFilename;
+                                // Automatically generate 3-4 responsive variants (Original, Large Device, Tabs, Mobile)
+                                try {
+                                    \Core\ImageOptimizerService::generateResponsiveVariants($full_upload_path . $newFilename);
+                                } catch (\Throwable $e) {
+                                    error_log("Failed to generate responsive variants for {$newFilename}: " . $e->getMessage());
+                                }
                             }
                         }
                     }
