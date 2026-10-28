@@ -1018,6 +1018,49 @@
                                                         <i class="fas fa-trash-alt"></i>
                                                     </button>
                                                 </div>
+                                                <?php
+                                                $rawImgPath = $img['img_name'] ?? '';
+                                                $cleanImg = ltrim(str_replace(['../../yn/uploads', '../yn/uploads', '/yn/uploads', 'yn/uploads/', 'uploads/'], '', $rawImgPath), '/');
+                                                $dirPart = pathinfo($cleanImg, PATHINFO_DIRNAME);
+                                                $filePart = pathinfo($cleanImg, PATHINFO_FILENAME);
+                                                $dirPfx = ($dirPart && $dirPart !== '.') ? ($dirPart . '/') : '';
+
+                                                $baseUploads = 'C:/xampp/htdocs/ss/yn/uploads/';
+                                                $localMaster = $baseUploads . $cleanImg;
+
+                                                // Auto-generate variants on-demand if missing and master exists locally
+                                                if (file_exists($localMaster) && class_exists('Core\ImageOptimizerService') && !\Core\ImageOptimizerService::isVariantFile($localMaster)) {
+                                                    $vMobileCheck = $baseUploads . $dirPfx . $filePart . '_mobile.webp';
+                                                    if (!file_exists($vMobileCheck)) {
+                                                        try {
+                                                            \Core\ImageOptimizerService::generateResponsiveVariants($localMaster);
+                                                        } catch (\Throwable $e) {}
+                                                    }
+                                                }
+
+                                                $largeRel = $dirPfx . $filePart . '_large.webp';
+                                                $tabRel = $dirPfx . $filePart . '_tab.webp';
+                                                $mobileRel = $dirPfx . $filePart . '_mobile.webp';
+
+                                                $hasLarge = file_exists($baseUploads . $largeRel);
+                                                $hasTab = file_exists($baseUploads . $tabRel);
+                                                $hasMobile = file_exists($baseUploads . $mobileRel);
+
+                                                $origUrl = "/ss/yn/uploads/" . $cleanImg;
+                                                $largeUrl = $hasLarge ? ("/ss/yn/uploads/" . $largeRel) : $origUrl;
+                                                $tabUrl = $hasTab ? ("/ss/yn/uploads/" . $tabRel) : $origUrl;
+                                                $mobileUrl = $hasMobile ? ("/ss/yn/uploads/" . $mobileRel) : $origUrl;
+                                                ?>
+                                                <!-- 4 Responsive Variants Bar -->
+                                                <div class="px-2 py-1.5 bg-slate-50 border-t border-slate-100 flex items-center justify-between text-[10px]" onclick="event.stopPropagation()">
+                                                    <span class="text-[9px] font-bold text-slate-400 uppercase tracking-wider">Variants:</span>
+                                                    <div class="flex items-center gap-1 font-mono">
+                                                        <a href="<?php echo $origUrl; ?>" target="_blank" class="px-1.5 py-0.5 rounded text-[9px] font-bold bg-white border border-slate-200 text-slate-700 hover:text-slate-900 shadow-2xs" title="Original Master Photo">Orig</a>
+                                                        <a href="<?php echo $largeUrl; ?>" target="_blank" class="px-1.5 py-0.5 rounded text-[9px] font-bold <?php echo $hasLarge ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-slate-100 text-slate-400 border border-dashed border-slate-300'; ?>" title="<?php echo $hasLarge ? 'Large Retina (1200px WebP)' : 'Large (1200px)'; ?>">L</a>
+                                                        <a href="<?php echo $tabUrl; ?>" target="_blank" class="px-1.5 py-0.5 rounded text-[9px] font-bold <?php echo $hasTab ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-slate-100 text-slate-400 border border-dashed border-slate-300'; ?>" title="<?php echo $hasTab ? 'Tablet / iPad (800px WebP)' : 'Tablet (800px)'; ?>">Tab</a>
+                                                        <a href="<?php echo $mobileUrl; ?>" target="_blank" class="px-1.5 py-0.5 rounded text-[9px] font-bold <?php echo $hasMobile ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-slate-100 text-slate-400 border border-dashed border-slate-300'; ?>" title="<?php echo $hasMobile ? 'Mobile Phone (480px WebP)' : 'Mobile (480px)'; ?>">Mob</a>
+                                                    </div>
+                                                </div>
                                                 <div class="img-card-footer">
                                                     <span class="img-order-label"><i class="fas fa-sort-numeric-down text-slate-400"></i> Order</span>
                                                     <input type="number" min="0" name="image_weights[<?php echo $img['id']; ?>]" value="<?php echo (isset($img['rank']) && (int)$img['rank'] > 0) ? (int)$img['rank'] : $index; ?>" class="img-order-input" onchange="updateImageWeight(<?php echo $img['id']; ?>, this)">

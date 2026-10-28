@@ -13,7 +13,6 @@ $isAnalytics = ($currentController === 'analytics' || $currentController === 're
 $isProductsActive = in_array($currentController, ['product', 'sync', 'category']) || $currentScript === 'import_archive.php';
 $isWooActive = ($currentController === 'wooproduct');
 $isPhotoDownloaderActive = ($currentController === 'photodownloader');
-$isImageOptimizerActive = in_array($currentController, ['imageoptimizer', 'optimizer']);
 
 $isOrdersActive = ($currentController === 'orders');
 $isDiscountsActive = in_array($currentController, ['discount', 'coupon']);
@@ -533,14 +532,6 @@ $admin_initials = strtoupper(substr($admin_name, 0, 2));
                 <a href="index.php?controller=photodownloader&action=index">
                     <i class="fa-solid fa-cloud-arrow-down item-icon"></i>
                     <span class="item-text">Photo Downloader</span>
-                </a>
-            </li>
-
-            <!-- Image Optimizer & Responsive Variants -->
-            <li class="menu-item <?php echo $isImageOptimizerActive ? 'active' : ''; ?>">
-                <a href="index.php?controller=imageoptimizer&action=index">
-                    <i class="fa-solid fa-compress item-icon"></i>
-                    <span class="item-text">Image Optimizer</span>
                 </a>
             </li>
 

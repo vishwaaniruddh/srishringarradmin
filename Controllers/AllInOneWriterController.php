@@ -1979,10 +1979,50 @@ class AllInOneWriterController extends Controller
                 $localPath = 'C:/xampp/htdocs/ss/yn/uploads/' . $clean;
                 if (file_exists($localPath)) {
                     $url = '../yn/uploads/' . $clean;
+
+                    // Automatically generate responsive variants on-demand if missing
+                    if (!\Core\ImageOptimizerService::isVariantFile($localPath)) {
+                        $vMobileCheck = dirname($localPath) . '/' . pathinfo($localPath, PATHINFO_FILENAME) . '_mobile.webp';
+                        if (!file_exists($vMobileCheck)) {
+                            try {
+                                \Core\ImageOptimizerService::generateResponsiveVariants($localPath);
+                            } catch (\Throwable $e) {}
+                        }
+                    }
                 } else {
                     $url = 'https://srishringarr.com/yn/uploads/' . $clean;
                 }
             }
+
+            $cleanDir = pathinfo($clean ?? '', PATHINFO_DIRNAME);
+            $cleanBase = pathinfo($clean ?? '', PATHINFO_FILENAME);
+            $dirPfx = ($cleanDir && $cleanDir !== '.') ? ($cleanDir . '/') : '';
+            $vLargeRel = $dirPfx . $cleanBase . '_large.webp';
+            $vTabRel = $dirPfx . $cleanBase . '_tab.webp';
+            $vMobileRel = $dirPfx . $cleanBase . '_mobile.webp';
+
+            $baseUploads = 'C:/xampp/htdocs/ss/yn/uploads/';
+            $hasLarge = file_exists($baseUploads . $vLargeRel);
+            $hasTab = file_exists($baseUploads . $vTabRel);
+            $hasMobile = file_exists($baseUploads . $vMobileRel);
+
+            $variants = [
+                'large' => [
+                    'exists' => $hasLarge,
+                    'url' => $hasLarge ? ('../yn/uploads/' . $vLargeRel) : $url,
+                    'size_fmt' => $hasLarge ? \Core\ImageOptimizerService::formatBytes(filesize($baseUploads . $vLargeRel)) : ''
+                ],
+                'tab' => [
+                    'exists' => $hasTab,
+                    'url' => $hasTab ? ('../yn/uploads/' . $vTabRel) : $url,
+                    'size_fmt' => $hasTab ? \Core\ImageOptimizerService::formatBytes(filesize($baseUploads . $vTabRel)) : ''
+                ],
+                'mobile' => [
+                    'exists' => $hasMobile,
+                    'url' => $hasMobile ? ('../yn/uploads/' . $vMobileRel) : $url,
+                    'size_fmt' => $hasMobile ? \Core\ImageOptimizerService::formatBytes(filesize($baseUploads . $vMobileRel)) : ''
+                ]
+            ];
 
             $isAi = (strpos($raw, '_ai_with_model_') !== false || strpos($raw, '_ai_without_model_') !== false || strpos($raw, '_ai_') !== false);
 
@@ -1992,7 +2032,8 @@ class AllInOneWriterController extends Controller
                 'url' => $url,
                 'is_main' => ($raw === $mainImg),
                 'is_ai' => $isAi,
-                'rank' => (int)($img['rank'] ?? 0)
+                'rank' => (int)($img['rank'] ?? 0),
+                'variants' => $variants
             ];
         }
 

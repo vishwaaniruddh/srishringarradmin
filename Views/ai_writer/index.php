@@ -1617,6 +1617,17 @@
                             </div>
                         </div>
 
+                        <!-- 4 Responsive Variants Bar -->
+                        <div class="px-2 py-1.5 bg-slate-50/90 border-t border-slate-100 flex items-center justify-between text-[10px]" onclick="event.stopPropagation()">
+                            <span class="text-[9px] font-bold text-slate-400 uppercase tracking-wider">Variants:</span>
+                            <div class="flex items-center gap-1 font-mono">
+                                <a href="${img.url}" target="_blank" class="px-1.5 py-0.5 rounded text-[9px] font-bold bg-white border border-slate-200 text-slate-700 hover:text-slate-900 shadow-2xs" title="Original Master Photo">Orig</a>
+                                <a href="${img.variants?.large?.url || img.url}" target="_blank" class="px-1.5 py-0.5 rounded text-[9px] font-bold ${img.variants?.large?.exists ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-slate-100 text-slate-400 border border-dashed border-slate-300'}" title="${img.variants?.large?.exists ? ('Large Retina 1200px (' + img.variants.large.size_fmt + ')') : 'Large 1200px'}">L</a>
+                                <a href="${img.variants?.tab?.url || img.url}" target="_blank" class="px-1.5 py-0.5 rounded text-[9px] font-bold ${img.variants?.tab?.exists ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-slate-100 text-slate-400 border border-dashed border-slate-300'}" title="${img.variants?.tab?.exists ? ('Tablet 800px (' + img.variants.tab.size_fmt + ')') : 'Tablet 800px'}">Tab</a>
+                                <a href="${img.variants?.mobile?.url || img.url}" target="_blank" class="px-1.5 py-0.5 rounded text-[9px] font-bold ${img.variants?.mobile?.exists ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-slate-100 text-slate-400 border border-dashed border-slate-300'}" title="${img.variants?.mobile?.exists ? ('Mobile 480px (' + img.variants.mobile.size_fmt + ')') : 'Mobile 480px'}">Mob</a>
+                            </div>
+                        </div>
+
                         <!-- Card Footer with Weight & View -->
                         <div class="img-card-footer p-2 border-t border-slate-100 flex items-center justify-between text-[11px] bg-slate-50/70">
                             <div class="flex items-center gap-1.5">
