@@ -7,10 +7,20 @@ date_default_timezone_set('Asia/Kolkata');
 // Autoloader
 require __DIR__ . '/vendor/autoload.php';
 spl_autoload_register(function ($class) {
-    $class = str_replace('\\', DIRECTORY_SEPARATOR, $class);
-    $file = __DIR__ . DIRECTORY_SEPARATOR . $class . '.php';
+    $classPath = str_replace('\\', DIRECTORY_SEPARATOR, $class);
+    $file = __DIR__ . DIRECTORY_SEPARATOR . $classPath . '.php';
     if (file_exists($file)) {
         require_once $file;
+        return;
+    }
+    // Fallback for Linux case sensitivity (e.g., controllers/ vs Controllers/, models/ vs Models/)
+    $parts = explode(DIRECTORY_SEPARATOR, $classPath);
+    if (count($parts) === 2) {
+        $fallback = __DIR__ . DIRECTORY_SEPARATOR . strtolower($parts[0]) . DIRECTORY_SEPARATOR . $parts[1] . '.php';
+        if (file_exists($fallback)) {
+            require_once $fallback;
+            return;
+        }
     }
 });
 
