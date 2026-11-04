@@ -1504,7 +1504,16 @@ class ProductController extends Controller {
         }
 
         // 2. Add sample SKU folders with sample images (1x1 PNG bytes as lightweight placeholder)
-        $sampleImgBytes = base64_decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==');
+        $sampleImgBytes = '';
+        if (function_exists('imagecreatetruecolor')) {
+            $im = imagecreatetruecolor(1, 1);
+            if ($im) {
+                ob_start();
+                imagepng($im);
+                $sampleImgBytes = ob_get_clean();
+                imagedestroy($im);
+            }
+        }
         $zip->addEmptyDir('JW101');
         $zip->addFromString('JW101/front_view.jpg', $sampleImgBytes);
         $zip->addFromString('JW101/detail_view.jpg', $sampleImgBytes);
