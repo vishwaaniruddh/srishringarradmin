@@ -30,7 +30,7 @@ trait ProductAiTrait {
         }
 
         $imgRelativePath = $images[0]['img_name'];
-        $localPath = __DIR__ . '/../../yn/uploads' . $imgRelativePath;
+        $localPath = dirname(__DIR__, 3) . '/yn/uploads' . $imgRelativePath;
         $imgContent = null;
         $mimeType = 'image/jpeg';
 
@@ -254,7 +254,7 @@ trait ProductAiTrait {
         }
 
         $imgRelativePath = $images[0]['img_name'];
-        $localPath = __DIR__ . '/../../yn/uploads' . $imgRelativePath;
+        $localPath = dirname(__DIR__, 3) . '/yn/uploads' . $imgRelativePath;
         $imgContent = null;
         $mimeType = 'image/jpeg';
 
@@ -585,7 +585,7 @@ trait ProductAiTrait {
         }
 
         $imgRelativePath = $images[0]['img_name'];
-        $localPath = __DIR__ . '/../../yn/uploads' . $imgRelativePath;
+        $localPath = dirname(__DIR__, 3) . '/yn/uploads' . $imgRelativePath;
         $imgContent = null;
         $mimeType = 'image/jpeg';
 
@@ -764,7 +764,7 @@ trait ProductAiTrait {
         }
 
         $imgRelativePath = $images[0]['img_name'];
-        $localPath = __DIR__ . '/../../yn/uploads' . $imgRelativePath;
+        $localPath = dirname(__DIR__, 3) . '/yn/uploads' . $imgRelativePath;
         $imgContent = null;
         $mimeType = 'image/jpeg';
 
@@ -886,7 +886,7 @@ trait ProductAiTrait {
         }
 
         // Download video
-        $uploadDir = __DIR__ . "/../../yn/uploads/product_videos";
+        $uploadDir = dirname(__DIR__, 3) . "/yn/uploads/product_videos";
         if (!is_dir($uploadDir)) {
             mkdir($uploadDir, 0755, true);
         }
@@ -946,7 +946,7 @@ trait ProductAiTrait {
 
         $current_year = date('Y');
         $current_month = date('m');
-        $upload_base = __DIR__ . "/../../yn/uploads/";
+        $upload_base = dirname(__DIR__, 3) . "/yn/uploads/";
         $upload_path = $upload_base . $current_year . '/' . $current_month . '/';
 
         if (!file_exists($upload_path)) {
@@ -1309,7 +1309,7 @@ trait ProductAiTrait {
         $cleanPath = ltrim($imgRelativePath, '/');
         
         $localPaths = [
-            __DIR__ . '/../../yn/uploads/' . $cleanPath,
+            dirname(__DIR__, 3) . '/yn/uploads/' . $cleanPath,
             __DIR__ . '/../../uploads/' . $cleanPath,
             __DIR__ . '/../uploads/' . $cleanPath,
             'C:/xampp/htdocs/ss/yn/uploads/' . $cleanPath,

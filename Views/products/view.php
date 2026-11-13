@@ -267,10 +267,11 @@
                                 <!-- Primary Viewport -->
                                 <div class="gallery-viewport">
                                     <?php 
-                                    $firstImage = !empty($images) ? 'https://srishringarr.com/yn/uploads' . $images[0]['img_name'] : 'assets/default-product.jpg';
+                                    $firstImage = !empty($images) ? \Models\ProductModel::resolveImageUrl($images[0]['img_name']) : 'assets/default-product.jpg';
                                     ?>
                                     <img id="main-image" src="<?php echo htmlspecialchars($firstImage); ?>" 
                                          class="gallery-main-img" 
+                                         onerror="if(this.src && !this.src.includes('new_admin/yn/uploads') && this.src.includes('srishringarr.com/yn/uploads')){ this.src = this.src.replace('srishringarr.com/yn/uploads/', 'srishringarr.com/new_admin/yn/uploads/'); } else { this.src='assets/default-product.jpg'; }"
                                          alt="<?php echo htmlspecialchars($product['name']); ?>">
 
                                     <!-- Featured Ribbon Badge -->
@@ -292,13 +293,15 @@
                                 <?php if(count($images) > 1): ?>
                                     <div style="display: flex; gap: 8px; margin-top: 12px; padding-top: 12px; border-top: 1px solid #f4f4f5; overflow-x: auto; padding-bottom: 2px;">
                                         <?php foreach($images as $idx => $img): 
-                                            $fullUrl = 'https://srishringarr.com/yn/uploads' . $img['img_name'];
+                                            $fullUrl = \Models\ProductModel::resolveImageUrl($img['img_name']);
                                         ?>
                                             <button type="button" 
                                                     onclick="changeMainImage('<?php echo htmlspecialchars($fullUrl); ?>', this)" 
                                                     class="thumb-btn <?php echo $idx === 0 ? 'active' : ''; ?>"
                                                     title="View image <?php echo $idx + 1; ?>">
-                                                <img src="<?php echo htmlspecialchars($fullUrl); ?>" alt="Thumbnail <?php echo $idx + 1; ?>">
+                                                <img src="<?php echo htmlspecialchars($fullUrl); ?>" 
+                                                     onerror="if(this.src && !this.src.includes('new_admin/yn/uploads') && this.src.includes('srishringarr.com/yn/uploads')){ this.src = this.src.replace('srishringarr.com/yn/uploads/', 'srishringarr.com/new_admin/yn/uploads/'); } else { this.src='assets/default-product.jpg'; }"
+                                                     alt="Thumbnail <?php echo $idx + 1; ?>">
                                             </button>
                                         <?php endforeach; ?>
                                     </div>

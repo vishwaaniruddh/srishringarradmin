@@ -619,7 +619,7 @@ trait ProductImportExportTrait {
         $tempFilePath = $uploaded['tmp_name'];
         $fileExt = strtolower(pathinfo($originalName, PATHINFO_EXTENSION));
 
-        $tempImportsBase = __DIR__ . '/../../yn/uploads/temp_imports/';
+        $tempImportsBase = dirname(__DIR__, 3) . '/yn/uploads/temp_imports/';
         if (!file_exists($tempImportsBase)) {
             mkdir($tempImportsBase, 0755, true);
         }
@@ -804,7 +804,7 @@ trait ProductImportExportTrait {
 
     public function cleanupImportTemp() {
         $token = $_POST['import_token'] ?? $_GET['import_token'] ?? '';
-        $tempImportsBase = __DIR__ . '/../../yn/uploads/temp_imports/';
+        $tempImportsBase = dirname(__DIR__, 3) . '/yn/uploads/temp_imports/';
 
         if (!empty($token)) {
             $safeToken = preg_replace('/[^a-zA-Z0-9_-]/', '', $token);
@@ -884,7 +884,7 @@ trait ProductImportExportTrait {
             $downloadedImages = [];
             $current_year = date('Y');
             $current_month = date('m');
-            $upload_base = __DIR__ . "/../../yn/uploads/";
+            $upload_base = dirname(__DIR__, 3) . "/yn/uploads/";
             $upload_path = $current_year . '/' . $current_month . '/';
             $full_upload_path = $upload_base . $upload_path;
 
@@ -897,7 +897,7 @@ trait ProductImportExportTrait {
             $importToken = !empty($data['import_token']) ? preg_replace('/[^a-zA-Z0-9_-]/', '', (string)$data['import_token']) : '';
 
             if (!empty($importToken)) {
-                $tempImportsBase = __DIR__ . '/../../yn/uploads/temp_imports/' . $importToken . '/';
+                $tempImportsBase = dirname(__DIR__, 3) . '/yn/uploads/temp_imports/' . $importToken . '/';
                 
                 // If temp_images array was passed
                 if (!empty($tempImages) && is_array($tempImages)) {

@@ -460,6 +460,32 @@ class ProductModel extends Model
         return $categories;
     }
 
+    public static function resolveImageUrl($img_name)
+    {
+        if (empty($img_name)) {
+            return 'https://srishringarr.com/static/images/default.jpg';
+        }
+        $clean = ltrim(str_replace(['../../yn/uploads', '../yn/uploads', '/yn/uploads'], '', $img_name), '/');
+        if (empty($clean)) {
+            return 'https://srishringarr.com/static/images/default.jpg';
+        }
+
+        $standardPath = dirname(__DIR__, 2) . '/yn/uploads/' . $clean;
+        $newAdminPath = dirname(__DIR__) . '/yn/uploads/' . $clean;
+
+        // Auto-heal: If file is in new_admin/yn/uploads/, auto-copy it to yn/uploads/
+        if (file_exists($newAdminPath) && !file_exists($standardPath)) {
+            @mkdir(dirname($standardPath), 0755, true);
+            @copy($newAdminPath, $standardPath);
+        }
+
+        if (file_exists($newAdminPath) && !file_exists($standardPath)) {
+            return "https://srishringarr.com/new_admin/yn/uploads/" . $clean;
+        }
+
+        return "https://srishringarr.com/yn/uploads/" . $clean;
+    }
+
     private function getProductDetails($product)
     {
         $sku = $product['code'];
@@ -602,12 +628,7 @@ class ProductModel extends Model
             $img_row = $this->fetchOne($img_result);
 
             $img_name = $img_row['img_name'] ?? '';
-            if (!empty($img_name)) {
-                $clean_img_name = ltrim(str_replace(['../../yn/uploads', '../yn/uploads', '/yn/uploads'], '', $img_name), '/');
-                $image_path = "https://srishringarr.com/yn/uploads/" . $clean_img_name;
-            } else {
-                $image_path = 'https://srishringarr.com/static/images/default.jpg';
-            }
+            $image_path = self::resolveImageUrl($img_name);
 
             return [
                 'category_name' => $category_name,
@@ -730,13 +751,7 @@ class ProductModel extends Model
         $img_row = $this->fetchOne($img_result);
 
         $img_name = $img_row['img_name'] ?? '';
-        if (!empty($img_name)) {
-            // Remove leading slashes/paths and ensure absolute URL
-            $clean_img_name = ltrim(str_replace(['../../yn/uploads', '../yn/uploads', '/yn/uploads'], '', $img_name), '/');
-            $image_path = "https://srishringarr.com/yn/uploads/" . $clean_img_name;
-        } else {
-            $image_path = 'https://srishringarr.com/static/images/default.jpg';
-        }
+        $image_path = self::resolveImageUrl($img_name);
 
         return [
             'category_name' => $category_name,

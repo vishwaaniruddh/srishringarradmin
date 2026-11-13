@@ -846,7 +846,7 @@
                     <tr>
                         <td>
                             <div style="width: 36px; height: 46px; border-radius: 4px; overflow: hidden; position: relative; background: #f4f4f5; border: 1px solid #e4e4e7;">
-                                <img src="${imgPath}" alt="" style="width: 100%; height: 100%; object-fit: cover; display: block;" onerror="this.src='assets/default-product.jpg'">
+                                <img src="${imgPath}" alt="" style="width: 100%; height: 100%; object-fit: cover; display: block;" onerror="if(this.src && !this.src.includes('new_admin/yn/uploads') && this.src.includes('srishringarr.com/yn/uploads')){ this.src = this.src.replace('srishringarr.com/yn/uploads/', 'srishringarr.com/new_admin/yn/uploads/'); } else { this.src='assets/default-product.jpg'; }">
                             </div>
                         </td>
                         <td style="max-width: 320px; width: 30%;">

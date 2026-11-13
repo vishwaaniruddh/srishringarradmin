@@ -480,7 +480,7 @@ trait ProductBulkTrait {
         $files = $_FILES['files'];
         $current_year = date('Y');
         $current_month = date('m');
-        $upload_base = __DIR__ . "/../../yn/uploads/";
+        $upload_base = dirname(__DIR__, 3) . "/yn/uploads/";
         $upload_path = $current_year . '/' . $current_month . '/';
         $full_upload_path = $upload_base . $upload_path;
 
