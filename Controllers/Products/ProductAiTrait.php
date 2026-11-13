@@ -13,7 +13,7 @@ trait ProductAiTrait {
             return;
         }
 
-        $secrets = include(__DIR__ . '/../Config/secrets.php');
+        $secrets = include(dirname(__DIR__, 2) . '/Config/secrets.php');
         $apiKey = $secrets['GEMINI_API_KEY'] ?? '';
 
         if (empty($apiKey)) {
@@ -237,7 +237,7 @@ trait ProductAiTrait {
             return;
         }
 
-        $secrets = include(__DIR__ . '/../Config/secrets.php');
+        $secrets = include(dirname(__DIR__, 2) . '/Config/secrets.php');
         $apiKey = $secrets['GEMINI_API_KEY'] ?? '';
 
         if (empty($apiKey)) {
@@ -438,7 +438,7 @@ trait ProductAiTrait {
             $base64Image = $matches[2];
         }
 
-        $secrets = include(__DIR__ . '/../Config/secrets.php');
+        $secrets = include(dirname(__DIR__, 2) . '/Config/secrets.php');
 
         if ($target === 'name') {
             $prompt = "You are a professional fashion copywriter for Srishringarr. " .
@@ -568,7 +568,7 @@ trait ProductAiTrait {
             return;
         }
 
-        $secrets = include(__DIR__ . '/../Config/secrets.php');
+        $secrets = include(dirname(__DIR__, 2) . '/Config/secrets.php');
         $apiKey = $secrets['GEMINI_API_KEY'] ?? '';
 
         if (empty($apiKey)) {
@@ -619,7 +619,7 @@ trait ProductAiTrait {
 
         // Add face reference if selected
         if (!empty($faceReference)) {
-            $facePath = __DIR__ . '/../assets/models/' . basename($faceReference);
+            $facePath = dirname(__DIR__, 2) . '/assets/models/' . basename($faceReference);
             if (file_exists($facePath)) {
                 $faceContent = file_get_contents($facePath);
                 $faceMime = mime_content_type($facePath) ?: 'image/png';
@@ -747,7 +747,7 @@ trait ProductAiTrait {
             return;
         }
 
-        $secrets = include(__DIR__ . '/../Config/secrets.php');
+        $secrets = include(dirname(__DIR__, 2) . '/Config/secrets.php');
         $apiKey = $secrets['GEMINI_API_KEY'] ?? '';
 
         if (empty($apiKey)) {
@@ -847,7 +847,7 @@ trait ProductAiTrait {
             return;
         }
 
-        $secrets = include(__DIR__ . '/../Config/secrets.php');
+        $secrets = include(dirname(__DIR__, 2) . '/Config/secrets.php');
         $apiKey = $secrets['GEMINI_API_KEY'] ?? '';
 
         $url = "https://generativelanguage.googleapis.com/v1beta/" . $operationName;
@@ -1024,7 +1024,7 @@ trait ProductAiTrait {
         $productModel = new ProductModel();
         $categories = $productModel->getCategories();
         
-        $secretsFile = __DIR__ . '/../Config/secrets.php';
+        $secretsFile = dirname(__DIR__, 2) . '/Config/secrets.php';
         $hasApiKey = false;
         $hasGemini = false;
         $hasOpenAi = false;
@@ -1273,7 +1273,7 @@ trait ProductAiTrait {
             return;
         }
 
-        $secrets = include(__DIR__ . '/../Config/secrets.php');
+        $secrets = include(dirname(__DIR__, 2) . '/Config/secrets.php');
         $provider = strtolower($_GET['ai_provider'] ?? '');
         $geminiApiKey = $secrets['GEMINI_API_KEY'] ?? '';
         $openAiApiKey = $secrets['OPENAI_API_KEY'] ?? '';
