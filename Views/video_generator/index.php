@@ -217,8 +217,8 @@
                                     <i class="fa-solid fa-wand-magic-sparkles text-amber-400"></i> Engine:
                                 </span>
                                 <select id="videoEngine" onchange="onEngineChange(this.value)" class="px-2.5 py-1.5 bg-slate-800 border border-slate-700 rounded text-xs text-white font-semibold outline-none focus:border-slate-500">
-                                    <option value="studio" selected>AI Luxury Studio Showcase (Up to 30s • Multi-Angle &amp; Audio)</option>
-                                    <option value="veo">Google Veo 3.1 AI (4s – 8s Preview)</option>
+                                    <option value="studio" selected>AI Luxury Studio Showcase (Up to 30s • Multi-Angle &amp; Audio • Recommended)</option>
+                                    <option value="veo">Google Veo 3.1 AI (Requires Paid Google Cloud Project)</option>
                                 </select>
                             </div>
 

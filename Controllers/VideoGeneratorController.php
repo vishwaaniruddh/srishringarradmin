@@ -610,7 +610,10 @@ Respond with valid JSON only:
         }
 
         $errorMsg = $data['error']['message'] ?? ('HTTP ' . $httpCode . ': ' . $res);
-        $this->json(['error' => 'Veo Initiation Failed: ' . $errorMsg], 500);
+        if (stripos($errorMsg, 'not found') !== false || stripos($errorMsg, 'not supported') !== false) {
+            $errorMsg = "Veo video generation is not enabled on this Gemini API key. Google requires a Google Cloud project with billing enabled and Veo early access. Please switch the Engine dropdown to 'AI Luxury Studio Showcase (Up to 30s)' to generate luxury videos immediately.";
+        }
+        $this->json(['error' => $errorMsg], 500);
     }
 
     /**
