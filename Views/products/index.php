@@ -438,8 +438,8 @@
                             <button type="button" id="tab-instock" onclick="setQuickTab('instock', this)" class="shadcn-btn shadcn-btn-outline" style="height: 30px; font-size: 12px; padding: 0 12px; font-weight: 500;">
                                 In Stock (<span id="tab-count-instock">—</span>)
                             </button>
-                            <button type="button" id="tab-saturday" onclick="setQuickTab('saturday', this)" class="shadcn-btn shadcn-btn-outline" style="height: 30px; font-size: 12px; padding: 0 12px; font-weight: 500; border-color: #cbd5e1; color: #0f172a;" title="Products uploaded on Saturday (Oct 10, 2026)">
-                                <i class="fa-solid fa-calendar-day" style="font-size: 11px; margin-right: 5px; color: #475569;"></i> Saturday Uploads (Oct 10) <span style="background: #0f172a; color: #ffffff; font-size: 10px; padding: 1px 6px; border-radius: 999px; font-weight: 600; margin-left: 5px;">664</span>
+                            <button type="button" id="tab-no-image" onclick="setQuickTab('no_image', this)" class="shadcn-btn shadcn-btn-outline" style="height: 30px; font-size: 12px; padding: 0 12px; font-weight: 500;" title="Products with no image uploaded">
+                                <i class="fa-regular fa-image" style="font-size: 11px; margin-right: 5px; color: #64748b;"></i> No Image (<span id="tab-count-no-image">—</span>)
                             </button>
                         </div>
 
@@ -642,7 +642,7 @@
     // Quick Tab Selector
     function setQuickTab(tab, el) {
         quickTab = tab;
-        document.querySelectorAll('#tab-all, #tab-featured, #tab-instock, #tab-saturday').forEach(b => {
+        document.querySelectorAll('#tab-all, #tab-featured, #tab-instock, #tab-no-image').forEach(b => {
             b.className = 'shadcn-btn shadcn-btn-outline';
         });
         if (el) {
@@ -660,7 +660,7 @@
         } else if (tab === 'instock') {
             availableOnly = false;
             document.getElementById('stockFilter').value = 'instock';
-        } else if (tab === 'saturday') {
+        } else if (tab === 'no_image') {
             availableOnly = false;
             document.getElementById('featuredFilter').value = '';
             document.getElementById('stockFilter').value = '';
@@ -687,10 +687,11 @@
         const featured = document.getElementById('featuredFilter') ? document.getElementById('featuredFilter').value : '';
         const storePresence = document.getElementById('storePresenceFilter') ? document.getElementById('storePresenceFilter').value : '';
         const urlParamDate = new URLSearchParams(window.location.search).get('upload_date') || new URLSearchParams(window.location.search).get('filter') || '';
-        const uploadDate = (quickTab === 'saturday' || urlParamDate === 'saturday' || urlParamDate === '2026-10-10') ? '2026-10-10' : urlParamDate;
+        const uploadDate = urlParamDate;
+        const noImage = (quickTab === 'no_image') ? 1 : 0;
         const menu = document.getElementById('export-menu');
         if (menu) menu.classList.remove('open');
-        window.location.href = `index.php?controller=product&action=export&format=${format}&search=${encodeURIComponent(search)}&category=${encodeURIComponent(category)}&featured=${encodeURIComponent(featured)}&store_presence=${encodeURIComponent(storePresence)}&available_only=${availableOnly ? 1 : 0}&upload_date=${encodeURIComponent(uploadDate)}`;
+        window.location.href = `index.php?controller=product&action=export&format=${format}&search=${encodeURIComponent(search)}&category=${encodeURIComponent(category)}&featured=${encodeURIComponent(featured)}&store_presence=${encodeURIComponent(storePresence)}&available_only=${availableOnly ? 1 : 0}&upload_date=${encodeURIComponent(uploadDate)}&no_image=${noImage}`;
     }
 
     async function loadProducts(page = 1) {
@@ -700,7 +701,7 @@
         const featured = document.getElementById('featuredFilter').value;
         const stock = document.getElementById('stockFilter').value;
         const storePresence = document.getElementById('storePresenceFilter') ? document.getElementById('storePresenceFilter').value : '';
-        const uploadDate = (quickTab === 'saturday') ? '2026-10-10' : '';
+        const isNoImage = (quickTab === 'no_image') ? 1 : 0;
 
         checkFilterActive();
 
@@ -710,7 +711,7 @@
 
         try {
             const isAvail = (availableOnly || stock === 'instock') ? 1 : 0;
-            const response = await fetch(`index.php?controller=api&action=products&page=${page}&search=${encodeURIComponent(search)}&category=${encodeURIComponent(category)}&featured=${featured}&available_only=${isAvail}&store_presence=${encodeURIComponent(storePresence)}&upload_date=${encodeURIComponent(uploadDate)}`);
+            const response = await fetch(`index.php?controller=api&action=products&page=${page}&search=${encodeURIComponent(search)}&category=${encodeURIComponent(category)}&featured=${featured}&available_only=${isAvail}&store_presence=${encodeURIComponent(storePresence)}&no_image=${isNoImage}`);
             const data = await response.json();
 
             // Total and Stats Update
@@ -718,11 +719,14 @@
             const inStockCount = data.stats ? data.stats.in_stock : 0;
             const oosCount = data.stats ? data.stats.out_of_stock : 0;
             const featuredCount = data.stats ? data.stats.featured : 0;
+            const noImageCount = data.stats ? (data.stats.no_image || 0) : 0;
 
             document.getElementById('header-count').textContent = Number(total).toLocaleString('en-IN');
             document.getElementById('tab-count-all').textContent = Number(total).toLocaleString('en-IN');
             document.getElementById('tab-count-featured').textContent = Number(featuredCount).toLocaleString('en-IN');
             document.getElementById('tab-count-instock').textContent = Number(inStockCount).toLocaleString('en-IN');
+            const noImgEl = document.getElementById('tab-count-no-image');
+            if (noImgEl) noImgEl.textContent = Number(noImageCount).toLocaleString('en-IN');
             document.getElementById('tab-count-trash').textContent = Number(oosCount).toLocaleString('en-IN');
 
             // Range display (Showing 1–20 of X products)
@@ -1010,7 +1014,7 @@
         if (document.getElementById('storePresenceFilter')) document.getElementById('storePresenceFilter').value = '';
         availableOnly = false;
         quickTab = 'all';
-        document.querySelectorAll('#tab-all, #tab-featured, #tab-instock, #tab-saturday').forEach(b => {
+        document.querySelectorAll('#tab-all, #tab-featured, #tab-instock, #tab-no-image').forEach(b => {
             b.className = 'shadcn-btn shadcn-btn-outline';
         });
         document.getElementById('tab-all').className = 'shadcn-btn shadcn-btn-primary';
@@ -1054,10 +1058,10 @@
     // Initial load
     document.addEventListener('DOMContentLoaded', () => {
         const urlParams = new URLSearchParams(window.location.search);
-        if (urlParams.get('filter') === 'saturday' || urlParams.get('upload_date') === 'saturday' || urlParams.get('upload_date') === '2026-10-10') {
-            const satBtn = document.getElementById('tab-saturday');
-            if (satBtn) {
-                setQuickTab('saturday', satBtn);
+        if (urlParams.get('filter') === 'no_image' || urlParams.get('no_image') === '1') {
+            const noImgBtn = document.getElementById('tab-no-image');
+            if (noImgBtn) {
+                setQuickTab('no_image', noImgBtn);
                 return;
             }
         }

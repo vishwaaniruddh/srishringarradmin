@@ -452,6 +452,13 @@ trait ProductImportExportTrait {
             $garments_search .= " AND featured = $featured";
         }
 
+        // Apply No Image filter
+        $noImage = isset($_GET['no_image']) && ($_GET['no_image'] == 1 || $_GET['no_image'] === 'true');
+        if ($noImage) {
+            $jewellery_search .= " AND NOT EXISTS (SELECT 1 FROM product_images_new WHERE product_id = product.product_id AND img_name != '' AND img_name REGEXP '\\.(jpe?g|png|webp|gif)$') AND NOT EXISTS (SELECT 1 FROM product_images_new WHERE pro_code = product.product_code AND img_name != '' AND img_name REGEXP '\\.(jpe?g|png|webp|gif)$')";
+            $garments_search .= " AND NOT EXISTS (SELECT 1 FROM product_images_new WHERE gproduct_id = garment_product.gproduct_id AND img_name != '' AND img_name REGEXP '\\.(jpe?g|png|webp|gif)$') AND NOT EXISTS (SELECT 1 FROM product_images_new WHERE pro_code = garment_product.gproduct_code AND img_name != '' AND img_name REGEXP '\\.(jpe?g|png|webp|gif)$')";
+        }
+
         $query = "(SELECT product_id as id, product_code as code, 'jewellery' as type, product_name as name, rent_price as db_rent_price, sales_price as original_sales_price, date_added, featured FROM product WHERE 1=1 $jewellery_search)
                   UNION ALL
                   (SELECT gproduct_id as id, gproduct_code as code, 'garments' as type, gproduct_name as name, rent_price as db_rent_price, sales_price as original_sales_price, date_added, featured FROM garment_product WHERE 1=1 $garments_search)

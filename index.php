@@ -15,9 +15,8 @@ spl_autoload_register(function ($class) {
     }
     // Fallback for Linux case sensitivity (e.g., controllers/ vs Controllers/, models/ vs Models/)
     $parts = explode(DIRECTORY_SEPARATOR, $classPath);
-    if (count($parts) >= 2) {
-        $parts[0] = strtolower($parts[0]);
-        $fallback = __DIR__ . DIRECTORY_SEPARATOR . implode(DIRECTORY_SEPARATOR, $parts) . '.php';
+    if (count($parts) === 2) {
+        $fallback = __DIR__ . DIRECTORY_SEPARATOR . strtolower($parts[0]) . DIRECTORY_SEPARATOR . $parts[1] . '.php';
         if (file_exists($fallback)) {
             require_once $fallback;
             return;

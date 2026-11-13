@@ -81,6 +81,12 @@ class ProductModel extends Model
             $garments_search .= " AND DATE(date_added) = '$escDate'";
         }
 
+        $no_image = $params['no_image'] ?? false;
+        if ($no_image) {
+            $jewellery_search .= " AND NOT EXISTS (SELECT 1 FROM product_images_new WHERE product_id = product.product_id AND img_name != '' AND img_name REGEXP '\\.(jpe?g|png|webp|gif)$') AND NOT EXISTS (SELECT 1 FROM product_images_new WHERE pro_code = product.product_code AND img_name != '' AND img_name REGEXP '\\.(jpe?g|png|webp|gif)$')";
+            $garments_search .= " AND NOT EXISTS (SELECT 1 FROM product_images_new WHERE gproduct_id = garment_product.gproduct_id AND img_name != '' AND img_name REGEXP '\\.(jpe?g|png|webp|gif)$') AND NOT EXISTS (SELECT 1 FROM product_images_new WHERE pro_code = garment_product.gproduct_code AND img_name != '' AND img_name REGEXP '\\.(jpe?g|png|webp|gif)$')";
+        }
+
         if (!empty($category_param)) {
             if (strpos($category_param, ':') !== false) {
                 list($type, $id) = explode(':', $category_param);
@@ -267,6 +273,12 @@ class ProductModel extends Model
             $escDate = mysqli_real_escape_string($this->db, $upload_date);
             $jewellery_search .= " AND DATE(date_added) = '$escDate'";
             $garments_search .= " AND DATE(date_added) = '$escDate'";
+        }
+
+        $no_image = $params['no_image'] ?? false;
+        if ($no_image) {
+            $jewellery_search .= " AND NOT EXISTS (SELECT 1 FROM product_images_new WHERE product_id = product.product_id AND img_name != '' AND img_name REGEXP '\\.(jpe?g|png|webp|gif)$') AND NOT EXISTS (SELECT 1 FROM product_images_new WHERE pro_code = product.product_code AND img_name != '' AND img_name REGEXP '\\.(jpe?g|png|webp|gif)$')";
+            $garments_search .= " AND NOT EXISTS (SELECT 1 FROM product_images_new WHERE gproduct_id = garment_product.gproduct_id AND img_name != '' AND img_name REGEXP '\\.(jpe?g|png|webp|gif)$') AND NOT EXISTS (SELECT 1 FROM product_images_new WHERE pro_code = garment_product.gproduct_code AND img_name != '' AND img_name REGEXP '\\.(jpe?g|png|webp|gif)$')";
         }
 
         if (!empty($category_param)) {
@@ -2235,11 +2247,26 @@ class ProductModel extends Model
 
         $outOfStock = $total - $inStock;
 
+        // No image count
+        $noImageQuery = "
+            SELECT SUM(cnt) as total FROM (
+                SELECT COUNT(*) as cnt FROM product p 
+                WHERE NOT EXISTS (SELECT 1 FROM product_images_new WHERE product_id = p.product_id AND img_name != '' AND img_name REGEXP '\\.(jpe?g|png|webp|gif)$')
+                  AND NOT EXISTS (SELECT 1 FROM product_images_new WHERE pro_code = p.product_code AND img_name != '' AND img_name REGEXP '\\.(jpe?g|png|webp|gif)$')
+                UNION ALL
+                SELECT COUNT(*) as cnt FROM garment_product gp 
+                WHERE NOT EXISTS (SELECT 1 FROM product_images_new WHERE gproduct_id = gp.gproduct_id AND img_name != '' AND img_name REGEXP '\\.(jpe?g|png|webp|gif)$')
+                  AND NOT EXISTS (SELECT 1 FROM product_images_new WHERE pro_code = gp.gproduct_code AND img_name != '' AND img_name REGEXP '\\.(jpe?g|png|webp|gif)$')
+            ) t";
+        $noImageResult = $this->query($this->db, $noImageQuery);
+        $noImage = (int)($this->fetchOne($noImageResult)['total'] ?? 0);
+
         return [
             'total' => $total,
             'in_stock' => $inStock,
             'out_of_stock' => $outOfStock,
-            'featured' => $featured
+            'featured' => $featured,
+            'no_image' => $noImage
         ];
     }
 }
