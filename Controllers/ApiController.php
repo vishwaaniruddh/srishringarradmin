@@ -211,4 +211,62 @@ class ApiController extends Controller {
             $this->json(['error' => $e->getMessage()], 500);
         }
     }
+
+    public function clearCache() {
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST' && $_SERVER['REQUEST_METHOD'] !== 'GET') {
+            $this->json(['error' => 'Method not allowed'], 405);
+            return;
+        }
+
+        $cleared = [];
+
+        // 1. Clear API WebP image proxy cache
+        $apiCacheDir = dirname(__DIR__, 2) . '/API/cache/images';
+        if (is_dir($apiCacheDir)) {
+            $files = glob($apiCacheDir . '/*.webp');
+            $count = 0;
+            if ($files) {
+                foreach ($files as $f) {
+                    if (is_file($f)) {
+                        @unlink($f);
+                        $count++;
+                    }
+                }
+            }
+            $cleared['image_cache'] = "$count WebP images cleared";
+        }
+
+        // 2. Clear Storefront / Child cache
+        $storeCacheDirs = [
+            dirname(__DIR__, 2) . '/yn/admin/cache',
+            dirname(__DIR__, 2) . '/admin/cache'
+        ];
+        $storeCount = 0;
+        foreach ($storeCacheDirs as $dir) {
+            if (is_dir($dir)) {
+                $files = glob($dir . '/*');
+                if ($files) {
+                    foreach ($files as $f) {
+                        if (is_file($f)) {
+                            @unlink($f);
+                            $storeCount++;
+                        }
+                    }
+                }
+            }
+        }
+        $cleared['store_cache'] = "$storeCount files cleared";
+
+        // 3. Clear OPcache if enabled
+        if (function_exists('opcache_reset')) {
+            @opcache_reset();
+            $cleared['opcache'] = 'Reset';
+        }
+
+        $this->json([
+            'success' => true,
+            'message' => 'Cache cleared successfully!',
+            'details' => $cleared
+        ]);
+    }
 }
